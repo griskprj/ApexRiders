@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ApexRiders - Регистрация</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/auth/register.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <main class="register-container">
+        <div class="register-card">
+            <div class="logo">
+                <i class="fas fa-motorcycle"></i>
+                <h1>ApexRiders</h1>
+                <p class="tagline">Присоединяйтесь к сообществу мотоциклистов</p>
+            </div>
+
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    <div class="alert alert-error">
+                        {% for category, message in messages %}
+                            {{ message }}
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            {% endwith %}
+
+            <!-- Форма регистрации -->
+            <form method="POST" action="{{ url_for('auth.register') }}" class="register-form" id="registerForm">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                <div class="form-row">
+                    <div class="input-group">
+                        <label for="username"><i class="fas fa-user"></i> Имя пользователя *</label>
+                        <input type="text" id="username" name="username" required 
+                               pattern="[a-zA-Z0-9_]{3,20}" 
+                               title="От 3 до 20 символов (латинские буквы, цифры, подчеркивание)">
+                        <span class="input-hint">От 3 до 20 символов</span>
+                    </div>
+
+                    <div class="input-group">
+                        <label for="email"><i class="fas fa-envelope"></i> Email *</label>
+                        <input type="email" id="email" name="email" required>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="input-group">
+                        <label for="password"><i class="fas fa-lock"></i> Пароль *</label>
+                        <input type="password" id="password" name="password" required 
+                               minlength="6"
+                               pattern="^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{6,}$"
+                               title="Минимум 6 символов, одна заглавная буква, одна цифра">
+                        <span class="input-hint">Минимум 6 символов, цифры и буквы</span>
+                    </div>
+
+                    <div class="input-group">
+                        <label for="confirm_password"><i class="fas fa-lock"></i> Подтвердите пароль *</label>
+                        <input type="password" id="confirm_password" name="confirm_password" required>
+                    </div>
+                </div>
+
+                <div class="terms-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" name="agree_terms" required>
+                        <span class="checkmark"></span>
+                        Я принимаю <a href="{{ url_for('law.terms') }}" class="link">условия использования</a> 
+                        и согласен с <a href="{{ url_for('law.privacy') }}" class="link">политикой конфиденциальности</a> *
+                    </label>
+                </div>
+
+                <button type="submit" class="btn btn-primary" id="submitBtn">
+                    <i class="fas fa-user-plus"></i> Создать аккаунт
+                </button>
+            </form>
+
+            <div class="divider"><span>Уже с нами?</span></div>
+
+            <p class="login-link">
+                Уже есть аккаунт? <a href="{{ url_for('auth.login') }}" class="link">Войти</a>
+            </p>
+        </div>
+    </main>
+
+    <script src="/js/auth/register.js"></script>
+</body>
+</html>

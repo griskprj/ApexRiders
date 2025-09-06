@@ -1,0 +1,226 @@
+/* Общие сбросы и настройки */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Roboto', 'Arial', sans-serif;
+    background-color: #0D1B2A; /* Темный фон */
+    color: #E0E1DD; /* Светлый текст */
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    line-height: 1.6;
+}
+
+/* Контейнер, центрирующий карточку */
+.login-container {
+    width: 100%;
+    max-width: 420px;
+    padding: 20px;
+}
+
+/* Сама карточка с формой */
+.login-card {
+    background-color: #1B263B;
+    padding: 2.5rem;
+    border-radius: 10px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+}
+
+/* Стили для логотипа */
+.logo {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+.logo i {
+    font-size: 2.5rem;
+    color: #778DA9;
+    margin-bottom: 0.5rem;
+    display: block;
+}
+.logo h1 {
+    font-size: 1.8rem;
+    font-weight: 600;
+    color: #E0E1DD;
+}
+
+/* Группа полей ввода */
+.input-group {
+    margin-bottom: 1.5rem;
+}
+.input-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+    color: #E0E1DD;
+}
+.input-group label i {
+    margin-right: 10px;
+    color: #778DA9;
+    width: 16px;
+}
+.input-group input {
+    width: 100%;
+    padding: 12px 15px;
+    border: 2px solid #415A77;
+    background-color: rgba(255, 255, 255, 0.05);
+    border-radius: 6px;
+    color: #E0E1DD;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+}
+.input-group input:focus {
+    outline: none;
+    border-color: #778DA9;
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Группа "Запомнить меня" и "Забыли пароль" */
+.options-group {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    font-size: 0.9rem;
+}
+
+/* Кастомный чекбокс */
+.checkbox-label {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+}
+.checkbox-label input[type="checkbox"] {
+    display: none;
+}
+.checkmark {
+    height: 18px;
+    width: 18px;
+    background-color: rgba(255, 255, 255, 0.05);
+    border: 2px solid #415A77;
+    border-radius: 4px;
+    margin-right: 8px;
+    display: inline-block;
+    position: relative;
+}
+.checkbox-label input:checked + .checkmark {
+    background-color: #415A77;
+    border-color: #415A77;
+}
+.checkbox-label input:checked + .checkmark:after {
+    content: "";
+    position: absolute;
+    left: 5px;
+    top: 1px;
+    width: 4px;
+    height: 9px;
+    border: solid white;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+}
+
+.forgot-password {
+    color: #778DA9;
+    text-decoration: none;
+    transition: color 0.3s ease;
+}
+.forgot-password:hover {
+    color: #E0E1DD;
+    text-decoration: underline;
+}
+
+/* Основная кнопка */
+.btn {
+    width: 100%;
+    padding: 14px;
+    border: none;
+    border-radius: 6px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.3s ease, transform 0.1s ease;
+}
+.btn-primary {
+    background-color: #415A77;
+    color: #E0E1DD;
+}
+.btn-primary:hover {
+    background-color: #4c6990; /* Более светлый оттенок */
+}
+.btn-primary:active {
+    transform: scale(0.98);
+}
+
+/* Разделитель */
+.divider {
+    text-align: center;
+    margin: 1.5rem 0;
+    position: relative;
+}
+.divider::before {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background-color: #415A77;
+}
+.divider span {
+    background-color: #1B263B;
+    position: relative;
+    padding: 0 10px;
+    color: #778DA9;
+    font-size: 0.9rem;
+}
+
+/* Ссылка на регистрацию */
+.signup-link {
+    text-align: center;
+    margin-top: 1rem;
+    font-size: 0.95rem;
+    color: #E0E1DD;
+}
+.signup-link a {
+    color: #778DA9;
+    font-weight: 600;
+    text-decoration: none;
+    transition: color 0.3s ease;
+}
+.signup-link a:hover {
+    color: #E0E1DD;
+    text-decoration: underline;
+}
+
+/* Оповещения об ошибках */
+.alert {
+    padding: 12px;
+    border-radius: 6px;
+    margin-bottom: 1.5rem;
+    text-align: center;
+    font-size: 0.9rem;
+}
+.alert-error {
+    background-color: rgba(220, 53, 69, 0.2); /* Полупрозрачный красный */
+    color: #f8d7da;
+    border: 1px solid rgba(220, 53, 69, 0.5);
+}
+
+/* Адаптивность для мобильных */
+@media (max-width: 480px) {
+    .login-card {
+        padding: 1.5rem;
+    }
+    .options-group {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.8rem;
+    }
+    .forgot-password {
+        align-self: flex-end;
+    }
+}
