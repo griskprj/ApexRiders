@@ -2,20 +2,6 @@ from app.extensions import db
 from flask_login import UserMixin
 from datetime import datetime
 
-""" PENDING USER REGISTRATION """
-class PendingRegistration(db.Model):
-    __tablename__ = 'pending_registrations'
-
-    id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(120), unique=True, nullable=False), index=True
-    email = db.Column(db.String(120), unique=True, nullable=False, index=True)
-    password = db.Column(db.String(256), nullable=False, index=True)
-    verification_token = db.Column(db.String(32), nullable=False)
-    token_expiration = db.Column(db.DateTime, nullable=False)
-
-    __tabel_args__ = {
-        db.Index('ix_token_expiration', 'token_expiration')
-    }
 
 """ USER """
 class User(UserMixin, db.Model):
@@ -30,6 +16,7 @@ class User(UserMixin, db.Model):
 
     is_admin = db.Column(db.Boolean, default=False)
     is_active = db.Column(db.Boolean, default=True)
+    is_confirmed = db.Column(db.Boolean, default=False)
 
     motorcycles = db.relationship("Motorcycle", back_populates="owner", cascade="all, delete-orphan")
 
@@ -47,7 +34,7 @@ class Motorcycle(db.Model):
     __tablename__ = 'motorcycles'
 
     id = db.Column(db.Integer, primary_key=True)
-    owner_id = db.Column(db.Integer, db.ForeignKey('users.id'), ondelete='CASCADE', nullable=False)
+    owner_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='CASCADE'), nullable=False)
     model = db.Column(db.String(120), nullable=False)
     years_create = db.Column(db.Integer, nullable=False)
     mileage = db.Column(db.Integer, nullable=False)

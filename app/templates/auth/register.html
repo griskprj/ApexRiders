@@ -4,85 +4,87 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ApexRiders - Регистрация</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/auth/register.css') }}">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <link rel="stylesheet" href="/static/css/auth/register.css">
 </head>
 <body>
-    <main class="register-container">
-        <div class="register-card">
+    <div class="container">
+        <div class="header">
             <div class="logo">
-                <i class="fas fa-motorcycle"></i>
-                <h1>ApexRiders</h1>
-                <p class="tagline">Присоединяйтесь к сообществу мотоциклистов</p>
+                <div class="logo-icon"></div>
+                <div class="logo-text">MotoCommunity</div>
             </div>
-
-            {% with messages = get_flashed_messages(with_categories=true) %}
-                {% if messages %}
-                    <div class="alert alert-error">
-                        {% for category, message in messages %}
-                            {{ message }}
-                        {% endfor %}
-                    </div>
-                {% endif %}
-            {% endwith %}
-
-            <!-- Форма регистрации -->
-            <form method="POST" action="{{ url_for('auth.register') }}" class="register-form" id="registerForm">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-
-                <div class="form-row">
-                    <div class="input-group">
-                        <label for="username"><i class="fas fa-user"></i> Имя пользователя *</label>
-                        <input type="text" id="username" name="username" required 
-                               pattern="[a-zA-Z0-9_]{3,20}" 
-                               title="От 3 до 20 символов (латинские буквы, цифры, подчеркивание)">
-                        <span class="input-hint">От 3 до 20 символов</span>
-                    </div>
-
-                    <div class="input-group">
-                        <label for="email"><i class="fas fa-envelope"></i> Email *</label>
-                        <input type="email" id="email" name="email" required>
-                    </div>
-                </div>
-
-                <div class="form-row">
-                    <div class="input-group">
-                        <label for="password"><i class="fas fa-lock"></i> Пароль *</label>
-                        <input type="password" id="password" name="password" required 
-                               minlength="6"
-                               pattern="^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{6,}$"
-                               title="Минимум 6 символов, одна заглавная буква, одна цифра">
-                        <span class="input-hint">Минимум 6 символов, цифры и буквы</span>
-                    </div>
-
-                    <div class="input-group">
-                        <label for="confirm_password"><i class="fas fa-lock"></i> Подтвердите пароль *</label>
-                        <input type="password" id="confirm_password" name="confirm_password" required>
-                    </div>
-                </div>
-
-                <div class="terms-group">
-                    <label class="checkbox-label">
-                        <input type="checkbox" name="agree_terms" required>
-                        <span class="checkmark"></span>
-                        Я принимаю <a href="{{ url_for('law.terms') }}" class="link">условия использования</a> 
-                        и согласен с <a href="{{ url_for('law.privacy') }}" class="link">политикой конфиденциальности</a> *
-                    </label>
-                </div>
-
-                <button type="submit" class="btn btn-primary" id="submitBtn">
-                    <i class="fas fa-user-plus"></i> Создать аккаунт
-                </button>
-            </form>
-
-            <div class="divider"><span>Уже с нами?</span></div>
-
-            <p class="login-link">
-                Уже есть аккаунт? <a href="{{ url_for('auth.login') }}" class="link">Войти</a>
-            </p>
+            <p class="subtitle">Присоединяйтесь к сообществу мотоциклистов</p>
         </div>
-    </main>
+        
+        <form method="POST" action="{{ url_for('auth.register') }}" id="registerForm">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
-    <script src="/js/auth/register.js"></script>
+            <div class="form-group">
+                <label for="username">Имя пользователя</label>
+                <input type="text" id="username" placeholder="Придумайте логин" name="username" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="email">Email</label>
+                <input type="email" id="email" placeholder="Ваш email" name="email" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="password">Пароль</label>
+                <input type="password" id="password" placeholder="Создайте надежный пароль" name="password" required>
+                <div class="password-strength">
+                    <div class="strength-meter" id="strengthMeter"></div>
+                </div>
+                <div class="strength-text" id="strengthText">Введите пароль</div>
+            </div>
+            
+            <div class="form-group">
+                <label for="confirmPassword">Подтверждение пароля</label>
+                <input type="password" id="confirmPassword" placeholder="Повторите пароль" required>
+            </div>
+            
+            <div class="checkbox-group">
+                <input type="checkbox" id="policy">
+                <label for="policy">
+                    <span class="custom-checkbox"></span>
+                    Я принимаю <a href="#" class="policy-link" id="policyLink">условия использования</a> и соглашаюсь с политикой конфиденциальности
+                </label>
+            </div>
+            
+            <button type="submit" class="btn-register" id="registerBtn">Зарегистрироваться</button>
+        </form>
+        
+        <div class="login-link">
+            Уже есть аккаунт? <a href="{{ url_for('auth.login') }}"">Войти</a>
+        </div>
+    </div>
+
+    <div class="modal" id="policyModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">Политика конфиденциальности</h2>
+                <button class="close-modal">&times;</button>
+            </div>
+            <div class="policy-text">
+                <h3>1. Сбор информации</h3>
+                <p>Мы собираем информацию, которую вы предоставляете при регистрации на нашем сайте, включая имя, адрес электронной почты и другую контактную информацию.</p>
+                
+                <h3>2. Использование информации</h3>
+                <p>Мы используем вашу личную информацию для предоставления услуг, обработки транзакций и связи с вами по поводу вашей учетной записи.</p>
+                
+                <h3>3. Защита информации</h3>
+                <p>Мы принимаем разумные меры для защиты вашей личной информации от несанкционированного доступа, использования или раскрытия.</p>
+                
+                <h3>4. Файлы cookie</h3>
+                <p>Мы используем файлы cookie и аналогичные технологии для отслеживания активности на нашем Сервисе и хранения определенной информации.</p>
+                
+                <h3>5. Изменения в политике конфиденциальности</h3>
+                <p>Мы можем время от времени обновлять нашу политику конфиденциальности. Мы уведомим вас о любых изменениях, разместив новую политику конфиденциальности на этой странице.</p>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/js/auth/register.js"></script>
 </body>
 </html>
