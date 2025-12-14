@@ -130,7 +130,7 @@ class Product(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(256), nullable=False)
     description = db.Column(db.Text, nullable=False)
-    images = db.Column(db.JSON, nullable=False)
+    images = db.Column(db.JSON)
     cost = db.Column(db.Integer, nullable=False)
     category = db.Column(db.String(64), nullable=False)
     town = db.Column(db.String(128), nullable=False)

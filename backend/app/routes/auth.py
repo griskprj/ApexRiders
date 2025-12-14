@@ -66,7 +66,7 @@ def register_user():
         }), 201
     except Exception as e:
         db.session.rollback()
-        return jsonify({'error': 'Internal server error.'}), 500
+        return jsonify({'error': f'Internal server error: {e}'}), 500
     
 @auth.route('/api/auth/user', methods=['GET'])
 @jwt_required()

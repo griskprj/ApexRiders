@@ -2,10 +2,12 @@ from flask import Flask, jsonify
 from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
 from flask_jwt_extended import JWTManager
+from flask_migrate import Migrate
 import datetime
 
 db = SQLAlchemy()
 jwt = JWTManager()
+migrate = Migrate
 
 @jwt.unauthorized_loader
 def unauthorized_callback(callback):
@@ -28,13 +30,16 @@ def create_app():
 
     db.init_app(app)
     jwt.init_app(app)
+    migrate(app, db)
     CORS(app, origins=['http://localhost:3000'], supports_credentials=True)
 
-    from app.routes import auth, motorcycles, statist, manuals
+    from app.routes import auth, motorcycles, statist, manuals, courses, product
     app.register_blueprint(auth.auth)
     app.register_blueprint(motorcycles.motorcycle)
     app.register_blueprint(statist.statistic)
     app.register_blueprint(manuals.manuals)
+    app.register_blueprint(product.product)
+    app.register_blueprint(courses.courses)
 
     with app.app_context():
         db.create_all()
