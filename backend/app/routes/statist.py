@@ -18,10 +18,18 @@ def dashboard_stat():
     # Стата уроков, мануалов и объявлений    
     manuals_count = UserManualHistory.query.filter_by(user_id=current_user_id).count()
     lessons_count = UserLessonHistory.query.filter_by(user_id=current_user_id).count()
-    products_active_count = Product.query.filter_by(
+    
+    active_products = Product.query.filter_by(
         owner_id=current_user_id,
         is_active=True
-    ).count()
+    ).all()
+    products_active_data = [{
+        'id': p.id,
+        'title': p.title,
+        'cost': p.cost,
+        'watchs': p.watchs
+    } for p in active_products]
+
     posts_count = Post.query.filter_by(author_id=current_user_id).count()
 
     # Стата лайков и комментов польз-я
@@ -59,7 +67,8 @@ def dashboard_stat():
     return jsonify({
         'manuals_count': manuals_count,
         'lessons_count': lessons_count,
-        'product_active_count': products_active_count,
+        'product_active_count': len(active_products),
+        'active_product_data': products_active_data,
         'posts_count': posts_count,
         'total_likes': total_likes,
         'answer_count': answer_count,

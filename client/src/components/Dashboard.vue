@@ -225,7 +225,6 @@ export default {
 
     mounted() {
         this.fetchDashboardStats()
-        this.fetchUserProducts()
     },
 
     methods: {
@@ -247,26 +246,8 @@ export default {
                     this.answerCount = response.data.answer_count || 0
                     this.totalLikes = response.data.total_likes || 0
                     this.courses = response.data.courses || []
-                }
-            } catch (error) {
-                console.error('Ошибка при получении количества мануалов: ', error)
-            } finally {
-                this.isLoading = false
-            }
-        },
 
-        async fetchUserProducts() {
-            try {
-                const token = localStorage.getItem('authToken')
-
-                const response = await axios.get('/api/product/user', {
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
-                })
-
-                if (response.data) {
-                    this.products = response.data.product || []
+                    this.products = response.data.active_product_data || []
 
                     this.products.sort((a, b) => {
                         if (a.is_active !== b.is_active) {
@@ -276,14 +257,14 @@ export default {
                     })
                 }
             } catch (error) {
-                console.error('Ошибка при получении объявлений', error)
+                console.error('Ошибка при получении количества мануалов: ', error)
             } finally {
                 this.isLoading = false
             }
         },
 
         getStatusText(product) {
-            if (!product.is_active) return 'На паузе'
+            if (product.is_active) return 'На паузе'
             if (product.is_bargain) return 'Торг уместен'
             return 'Активно'
         },
