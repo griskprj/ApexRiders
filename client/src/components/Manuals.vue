@@ -202,7 +202,6 @@ export default {
         },
         
         getCategoryCount(category) {
-            // Заглушка для подсчета категорий
             return Math.floor(this.manuals.length / 2)
         },
         

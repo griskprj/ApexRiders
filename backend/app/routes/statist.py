@@ -40,7 +40,6 @@ def dashboard_stat():
     for uc in user_courses:
         course = uc.course
         
-        # Получаем пройденные уроки через связь с lesson
         end_lessons = UserLessonHistory.query\
             .filter_by(user_id=current_user_id)\
             .join(Lesson)\

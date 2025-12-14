@@ -21,8 +21,8 @@
                         <div class="stat-label">Активных объявлений</div>
                     </div>
                     <div class="stat-item">
-                        <div class="stat-value">{{ usersOnline }}</div>
-                        <div class="stat-label">Пользователей онлайн</div>
+                        <div class="stat-value">{{ userActiveListings }}</div>
+                        <div class="stat-label">Ваших <br> активных объявлений</div>
                     </div>
                 </div>
             </div>
@@ -186,12 +186,16 @@
             <!-- Список объявлений -->
             <div class="listings">
                 <div class="listings-grid">
-                    <!-- Пример объявления 1 -->
-                    <div class="listing-card" v-for="item in filteredListings" :key="item.id">
+                    <div v-if="isLoading" class="products-loading">
+                        <div class="lodaing-spinner-small"></div>
+                        <p>Загрузка объявлений...</p>
+                    </div>
+
+                    <div v-else class="listing-card" v-for="item in filteredListings" :key="item.id">
                         <div class="listing-image">
                             <img :src="item.image" :alt="item.title" @error="handleImageError">
                             <div class="listing-badge" :class="item.status">
-                                {{ item.status === 'active' ? 'Активно' : 'Продано' }}
+                                {{ item.is_active ? 'Активно' : 'Продано' }}
                             </div>
                             <div class="listing-favorite" @click="toggleFavorite(item.id)">
                                 <i class="fas fa-heart" :class="{ active: item.isFavorite }"></i>
@@ -205,10 +209,10 @@
                             
                             <div class="listing-meta">
                                 <span class="location">
-                                    <i class="fas fa-map-marker-alt"></i> {{ item.location }}
+                                    <i class="fas fa-map-marker-alt"></i> {{ item.town }}
                                 </span>
                                 <span class="date">
-                                    <i class="far fa-clock"></i> {{ item.date }}
+                                    <i class="far fa-clock"></i> {{ item.date_pub }}
                                 </span>
                                 <span class="views">
                                     <i class="fas fa-eye"></i> {{ item.views }}
@@ -217,8 +221,8 @@
                             
                             <div class="listing-footer">
                                 <div class="listing-price">
-                                    <div class="price">{{ formatPrice(item.price) }} ₽</div>
-                                    <div class="negotiable" v-if="item.negotiable">Торг уместен</div>
+                                    <div class="price">{{ formatPrice(item.cost) }} ₽</div>
+                                    <div class="negotiable" v-if="item.is_bargain">Торг уместен</div>
                                 </div>
                                 <button class="btn btn-outline" @click="showDetails(item)">
                                     Подробнее
@@ -340,6 +344,8 @@
 </template>
 
 <script>
+import axios from 'axios';
+
 export default {
     name: 'Market',
     data() {
@@ -377,112 +383,24 @@ export default {
                 images: []
             },
             
-            // Пример данных объявлений
-            listings: [
-                {
-                    id: 1,
-                    title: 'Шлем AGV K6, размер L',
-                    description: 'Идеальное состояние, без царапин. Использовался 1 сезон.',
-                    category: 'Экипировка',
-                    price: 25000,
-                    location: 'Москва',
-                    date: 'Сегодня, 14:30',
-                    views: 124,
-                    status: 'active',
-                    isFavorite: true,
-                    image: 'https://via.placeholder.com/400x300/ff4500/ffffff?text=AGV+K6',
-                    negotiable: true
-                },
-                {
-                    id: 2,
-                    title: 'Выхлопная система Yoshimura R-77',
-                    description: 'Полная система для Yamaha R6 2017+. Отличное состояние.',
-                    category: 'Запчасти',
-                    price: 42000,
-                    location: 'Санкт-Петербург',
-                    date: 'Вчера, 18:45',
-                    views: 89,
-                    status: 'active',
-                    isFavorite: false,
-                    image: 'https://via.placeholder.com/400x300/00bfff/ffffff?text=Yoshimura',
-                    negotiable: false
-                },
-                {
-                    id: 3,
-                    title: 'Мотоцикл Yamaha YZF-R6 2015',
-                    description: 'Пробег 15000 км. Обслужен, готов к сезону. Документы в порядке.',
-                    category: 'Мотоциклы',
-                    price: 450000,
-                    location: 'Екатеринбург',
-                    date: '2 дня назад',
-                    views: 245,
-                    status: 'active',
-                    isFavorite: true,
-                    image: 'https://via.placeholder.com/400x300/32cd32/ffffff?text=YZF-R6',
-                    negotiable: true
-                },
-                {
-                    id: 4,
-                    title: 'Куртка Alpinestars GP Plus R V3',
-                    description: 'Размер 52. Защита Level 2. Использовалась 2 сезона.',
-                    category: 'Экипировка',
-                    price: 28000,
-                    location: 'Казань',
-                    date: '3 дня назад',
-                    views: 67,
-                    status: 'active',
-                    isFavorite: false,
-                    image: 'https://via.placeholder.com/400x300/ffd700/000000?text=Alpinestars',
-                    negotiable: true
-                },
-                {
-                    id: 5,
-                    title: 'Двигатель Honda CBR600RR 2009',
-                    description: 'Полностью рабочий, с КПП. Пробег 30000 км. Без нареканий.',
-                    category: 'Запчасти',
-                    price: 120000,
-                    location: 'Новосибирск',
-                    date: 'Неделю назад',
-                    views: 156,
-                    status: 'active',
-                    isFavorite: false,
-                    image: 'https://via.placeholder.com/400x300/ff69b4/ffffff?text=CBR+Engine',
-                    negotiable: true
-                },
-                {
-                    id: 6,
-                    title: 'Перчатки Dainese 4 Stroke Evo',
-                    description: 'Размер L. Новые, в упаковке. Кожа перфорированная.',
-                    category: 'Экипировка',
-                    price: 8500,
-                    location: 'Москва',
-                    date: 'Сегодня, 10:15',
-                    views: 42,
-                    status: 'active',
-                    isFavorite: true,
-                    image: 'https://via.placeholder.com/400x300/9370db/ffffff?text=Dainese',
-                    negotiable: false
-                }
-            ],
+            // Объявления
+            listings: [],
+            userListings: [],
             
             // Статистика
-            activeListings: 156,
-            usersOnline: 243
+            activeListings: 0,
+            userActiveListings: 0,
+            usersOnline: 0,
+            isLoading: true
         }
     },
     computed: {
+        limitedProducts() {
+            return this.listings.slice(0, 12)
+        },
+
         filteredListings() {
             let filtered = [...this.listings]
-            
-            // Фильтрация по активному фильтру
-            if (this.activeFilter === 'my' && this.user) {
-                // Здесь будет логика для отображения только своих объявлений
-                filtered = filtered.filter(item => item.isFavorite) // Пример
-            } else if (this.activeFilter !== 'all') {
-                filtered = filtered.filter(item => 
-                    item.category.toLowerCase().includes(this.activeFilter.slice(0, -1))
-                )
-            }
             
             // Фильтрация по поисковому запросу
             if (this.searchQuery) {
@@ -494,19 +412,9 @@ export default {
                 )
             }
             
-            // Фильтрация по тегам
-            if (this.activeTags.length > 0) {
-                filtered = filtered.filter(item => 
-                    this.activeTags.some(tag => 
-                        item.title.toLowerCase().includes(tag.toLowerCase()) ||
-                        item.description.toLowerCase().includes(tag.toLowerCase())
-                    )
-                )
-            }
-            
             // Фильтрация по цене
             filtered = filtered.filter(item => 
-                item.price >= this.priceRange[0] && item.price <= this.priceRange[1]
+                item.cost >= this.priceRange[0] && item.cost <= this.priceRange[1]
             )
             
             // Сортировка
@@ -529,26 +437,48 @@ export default {
             return Math.ceil(this.filteredListings.length / this.itemsPerPage)
         },
         user() {
-            // Получаем данные пользователя из localStorage
             const userData = localStorage.getItem('user')
             return userData ? JSON.parse(userData) : null
         }
     },
+
+    mounted() {
+        this.fetchProducts()
+    },
+
     methods: {
+        async fetchProducts() {
+            try {
+                const token = localStorage.getItem('authToken')
+
+                const response = await axios.get('/api/products/get', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                })
+                 
+                if (response.data) {
+                    this.listings = response.data.all_products || []
+                    this.userListings = response.data.user_products || []
+                    this.activeListings = response.data.product_count || 0
+                    this.userActiveListings = response.data.user_product_count || 0
+
+                }
+            } catch (error) {
+                console.error('Ошибка при получении объявлений: ', error)
+                this.listings = []
+                this.userListings = []
+            } finally {
+                this.isLoading = false
+            }
+        },
+
         setFilter(filter) {
             this.activeFilter = filter
             this.currentPage = 1
         },
         handleSearch() {
             this.currentPage = 1
-        },
-        addTag(tag) {
-            if (!this.activeTags.includes(tag)) {
-                this.activeTags.push(tag)
-            }
-        },
-        removeTag(tag) {
-            this.activeTags = this.activeTags.filter(t => t !== tag)
         },
         handleSort() {
             this.currentPage = 1
@@ -586,10 +516,24 @@ export default {
         removeImage(index) {
             this.newAd.images.splice(index, 1)
         },
-        submitNewAd() {
+        async submitNewAd() {
             console.log('Новое объявление:', this.newAd)
-            // Здесь будет отправка данных на сервер
-            alert('Объявление успешно размещено!')
+
+            const token = localStorage.getItem('authToken')
+            
+            const response = await fetch('/api/product/new', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify(this.newAd)
+            })
+
+            if (response.ok) {
+                alert('Объявление успешно размещено!')
+            }
+
             this.showModal = false
             this.resetNewAdForm()
         },

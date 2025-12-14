@@ -13,16 +13,6 @@
                 <span>Курсы по мотоциклам</span>
             </h1>
             <p class="courses-subtitle">Изучайте техники вождения, обслуживание и безопасность</p>
-            
-            <div class="courses-filters">
-                <div class="filter-buttons">
-                    <button class="filter-btn active" @click="setFilter('all')">Все курсы</button>
-                    <button class="filter-btn" @click="setFilter('beginner')">Для начинающих</button>
-                    <button class="filter-btn" @click="setFilter('advanced')">Продвинутые</button>
-                    <button class="filter-btn" @click="setFilter('technique')">Техника вождения</button>
-                    <button class="filter-btn" @click="setFilter('maintenance')">Обслуживание</button>
-                </div>
-                
                 <div class="search-box">
                     <i class="fas fa-search"></i>
                     <input 
@@ -32,87 +22,81 @@
                         class="search-input"
                     >
                 </div>
-            </div>
         </div>
 
-        <!-- Сетка курсов -->
-        <div class="courses-grid">
-            <!-- Карточка курса 1 -->
-            <div class="course-card" v-for="course in filteredCourses" :key="course.id">
-                <div class="course-badge" :class="course.level">
-                    {{ course.level === 'beginner' ? 'Для начинающих' : 
-                       course.level === 'advanced' ? 'Продвинутый' : 'Средний уровень' }}
+        <!-- Все курсы -->
+        <div class="all-courses-content">
+            <!-- Сетка курсов -->
+            <div v-if="isLoading" class="courses-loading">
+                <div class="loading-spinner-small"></div>
+                <p>Загркузка всех курсов...</p>
+            </div>
+            <div v-else-if="courses.length === 0">
+                <h2 class="section-title">
+                    <i class="fas fa-book"></i>
+                    Все курсы
+                </h2>
+                <div class="empty-state">
+                    <div class="empty-icon">
+                        <i class="fas fa-book"></i>
+                    </div>
+                    <h3>Пока что тут пусто</h3>
+                    <p>Начните обучение из представленных выше курсов!</p>
                 </div>
-                
-                <div class="course-image">
-                    <i :class="course.icon"></i>
-                </div>
-                
-                <div class="course-content">
-                    <h3 class="course-title">{{ course.title }}</h3>
-                    <p class="course-description">{{ course.description }}</p>
-                    
-                    <div class="course-meta">
-                        <div class="meta-item">
-                            <i class="fas fa-play-circle"></i>
-                            <span>{{ course.lessons }} уроков</span>
-                        </div>
-                        <div class="meta-item">
-                            <i class="fas fa-clock"></i>
-                            <span>{{ course.duration }}</span>
-                        </div>
-                        <div class="meta-item">
-                            <i class="fas fa-signal"></i>
-                            <span>{{ course.difficulty }}</span>
-                        </div>
+            </div>
+
+            <div v-else class="courses-grid">
+                <!-- Карточка курса 1 -->
+                <div class="course-card" v-for="course in courses" :key="course.id">
+                    <div class="course-badge" :class="course.level">
+                        {{ course.level }}
                     </div>
                     
-                    <div class="course-progress" v-if="course.progress">
-                        <div class="progress-bar">
-                            <div class="progress-fill" :style="{ width: course.progress + '%' }"></div>
-                        </div>
-                        <span class="progress-text">{{ course.progress }}% завершено</span>
+                    <div class="course-image">
+                        <i :class="course.ico"></i>
                     </div>
                     
-                    <div class="course-actions">
-                        <button 
-                            v-if="course.progress && course.progress < 100"
-                            class="btn btn-primary btn-sm"
-                            @click="continueCourse(course.id)"
-                        >
-                            <i class="fas fa-play"></i> Продолжить
-                        </button>
-                        <button 
-                            v-else-if="course.progress === 100"
-                            class="btn btn-success btn-sm"
-                        >
-                            <i class="fas fa-check"></i> Завершено
-                        </button>
-                        <button 
-                            v-else
-                            class="btn btn-primary btn-sm"
-                            @click="startCourse(course.id)"
-                        >
-                            <i class="fas fa-play"></i> Начать курс
-                        </button>
+                    <div class="course-content">
+                        <h3 class="course-title">{{ course.title }}</h3>
+                        <p class="course-description">{{ course.description }}</p>
                         
-                        <button class="btn btn-outline btn-sm" @click="viewDetails(course.id)">
-                            Подробнее
-                        </button>
+                        <div class="course-meta">
+                            <div class="meta-item">
+                                <i class="fas fa-play-circle"></i>
+                                <span>{{ course.lessons }} уроков</span>
+                            </div>
+                            <div class="meta-item">
+                                <i class="fas fa-signal"></i>
+                                <span>{{ course.level }}</span>
+                            </div>
+                        </div>
+                        
+                        <div class="course-actions">
+                            <button 
+                                class="btn btn-primary btn-sm"
+                                @click="startCourse(course.id)"
+                            >
+                                <i class="fas fa-play"></i> Начать курс
+                            </button>
+                            
+                            <button class="btn btn-outline btn-sm" @click="viewDetails(course.id)">
+                                Подробнее
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
-
+    
         <!-- Мои активные курсы -->
-        <div class="my-courses-section" v-if="activeCourses.length > 0">
+        <div class="my-courses-section" v-if="userCourses.length > 0">
             <h2 class="section-title">
                 <i class="fas fa-book-open"></i>
                 Мои активные курсы
             </h2>
             
             <div class="active-courses-grid">
-                <div class="active-course-card" v-for="course in activeCourses" :key="course.id">
+                <div class="active-course-card" v-for="course in userCourses" :key="course.id">
                     <div class="active-course-header">
                         <h3>{{ course.title }}</h3>
                         <span class="course-progress-badge">{{ course.progress }}%</span>
@@ -124,249 +108,88 @@
                         </div>
                     </div>
                     
-                    <div class="active-course-info">
-                        <div class="info-item">
-                            <span class="label">Последний урок:</span>
-                            <span class="value">{{ course.lastLesson }}</span>
-                        </div>
-                        <div class="info-item">
-                            <span class="label">Следующий урок:</span>
-                            <span class="value">{{ course.nextLesson }}</span>
-                        </div>
-                    </div>
-                    
                     <button class="btn btn-primary btn-block" @click="continueCourse(course.id)">
                         <i class="fas fa-play"></i> Продолжить обучение
                     </button>
                 </div>
             </div>
         </div>
+        <div v-else-if="userCourses.length === 0">
+            <h2 class="section-title">
+                <i class="fas fa-book-open"></i>
+                Мои активные курсы
+            </h2>
+            <div class="empty-state">
+                <div class="empty-icon">
+                    <i class="fas fa-book-open"></i>
+                </div>
+                <h3>Пока что тут пусто</h3>
+                <p>Начните обучение из представленных выше курсов!</p>
+            </div>
+        </div>
 
         <!-- Рекомендуемые курсы -->
-        <div class="recommended-section">
+        <div>
             <h2 class="section-title">
                 <i class="fas fa-star"></i>
                 Рекомендуемые курсы
             </h2>
-            
-            <div class="recommended-grid">
-                <div class="recommended-card" v-for="course in recommendedCourses" :key="course.id">
-                    <div class="recommended-badge">
-                        <i class="fas fa-fire"></i> Популярный
-                    </div>
-                    
-                    <div class="recommended-content">
-                        <h3>{{ course.title }}</h3>
-                        <p>{{ course.description }}</p>
-                        
-                        <div class="recommended-rating">
-                            <div class="stars">
-                                <i class="fas fa-star" v-for="n in 5" :key="n" 
-                                   :class="{ filled: n <= course.rating }"></i>
-                            </div>
-                            <span class="rating-text">{{ course.rating }}/5 ({{ course.reviews }} отзывов)</span>
-                        </div>
-                        
-                        <button class="btn btn-primary btn-block" @click="startCourse(course.id)">
-                            Начать курс
-                        </button>
-                    </div>
+            <div class="empty-state">
+                <div class="empty-icon">
+                    <i class="fas fa-star"></i>
                 </div>
+                <h3>Пока что тут пусто</h3>
+                <p>Скоро здесь появятся лучшие из лучших курсов!</p>
             </div>
         </div>
     </section>
 </template>
 
 <script>
+import axios from 'axios';
+
 export default {
     name: 'Courses',
-    data() {
+    data () {
         return {
-            searchQuery: '',
-            currentFilter: 'all',
-            courses: [
-                {
-                    id: 1,
-                    title: 'Базовое вождение',
-                    description: 'Основы управления мотоциклом, старт и остановка, переключение передач',
-                    icon: 'fas fa-motorcycle',
-                    level: 'beginner',
-                    lessons: 12,
-                    duration: '8 часов',
-                    difficulty: 'Начальный',
-                    progress: 65,
-                    category: ['beginner', 'technique']
-                },
-                {
-                    id: 2,
-                    title: 'Продвинутые техники',
-                    description: 'Контрруление, трейлбрейкинг, прохождение поворотов',
-                    icon: 'fas fa-tachometer-alt',
-                    level: 'advanced',
-                    lessons: 10,
-                    duration: '6 часов',
-                    difficulty: 'Продвинутый',
-                    progress: 30,
-                    category: ['advanced', 'technique']
-                },
-                {
-                    id: 3,
-                    title: 'Безопасность на дороге',
-                    description: 'Как избегать аварийных ситуаций и быть заметным на дороге',
-                    icon: 'fas fa-shield-alt',
-                    level: 'beginner',
-                    lessons: 8,
-                    duration: '5 часов',
-                    difficulty: 'Начальный',
-                    progress: 0,
-                    category: ['beginner', 'technique']
-                },
-                {
-                    id: 4,
-                    title: 'Техническое обслуживание',
-                    description: 'Базовый ремонт, замена масла, проверка цепи и тормозов',
-                    icon: 'fas fa-tools',
-                    level: 'intermediate',
-                    lessons: 14,
-                    duration: '10 часов',
-                    difficulty: 'Средний',
-                    progress: 0,
-                    category: ['maintenance']
-                },
-                {
-                    id: 5,
-                    title: 'Групповая езда',
-                    description: 'Правила и безопасность при езде в группе, жесты и сигналы',
-                    icon: 'fas fa-users',
-                    level: 'intermediate',
-                    lessons: 6,
-                    duration: '4 часа',
-                    difficulty: 'Средний',
-                    progress: 0,
-                    category: ['technique']
-                },
-                {
-                    id: 6,
-                    title: 'Экстремальное вождение',
-                    description: 'Стрит-арт, вилли, стоппи и другие экстремальные элементы',
-                    icon: 'fas fa-fire',
-                    level: 'advanced',
-                    lessons: 10,
-                    duration: '7 часов',
-                    difficulty: 'Эксперт',
-                    progress: 0,
-                    category: ['advanced']
-                },
-                {
-                    id: 7,
-                    title: 'Зимнее хранение',
-                    description: 'Подготовка мотоцикла к зиме и правильное хранение',
-                    icon: 'fas fa-snowflake',
-                    level: 'beginner',
-                    lessons: 5,
-                    duration: '3 часа',
-                    difficulty: 'Начальный',
-                    progress: 0,
-                    category: ['maintenance']
-                },
-                {
-                    id: 8,
-                    title: 'Электроника и тюнинг',
-                    description: 'Установка дополнительного оборудования и чип-тюнинг',
-                    icon: 'fas fa-bolt',
-                    level: 'advanced',
-                    lessons: 12,
-                    duration: '9 часов',
-                    difficulty: 'Продвинутый',
-                    progress: 0,
-                    category: ['advanced', 'maintenance']
-                }
-            ],
-            activeCourses: [
-                {
-                    id: 1,
-                    title: 'Базовое вождение',
-                    progress: 65,
-                    lastLesson: 'Урок 8: Торможение',
-                    nextLesson: 'Урок 9: Контрруление'
-                },
-                {
-                    id: 2,
-                    title: 'Продвинутые техники',
-                    progress: 30,
-                    lastLesson: 'Урок 3: Трейлбрейкинг',
-                    nextLesson: 'Урок 4: Контрсмещение'
-                }
-            ],
-            recommendedCourses: [
-                {
-                    id: 3,
-                    title: 'Безопасность на дороге',
-                    description: 'Научитесь предвидеть опасности и избегать аварий',
-                    rating: 4.8,
-                    reviews: 124
-                },
-                {
-                    id: 4,
-                    title: 'Техническое обслуживание',
-                    description: 'Экономьте на сервисе, обслуживая мотоцикл самостоятельно',
-                    rating: 4.9,
-                    reviews: 89
-                },
-                {
-                    id: 5,
-                    title: 'Групповая езда',
-                    description: 'Безопасная и организованная езда в мотоколонне',
-                    rating: 4.7,
-                    reviews: 67
-                }
-            ]
+            courses: [],
+            userCourses: [],
+            isLoading: true,
         }
     },
+
     computed: {
-        filteredCourses() {
-            let filtered = this.courses
-            
-            // Фильтрация по выбранной категории
-            if (this.currentFilter !== 'all') {
-                filtered = filtered.filter(course => 
-                    course.category.includes(this.currentFilter)
-                )
-            }
-            
-            // Фильтрация по поисковому запросу
-            if (this.searchQuery) {
-                const query = this.searchQuery.toLowerCase()
-                filtered = filtered.filter(course =>
-                    course.title.toLowerCase().includes(query) ||
-                    course.description.toLowerCase().includes(query)
-                )
-            }
-            
-            return filtered
-        }
+        limitedCourses() {
+            return this.courses.slice(0, 6)
+        },
     },
+
+    mounted() {
+        this.fetchCourses()
+    },
+
     methods: {
-        setFilter(filter) {
-            this.currentFilter = filter
-            
-            // Обновляем активные кнопки фильтров
-            document.querySelectorAll('.filter-btn').forEach(btn => {
-                btn.classList.remove('active')
-            })
-            event.target.classList.add('active')
-        },
-        startCourse(courseId) {
-            alert(`Начинаем курс ${courseId}!`)
-            // Здесь будет логика начала курса
-        },
-        continueCourse(courseId) {
-            alert(`Продолжаем курс ${courseId}!`)
-            // Здесь будет логика продолжения курса
-        },
-        viewDetails(courseId) {
-            alert(`Просмотр деталей курса ${courseId}`)
-            // Здесь будет навигация к деталям курса
+        async fetchCourses() {
+            try {
+                const token = localStorage.getItem('authToken')
+
+                const response = await axios.get('/api/courses/get', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                })
+
+                if (response.data) {
+                    this.courses = response.data.all_courses || []
+                    this.userCourses = response.data.user_courses || []
+                }
+            } catch (error) {
+                console.error('Ошибка при получении мануалов', error)
+                this.courses = []
+                this.userCourses = []
+            } finally {
+                this.isLoading = false
+            }
         }
     }
 }
@@ -573,6 +396,58 @@ export default {
 
 .meta-item i {
     color: var(--primary);
+}
+
+/* ===== СОСТОЯНИЕ ПУСТО ===== */
+.empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    background: var(--dark-light);
+    border-radius: 20px;
+    border: 2px dashed rgba(255, 255, 255, 0.1);
+    margin: 40px 0;
+}
+
+.empty-icon {
+    font-size: 80px;
+    color: var(--text-secondary);
+    margin-bottom: 20px;
+    opacity: 0.5;
+}
+
+.empty-state h3 {
+    font-size: 1.8rem;
+    font-weight: 300;
+    margin-bottom: 10px;
+    color: var(--text);
+}
+
+.empty-state p {
+    color: var(--text-secondary);
+    margin-bottom: 30px;
+    font-size: 1.1rem;
+}
+
+/* ===== ЗАГРУЗКА ===== */
+.courses-loading {
+    text-align: center;
+    padding: 100px 20px;
+    color: var(--text-secondary);
+    font-size: 1.1rem;
+}
+
+.loading-spinner-small {
+    width: 40px;
+    height: 40px;
+    border: 3px solid rgba(255, 255, 255, 0.1);
+    border-radius: 50%;
+    border-top-color: var(--primary);
+    animation: spin 1s linear infinite;
+    margin: 0 auto 20px;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
 }
 
 /* ===== ПРОГРЕСС-БАР ===== */

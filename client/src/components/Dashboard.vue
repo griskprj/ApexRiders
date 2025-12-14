@@ -103,7 +103,7 @@
                 </div>
                 <div v-if="courses.length === 0" class="no-products">
                     <i class="fas fa-graduation-cap"></i>
-                    <p>У вас пока нет курсов</p>
+                    <p>У вас пока нет активных курсов</p>
                 </div>
                 <div v-else class="courses-list">
                     <div v-for="course in limitedCourses" :key="course.id" class="course-item">
@@ -259,7 +259,7 @@ export default {
             try {
                 const token = localStorage.getItem('authToken')
 
-                const response = await axios.get('/api/manuals/user', {
+                const response = await axios.get('/api/product/user', {
                     headers: {
                         'Authorization': `Bearer ${token}`
                     }
