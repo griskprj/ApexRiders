@@ -1,5 +1,6 @@
 <script setup>
     import DashboardHeader from './dashboard/DashboardHeader.vue';
+    import DashboardStats from './dashboard/DashboardStats.vue';
 </script>
 
 <template>
@@ -16,30 +17,12 @@
         <!-- Основная сетка дашборда -->
         <div class="dashboard-grid">
             <!-- Статистика пользователя -->
-            <div class="dashboard-card stat-card">
-                <div class="card-header">
-                    <h3><i class="fas fa-chart-line"></i> Моя статистика</h3>
-                    <span class="card-badge">Сегодня</span>
-                </div>
-                <div class="stats-grid">
-                    <div class="stat-item">
-                        <div class="stat-value">{{ manualCount }}</div>
-                        <div class="stat-label">Просмотрено мануалов</div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="stat-value">{{ lessonCount }}</div>
-                        <div class="stat-label">Пройдено уроков</div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="stat-value">{{ postCount }}</div>
-                        <div class="stat-label">Постов в сообществе</div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="stat-value">{{ productActiveCount }}</div>
-                        <div class="stat-label">Активных объявлений</div>
-                    </div>
-                </div>
-            </div>
+            <DashboardStats 
+                :manualCount="manualCount"
+                :lessonCount="lessonCount"
+                :postCount="postCount"
+                :productActiveCount="productActiveCount"
+            />
 
             <!-- Быстрый доступ -->
             <div class="dashboard-card quick-access">
@@ -332,38 +315,6 @@ export default {
 
 .card-link:hover {
     gap: 5px;
-}
-
-/* ===== КАРТОЧКА СТАТИСТИКИ ===== */
-.stats-grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 20px;
-}
-
-.stat-item {
-    text-align: center;
-    padding: 20px;
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 15px;
-    transition: all 0.3s ease;
-}
-
-.stat-item:hover {
-    background: rgba(255, 69, 0, 0.1);
-    transform: scale(1.05);
-}
-
-.stat-value {
-    font-size: 2.5rem;
-    font-weight: 700;
-    color: var(--primary);
-    margin-bottom: 5px;
-}
-
-.stat-label {
-    color: var(--text-secondary);
-    font-size: 0.9rem;
 }
 
 /* ===== БЫСТРЫЙ ДОСТУП ===== */
