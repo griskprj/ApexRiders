@@ -82,6 +82,62 @@
         gap: 5px;
     }
 
+    .dashboard-card {
+        background: var(--dark-light);
+        border-radius: 20px;
+        padding: 30px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        transition: all 0.3s ease;
+        backdrop-filter: blur(10px);
+    }
+
+    .dashboard-card:hover {
+        transform: translateY(-5px);
+        border-color: var(--primary-dark);
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3), 0 0 20px rgba(255, 69, 0, 0.1);
+    }
+
+    .card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 25px;
+        padding-bottom: 15px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .card-header h3 {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 1.4rem;
+        font-weight: 600;
+    }
+
+    .card-header i {
+        color: var(--primary);
+    }
+
+    .card-badge {
+        background: var(--primary);
+        color: white;
+        padding: 5px 12px;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 500;
+    }
+
+    .card-link {
+        color: var(--primary);
+        text-decoration: none;
+        font-size: 0.9rem;
+        transition: all 0.3s ease;
+    }
+
+    .card-link:hover {
+        gap: 5px;
+    }
+
     .stats-grid {
         display: grid;
         grid-template-columns: repeat(2, 1fr);
