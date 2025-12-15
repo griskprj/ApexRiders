@@ -25,6 +25,17 @@
     </div>
 </template>
 
+<script>
+    export default {
+        props: {
+            manualCount: Number,
+            lessonCount: Number,
+            postCount: Number,
+            productActiveCount: Number,
+        }
+    }
+</script>
+
 <style scoped>
     .dashboard-card {
         background: var(--dark-light);
@@ -169,14 +180,3 @@
         font-size: 0.9rem;
     }
 </style>
-
-<script>
-    export default {
-        props: {
-            manualCount: Number,
-            lessonCount: Number,
-            postCount: Number,
-            productActiveCount: Number,
-        }
-    }
-</script>

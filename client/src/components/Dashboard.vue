@@ -2,6 +2,7 @@
     import DashboardHeader from './dashboard/DashboardHeader.vue';
     import DashboardStats from './dashboard/DashboardStats.vue';
     import QuickActions from './dashboard/QuickActions.vue';
+    import MyCourses from './dashboard/MyCourses.vue';
 </script>
 
 <template>
@@ -25,32 +26,9 @@
             <QuickActions />
 
             <!-- Мои курсы -->
-            <div class="dashboard-card courses-card">
-                <div class="card-header">
-                    <h3><i class="fas fa-graduation-cap"></i> Мои курсы</h3>
-                    <a href="/courses" class="card-link">Все курсы →</a>
-                </div>
-                <div v-if="courses.length === 0" class="no-products">
-                    <i class="fas fa-graduation-cap"></i>
-                    <p>У вас пока нет активных курсов</p>
-                </div>
-                <div v-else class="courses-list">
-                    <div v-for="course in limitedCourses" :key="course.id" class="course-item">
-                        <div class="course-progress">
-                            <div class="progress-circle" data-progress="{{ course.all_lessons / course.end_lessons }}">
-                                <span>{{ course.all_lessons / course.end_lessons }} %</span>
-                            </div>
-                        </div>
-                        <div class="course-info">
-                            <div class="course-title">{{ course.title }}</div>
-                            <div class="course-desc">{{ course.description }}</div>
-                            <div class="course-stats">
-                                <span><i class="fas fa-play-circle"></i> {{ course.end_lessons }}/{{ course.all_lessons }} уроков</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
+            <MyCourses 
+                :courses="courses"
+            />
 
             <!-- Объявления с маркета -->
             <div class="dashboard-card market-card">
@@ -270,73 +248,6 @@ export default {
 
 .card-link:hover {
     gap: 5px;
-}
-
-/* ===== КУРСЫ ===== */
-.courses-list {
-    display: flex;
-    flex-direction: column;
-    gap: 25px;
-}
-
-.course-item {
-    display: flex;
-    align-items: center;
-    gap: 20px;
-    padding: 20px;
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 15px;
-}
-
-.progress-circle {
-    width: 70px;
-    height: 70px;
-    border-radius: 50%;
-    background: conic-gradient(var(--primary) 65%, rgba(255, 255, 255, 0.1) 0);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    position: relative;
-}
-
-.progress-circle::before {
-    content: '';
-    position: absolute;
-    width: 55px;
-    height: 55px;
-    background: var(--dark-light);
-    border-radius: 50%;
-}
-
-.progress-circle span {
-    position: relative;
-    z-index: 1;
-    font-weight: 600;
-    font-size: 1rem;
-}
-
-.course-info {
-    flex: 1;
-}
-
-.course-title {
-    font-weight: 600;
-    margin-bottom: 5px;
-}
-
-.course-desc {
-    font-size: 0.9rem;
-    color: var(--text-secondary);
-    margin-bottom: 10px;
-}
-
-.course-stats {
-    font-size: 0.85rem;
-    color: var(--primary);
-}
-
-.course-stats i {
-    margin-right: 5px;
 }
 
 /* ===== МАРКЕТ ===== */
