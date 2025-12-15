@@ -4,17 +4,13 @@
 </script>
 
 <template>
-    <!-- Декоративные элементы -->
     <div class="decoration decoration-1"></div>
     <div class="decoration decoration-2"></div>
 
-    <!-- Дашборд -->
     <section class="dashboard">
-        <!-- Заголовок и приветствие -->
          <DashboardHeader />
         
 
-        <!-- Основная сетка дашборда -->
         <div class="dashboard-grid">
             <!-- Статистика пользователя -->
             <DashboardStats 
