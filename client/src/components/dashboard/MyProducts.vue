@@ -21,9 +21,9 @@
                     {{ getStatusText(product) }}
                 </div>
                 <div class="market-title">{{ product.title }}</div>
-                <div class="market-price">{{ product.cost }} ₽</div>
+                <div class="market-price">{{ product.cost.toLocaleString('ru-RU') }} ₽</div>
                 <div class="market-views">
-                    <i class="fas fa-eye"></i> {{ product.watchs }} просмотра
+                    <i class="fas fa-eye"></i> {{ declensionViews(product.watchs) }}
                 </div>
             </div>
         </div>
@@ -40,6 +40,28 @@ export default {
         getStatusText: {
             type: Function,
             required: true
+        }
+    },
+    
+    methods: {
+        declensionViews(count) {
+            const lastDigit = count % 10;
+            const lastTwoDigit = count % 100;
+
+            if (lastTwoDigit >= 11 && lastTwoDigit <= 19) {
+                return `${count} просмотров`;
+            }
+
+            switch (lastDigit) {
+                case 1:
+                    return `${count} просмотр`;
+                    case 2:
+                    case 3:
+                    case 4:
+                        return `${count} просмотра`;
+                    default:
+                        return `${count} просмотров`
+            }
         }
     }
 }

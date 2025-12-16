@@ -4,16 +4,21 @@
     import QuickActions from './dashboard/QuickActions.vue';
     import MyCourses from './dashboard/MyCourses.vue';
     import MyProducts from './dashboard/MyProducts.vue';
+    import SocialActivites from './dashboard/SocialActivites.vue';
 </script>
 
 <template>
     <div class="decoration decoration-1"></div>
     <div class="decoration decoration-2"></div>
 
+    <loading v-model:active="isLoading"
+        :can-cancel="false"
+        :is-full-page="true"
+    />
+
     <section class="dashboard">
          <DashboardHeader />
         
-
         <div class="dashboard-grid">
             <!-- Статистика пользователя -->
             <DashboardStats 
@@ -38,41 +43,22 @@
             />
 
             <!-- Сообщество -->
-            <div class="dashboard-card community-card">
-                <div class="card-header">
-                    <h3><i class="fas fa-users"></i> Активность в сообществе</h3>
-                </div>
-                <div class="community-stats">
-                    <div class="community-stat">
-                        <div class="stat-value">{{ postCount }}</div>
-                        <div class="stat-label">Тем создано</div>
-                    </div>
-                    <div class="community-stat">
-                        <div class="stat-value">{{ answerCount }}</div>
-                        <div class="stat-label">Ответов</div>
-                    </div>
-                    <div class="community-stat">
-                        <div class="stat-value">{{ totalLikes }}</div>
-                        <div class="stat-label">Лайков</div>
-                    </div>
-                </div>
-                <div class="community-actions">
-                    <a href="/community/new" class="btn btn-outline">
-                        <i class="fas fa-plus"></i> Новая тема
-                    </a>
-                    <a href="/community" class="btn btn-primary">
-                        <i class="fas fa-comments"></i> К обсуждениям
-                    </a>
-                </div>
-            </div>
+            <SocialActivites 
+                :postCount="postCount",
+                :answerCount="answerCount"
+                :totalLikes="totalLikes"
+            />
         </div>
     </section>
 </template>
 
 <script>
+import Loading from 'vue-loading-overlay'
+import 'vue-loading-overlay/dist/css/index.css'
 import axios from 'axios'
 
 export default {
+    components: { Loading },
     name: 'Dashboard',
 
     data() {
@@ -86,7 +72,7 @@ export default {
 
             products: [],
             courses: [],
-            isLoading: true,
+            isLoading: false,
             showLimit: 2,
 
         }
@@ -107,6 +93,7 @@ export default {
 
     methods: {
         async fetchDashboardStats() {
+            this.isLoading = true
             try {
                 const token = localStorage.getItem('authToken')
 
@@ -165,44 +152,7 @@ export default {
     gap: 25px;
 }
 
-/* ===== СООБЩЕСТВО ===== */
-.community-stats {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 20px;
-    margin-bottom: 25px;
-}
 
-.community-stat {
-    text-align: center;
-    padding: 15px;
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 15px;
-}
-
-.community-stat .stat-value {
-    font-size: 2rem;
-    color: var(--accent);
-}
-
-.community-stat .stat-label {
-    font-size: 0.8rem;
-}
-
-.community-actions {
-    display: flex;
-    gap: 15px;
-    margin-top: 20px;
-}
-
-.community-actions .btn {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    padding: 12px 20px;
-}
 
 /* ===== ДЕКОРАТИВНЫЕ ЭЛЕМЕНТЫ ===== */
 .decoration {

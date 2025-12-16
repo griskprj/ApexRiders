@@ -32,7 +32,7 @@
 
         <!-- Мобильное меню -->
         <div class="mobile-menu" :class="{ 'active': isMobileMenuOpen }" v-if="isMobile">
-            <router-link to="/dashboard" class="nav-link active" v-if="user">Главная</router-link>
+            <router-link to="/dashboard" class="nav-link" v-if="user">Главная</router-link>
             <router-link to="/manuals" class="nav-link" v-if="user">Мануалы</router-link>
             <router-link to="/courses" class="nav-link" v-if="user">Курсы</router-link>
             <router-link to="/market" class="nav-link" v-if="user">Маркет</router-link>
