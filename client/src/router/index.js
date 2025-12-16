@@ -7,6 +7,7 @@ import Manuals from '../components/Manuals.vue'
 import Courses from '../components/Courses.vue'
 import Market from '../components/Market.vue'
 import { isAuthenticated } from '../utils/checkAuth'
+import Community from '../components/Community.vue'
 
 const routes = [
     {
@@ -46,6 +47,12 @@ const routes = [
         path: '/market',
         name: 'Market',
         component: Market,
+        meta: { requiresAuth: true }
+    },
+    {
+        path: '/community',
+        name: 'Community',
+        component: Community,
         meta: { requiresAuth: true }
     }
 ]
