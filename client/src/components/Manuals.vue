@@ -2,6 +2,7 @@
     import BasicManualCard from './manuals/BasicManualCard.vue';
     import ManualsCategory from './manuals/ManualsCategory.vue';
     import ManualsHeader from './manuals/ManualsHeader.vue';
+    import RecentManuals from './manuals/RecentManuals.vue';
 </script>
 
 <template>
@@ -69,23 +70,7 @@
                 </div>
 
                 <!-- Недавно просмотренные -->
-                <div v-if="userManuals.length > 0" class="sidebar-card">
-                    <h3 class="sidebar-title">
-                        <i class="fas fa-history"></i>
-                        Недавно просмотренные
-                    </h3>
-                    <div class="recent-list">
-                        <a v-for="item in userManuals" :key="item.id" href="#" class="recent-item">
-                            <div class="recent-icon">
-                                <i class="fas fa-motorcycle"></i>
-                            </div>
-                            <div class="recent-info">
-                                <div class="recent-title">{{ item.title }}</div>
-                                <div class="recent-time">{{ formatTime(item.viewed_at) }}</div>
-                            </div>
-                        </a>
-                    </div>
-                </div>
+                <RecentManuals />
 
                 <!-- Загрузка мануала -->
                 <div class="sidebar-card upload-card">

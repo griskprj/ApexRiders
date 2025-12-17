@@ -212,10 +212,10 @@
                                     <i class="fas fa-map-marker-alt"></i> {{ item.town }}
                                 </span>
                                 <span class="date">
-                                    <i class="far fa-clock"></i> {{ item.date_pub }}
+                                    <i class="far fa-clock"></i> {{ formatTime(item.date_pub) }}
                                 </span>
                                 <span class="views">
-                                    <i class="fas fa-eye"></i> {{ item.views }}
+                                    <i class="fas fa-eye"></i> {{ item.watchs }}
                                 </span>
                             </div>
                             
@@ -588,6 +588,21 @@ export default {
                 accessories: false
             }
             this.currentPage = 1
+        },
+        formatTime(timeString) {
+            if (!timeString) return ''
+            const date = new Date(timeString)
+            const now = new Date()
+            const diff = now - date
+            
+            const minutes = Math.floor(diff / 60000)
+            const hours = Math.floor(minutes / 60)
+            const days = Math.floor(hours / 24)
+            
+            if (minutes < 60) return `${minutes} мин назад`
+            if (hours < 24) return `${hours} час назад`
+            if (days < 7) return `${days} дн назад`
+            return date.toLocaleDateString()
         }
     }
 }
