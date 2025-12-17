@@ -1,4 +1,6 @@
 <script setup>
+    import BasicManualCard from './manuals/BasicManualCard.vue';
+    import ManualsCategory from './manuals/ManualsCategory.vue';
     import ManualsHeader from './manuals/ManualsHeader.vue';
 </script>
 
@@ -33,38 +35,9 @@
 
             <div v-else class="manuals-main">
                 <div class="manuals-grid">
-                    <div v-for="manual in limiterManuals" :key="manual.id" class="manual-card">
-                        <div class="manual-badge popular">
-                            <i class="fas fa-fire"></i> {{ manual.difficulty }}
-                        </div>
-                        <div class="manual-image">
-                            <img src="https://images.unsplash.com/photo-1558981403-c5f9899a28bc?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80" alt="Yamaha R6">
-                        </div>
-                        <div class="manual-content">
-                            <div class="manual-category">{{ manual.moto_type }}</div>
-                            <h3 class="manual-title">{{ manual.title }}</h3>
-                            <p class="manual-desc">{{ manual.description }}</p>
-                            
-                            <div class="manual-stats">
-                                <div class="stat">
-                                    <i class="fas fa-clock"></i>
-                                    <span>{{ manual.estimated_time }}</span>
-                                </div>
-                                <div class="stat">
-                                    <i class="fas fa-eye"></i>
-                                    <span>{{ manual.views }}</span>
-                                </div>
-                                <div class="stat">
-                                    <i class="fas fa-star"></i>
-                                    <span>{{ manual.rating }}</span>
-                                </div>
-                            </div>
-                            
-                            <a href="#" class="btn btn-primary btn-block">
-                                <i class="fas fa-book-open"></i> Открыть мануал
-                            </a>
-                        </div>
-                    </div>
+                    <BasicManualCard 
+                        :limiterManuals="limiterManuals"
+                    />
                 </div>
 
                 <!-- Пагинация -->
@@ -89,25 +62,10 @@
             <div v-if="manuals.length > 0" class="manuals-sidebar">
                 <!-- Категории -->
                 <div class="sidebar-card">
-                    <h3 class="sidebar-title">
-                        <i class="fas fa-list"></i>
-                        Категории
-                    </h3>
-                    <div class="category-list">
-                        <a href="#" class="category-item active">
-                            <span class="category-name">Все мануалы</span>
-                            <span class="category-count">{{ manuals.length }}</span>
-                        </a>
-                        <a href="#" class="category-item">
-                            <span class="category-name">Двигатель</span>
-                            <span class="category-count">{{ getCategoryCount('Двигатель') }}</span>
-                        </a>
-                        <a href="#" class="category-item">
-                            <span class="category-name">Трансмиссия</span>
-                            <span class="category-count">{{ getCategoryCount('Трансмиссия') }}</span>
-                        </a>
-                        <!-- Остальные категории -->
-                    </div>
+                    <ManualsCategory 
+                        :manuals="manuals",
+                        :getCategoryCount="getCategoryCount"
+                    />
                 </div>
 
                 <!-- Недавно просмотренные -->
