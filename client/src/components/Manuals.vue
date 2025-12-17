@@ -1,3 +1,7 @@
+<script setup>
+    import ManualsHeader from './manuals/ManualsHeader.vue';
+</script>
+
 <template>
     <!-- Декоративные элементы -->
     <div class="decoration decoration-1"></div>
@@ -6,20 +10,7 @@
     <!-- Страница мануалов -->
     <section class="manuals">
         <!-- Заголовок и фильтры -->
-        <div class="manuals-header">
-            <h1 class="manuals-title">
-                <i class="fas fa-book"></i>
-                <span>Мануалы по ремонту</span>
-            </h1>
-            <p class="manuals-subtitle">Подробные руководства по обслуживанию и ремонту мотоциклов</p>
-            
-            <div class="manuals-controls">
-                <div class="search-box">
-                    <i class="fas fa-search"></i>
-                    <input type="text" placeholder="Поиск по марке, модели или детали..." class="search-input">
-                </div>
-            </div>
-        </div>
+        <ManualsHeader />
 
         <!-- Основной контент -->
         <div class="manuals-content" :class="{ 'no-content': manuals.length === 0 }">
