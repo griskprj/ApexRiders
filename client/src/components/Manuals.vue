@@ -70,19 +70,10 @@
                 </div>
 
                 <!-- Недавно просмотренные -->
-                <RecentManuals />
-
-                <!-- Загрузка мануала -->
-                <div class="sidebar-card upload-card">
-                    <h3 class="sidebar-title">
-                        <i class="fas fa-upload"></i>
-                        Есть мануал?
-                    </h3>
-                    <p>Поделитесь мануалом с сообществом</p>
-                    <button class="btn btn-primary btn-block">
-                        <i class="fas fa-cloud-upload-alt"></i> Загрузить мануал
-                    </button>
-                </div>
+                <RecentManuals 
+                    :userManuals="userManuals"
+                    :formatTime="formatTime"
+                />
             </div>
         </div>
     </section>
