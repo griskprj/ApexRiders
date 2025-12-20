@@ -179,4 +179,26 @@
         color: var(--text-secondary);
         font-size: 0.9rem;
     }
+
+    @media (max-width: 768px) {
+        .stats-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .dashboard-card {
+            padding: 20px;
+        }
+
+        .card-header {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 10px;
+        }
+        
+        .card-header h3 {
+            font-size: 1.2rem;
+        }
+    }
 </style>

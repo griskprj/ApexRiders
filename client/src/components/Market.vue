@@ -1,4 +1,10 @@
-[file name]: Market.vue
+<script setup>
+import MarketCard from './market/MarketCard.vue';
+import MarketCategory from './market/MarketCategory.vue';
+import MarketFiltersCategory from './market/MarketFiltersCategory.vue';
+import MarketHeader from './market/MarketHeader.vue';
+import MarketModal from './market/MarketModal.vue';
+</script>
 <template>
     <!-- Декоративные элементы -->
     <div class="decoration decoration-1"></div>
@@ -8,24 +14,11 @@
     <section class="market">
         <!-- Заголовок и фильтры -->
         <div class="market-header">
-            <div class="header-content">
-                <h1 class="market-title">
-                    <i class="fas fa-shopping-cart"></i>
-                    <span>Маркет запчастей</span>
-                </h1>
-                <p class="market-subtitle">Площадка для покупки и продажи мотоциклов, запчастей и экипировки</p>
-                
-                <div class="market-stats">
-                    <div class="stat-item">
-                        <div class="stat-value">{{ activeListings }}</div>
-                        <div class="stat-label">Активных объявлений</div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="stat-value">{{ userActiveListings }}</div>
-                        <div class="stat-label">Ваших <br> активных объявлений</div>
-                    </div>
-                </div>
-            </div>
+            <MarketHeader 
+                :active-listings="activeListings"
+                :user-active-listings="userActiveListings"
+            />
+            
             
             <div class="market-actions">
                 <button class="btn btn-primary" @click="showNewAdModal">
@@ -44,192 +37,36 @@
         </div>
 
         <!-- Фильтры и категории -->
-        <div class="market-filters">
-            <div class="filter-tabs">
-                <button 
-                    class="filter-tab" 
-                    :class="{ active: activeFilter === 'all' }"
-                    @click="setFilter('all')"
-                >
-                    Все
-                </button>
-                <button 
-                    class="filter-tab" 
-                    :class="{ active: activeFilter === 'motorcycles' }"
-                    @click="setFilter('motorcycles')"
-                >
-                    Мотоциклы
-                </button>
-                <button 
-                    class="filter-tab" 
-                    :class="{ active: activeFilter === 'parts' }"
-                    @click="setFilter('parts')"
-                >
-                    Запчасти
-                </button>
-                <button 
-                    class="filter-tab" 
-                    :class="{ active: activeFilter === 'gear' }"
-                    @click="setFilter('gear')"
-                >
-                    Экипировка
-                </button>
-                <button 
-                    class="filter-tab" 
-                    :class="{ active: activeFilter === 'my' && user }"
-                    @click="setFilter('my')"
-                    v-if="user"
-                >
-                    Мои объявления
-                </button>
-            </div>
-            
-            <div class="filter-sort">
-                <select v-model="sortBy" @change="handleSort">
-                    <option value="newest">Сначала новые</option>
-                    <option value="price_low">Цена (низкая → высокая)</option>
-                    <option value="price_high">Цена (высокая → низкая)</option>
-                    <option value="popular">Популярные</option>
-                </select>
-                <div class="filter-tags">
-                    <span class="tag" v-for="tag in activeTags" :key="tag">
-                        {{ tag }} <i class="fas fa-times" @click="removeTag(tag)"></i>
-                    </span>
-                </div>
-            </div>
-        </div>
+        <MarketFiltersCategory 
+            :active-tags="activeTags"
+            :set-filter="setFilter"
+            :remove-tag="removeTag"
+        />
+        
 
         <!-- Основной контент -->
         <div class="market-content">
             <!-- Боковая панель с категориями -->
-            <div class="sidebar">
-                <div class="sidebar-section">
-                    <h3><i class="fas fa-filter"></i> Категории</h3>
-                    <div class="category-list">
-                        <label class="category-item">
-                            <input type="checkbox" v-model="categories.motorcycles">
-                            <span>Мотоциклы</span>
-                            <span class="count">42</span>
-                        </label>
-                        <label class="category-item">
-                            <input type="checkbox" v-model="categories.engines">
-                            <span>Двигатели</span>
-                            <span class="count">156</span>
-                        </label>
-                        <label class="category-item">
-                            <input type="checkbox" v-model="categories.frames">
-                            <span>Рамы и подвеска</span>
-                            <span class="count">89</span>
-                        </label>
-                        <label class="category-item">
-                            <input type="checkbox" v-model="categories.electronics">
-                            <span>Электроника</span>
-                            <span class="count">67</span>
-                        </label>
-                        <label class="category-item">
-                            <input type="checkbox" v-model="categories.helmets">
-                            <span>Шлемы</span>
-                            <span class="count">124</span>
-                        </label>
-                        <label class="category-item">
-                            <input type="checkbox" v-model="categories.clothing">
-                            <span>Одежда</span>
-                            <span class="count">87</span>
-                        </label>
-                        <label class="category-item">
-                            <input type="checkbox" v-model="categories.accessories">
-                            <span>Аксессуары</span>
-                            <span class="count">203</span>
-                        </label>
-                    </div>
-                </div>
-                
-                <div class="sidebar-section">
-                    <h3><i class="fas fa-tags"></i> Популярные теги</h3>
-                    <div class="tags">
-                        <span class="tag" @click="addTag('Yamaha')">Yamaha</span>
-                        <span class="tag" @click="addTag('Honda')">Honda</span>
-                        <span class="tag" @click="addTag('Kawasaki')">Kawasaki</span>
-                        <span class="tag" @click="addTag('Suzuki')">Suzuki</span>
-                        <span class="tag" @click="addTag('BMW')">BMW</span>
-                        <span class="tag" @click="addTag('AGV')">AGV</span>
-                        <span class="tag" @click="addTag('Alpinestars')">Alpinestars</span>
-                        <span class="tag" @click="addTag('Yoshimura')">Yoshimura</span>
-                    </div>
-                </div>
-                
-                <div class="sidebar-section">
-                    <h3><i class="fas fa-map-marker-alt"></i> Город</h3>
-                    <select v-model="selectedCity" @change="handleCityChange">
-                        <option value="">Все города</option>
-                        <option value="moscow">Москва</option>
-                        <option value="spb">Санкт-Петербург</option>
-                        <option value="ekb">Екатеринбург</option>
-                        <option value="kazan">Казань</option>
-                        <option value="novosibirsk">Новосибирск</option>
-                    </select>
-                </div>
-                
-                <div class="sidebar-section">
-                    <h3><i class="fas fa-ruble-sign"></i> Цена</h3>
-                    <div class="price-range">
-                        <input type="range" min="0" max="1000000" v-model="priceRange[0]" @input="updatePriceRange">
-                        <input type="range" min="0" max="1000000" v-model="priceRange[1]" @input="updatePriceRange">
-                        <div class="price-values">
-                            <span>{{ formatPrice(priceRange[0]) }} ₽</span>
-                            <span>{{ formatPrice(priceRange[1]) }} ₽</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
+            <MarketCategory 
+                :add-tag="addTag"
+                :categories="categories"
+                :format-price="formatPrice"
+                :handle-city-change="handleCityChange"
+                :update-price-range="updatePriceRange"
+            />
 
             <!-- Список объявлений -->
             <div class="listings">
                 <div class="listings-grid">
-                    <div v-if="isLoading" class="products-loading">
-                        <div class="lodaing-spinner-small"></div>
-                        <p>Загрузка объявлений...</p>
-                    </div>
-
-                    <div v-else class="listing-card" v-for="item in filteredListings" :key="item.id">
-                        <div class="listing-image">
-                            <img :src="item.image" :alt="item.title" @error="handleImageError">
-                            <div class="listing-badge" :class="item.status">
-                                {{ item.is_active ? 'Активно' : 'Продано' }}
-                            </div>
-                            <div class="listing-favorite" @click="toggleFavorite(item.id)">
-                                <i class="fas fa-heart" :class="{ active: item.isFavorite }"></i>
-                            </div>
-                        </div>
-                        
-                        <div class="listing-content">
-                            <div class="listing-category">{{ item.category }}</div>
-                            <h3 class="listing-title">{{ item.title }}</h3>
-                            <p class="listing-description">{{ item.description }}</p>
-                            
-                            <div class="listing-meta">
-                                <span class="location">
-                                    <i class="fas fa-map-marker-alt"></i> {{ item.town }}
-                                </span>
-                                <span class="date">
-                                    <i class="far fa-clock"></i> {{ formatTime(item.date_pub) }}
-                                </span>
-                                <span class="views">
-                                    <i class="fas fa-eye"></i> {{ item.watchs }}
-                                </span>
-                            </div>
-                            
-                            <div class="listing-footer">
-                                <div class="listing-price">
-                                    <div class="price">{{ formatPrice(item.cost) }} ₽</div>
-                                    <div class="negotiable" v-if="item.is_bargain">Торг уместен</div>
-                                </div>
-                                <button class="btn btn-outline" @click="showDetails(item)">
-                                    Подробнее
-                                </button>
-                            </div>
-                        </div>
-                    </div>
+                    <MarketCard 
+                        :filtered-listings="filteredListings"
+                        :format-price="formatPrice"
+                        :format-time="formatTime"
+                        :handle-image-error="handleImageError"
+                        :is-loading="isLoading"
+                        :show-details="showDetails"
+                        :toggle-favorite="toggleFavorite"
+                    />
                 </div>
                 
                 <!-- Пагинация -->
@@ -261,86 +98,14 @@
     </section>
 
     <!-- Модальное окно нового объявления -->
-    <div class="modal" :class="{ active: showModal }">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3><i class="fas fa-plus-circle"></i> Новое объявление</h3>
-                <button class="modal-close" @click="showModal = false">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-            <div class="modal-body">
-                <form @submit.prevent="submitNewAd">
-                    <div class="form-group">
-                        <label>Заголовок объявления *</label>
-                        <input type="text" v-model="newAd.title" placeholder="Например: Шлем AGV K6, размер L" required>
-                    </div>
-                    
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>Категория *</label>
-                            <select v-model="newAd.category" required>
-                                <option value="">Выберите категорию</option>
-                                <option value="motorcycles">Мотоциклы</option>
-                                <option value="parts">Запчасти</option>
-                                <option value="gear">Экипировка</option>
-                                <option value="accessories">Аксессуары</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label>Цена (₽) *</label>
-                            <input type="number" v-model="newAd.price" placeholder="25000" required>
-                        </div>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label>Описание *</label>
-                        <textarea v-model="newAd.description" placeholder="Подробное описание товара..." rows="4" required></textarea>
-                    </div>
-                    
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>Город *</label>
-                            <input type="text" v-model="newAd.city" placeholder="Москва" required>
-                        </div>
-                        <div class="form-group">
-                            <label>Телефон для связи *</label>
-                            <input type="tel" v-model="newAd.phone" placeholder="+7 (XXX) XXX-XX-XX" required>
-                        </div>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label>Изображения (до 5 шт.)</label>
-                        <div class="image-upload">
-                            <div class="upload-area" @click="triggerFileInput">
-                                <i class="fas fa-cloud-upload-alt"></i>
-                                <p>Нажмите для загрузки изображений</p>
-                            </div>
-                            <input type="file" ref="fileInput" @change="handleImageUpload" multiple accept="image/*" style="display: none;">
-                            <div class="image-preview" v-if="newAd.images.length > 0">
-                                <div class="preview-item" v-for="(img, index) in newAd.images" :key="index">
-                                    <img :src="img" alt="Preview">
-                                    <button class="remove-image" @click="removeImage(index)">
-                                        <i class="fas fa-times"></i>
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="form-actions">
-                        <button type="button" class="btn btn-outline" @click="showModal = false">
-                            Отмена
-                        </button>
-                        <button type="submit" class="btn btn-primary">
-                            <i class="fas fa-paper-plane"></i> Опубликовать
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
-        <div class="modal-overlay" @click="showModal = false"></div>
-    </div>
+    <MarketModal 
+        :handle-image-upload="handleImageUpload"
+        :new-ad="newAd"
+        :remove-image="removeImage"
+        :show-modal="showModal"
+        :submit-new-ad="submitNewAd"
+        :trigger-file-input="triggerFileInput"
+    />
 </template>
 
 <script>

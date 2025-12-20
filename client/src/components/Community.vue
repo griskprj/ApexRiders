@@ -391,7 +391,7 @@ export default {
             const start = (this.currentPage - 1) * this.postsPerPage;
             const end = start + this.postsPerPage;
             return this.filteredPosts.slice(start, end);
-        }
+        },
     },
     
     mounted() {

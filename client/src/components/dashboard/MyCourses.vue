@@ -175,4 +175,25 @@
     .no-courses p {
         margin-bottom: 20px;
     }
+
+    @media (max-width: 480px) {
+        .dashboard-card {
+            padding: 20px;
+        }
+
+        .card-header {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 10px;
+        }
+        
+        .card-header h3 {
+            font-size: 1.2rem;
+        }
+        
+        .course-item {
+            flex-direction: column;
+            text-align: center;
+        }
+    }
 </style>
