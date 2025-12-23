@@ -1,20 +1,6 @@
-<script setup>
-    import DashboardHeader from './dashboard/DashboardHeader.vue';
-    import DashboardStats from './dashboard/DashboardStats.vue';
-    import QuickActions from './dashboard/QuickActions.vue';
-    import MyCourses from './dashboard/MyCourses.vue';
-    import MyProducts from './dashboard/MyProducts.vue';
-    import SocialActivites from './dashboard/SocialActivites.vue';
-</script>
-
 <template>
     <div class="decoration decoration-1"></div>
     <div class="decoration decoration-2"></div>
-
-    <loading v-model:active="isLoading"
-        :can-cancel="false"
-        :is-full-page="true"
-    />
 
     <section class="dashboard">
          <DashboardHeader />
@@ -25,7 +11,7 @@
                 :manualCount="manualCount"
                 :lessonCount="lessonCount"
                 :postCount="postCount"
-                :productActiveCount="productActiveCount"
+                :productActiveCount="productActiveCount",
             />
 
             <!-- Быстрый доступ -->
@@ -52,89 +38,116 @@
     </section>
 </template>
 
-<script>
-import Loading from 'vue-loading-overlay'
-import 'vue-loading-overlay/dist/css/index.css'
+<script setup>
+import { ref, computed, onMounted } from 'vue'
 import axios from 'axios'
+import { authService } from '../utils/checkAuth'
 
-export default {
-    components: { Loading },
-    name: 'Dashboard',
+import DashboardHeader from './dashboard/DashboardHeader.vue'
+import DashboardStats from './dashboard/DashboardStats.vue'
+import QuickActions from './dashboard/QuickActions.vue'
+import MyCourses from './dashboard/MyCourses.vue'
+import MyProducts from './dashboard/MyProducts.vue'
+import SocialActivites from './dashboard/SocialActivites.vue'
 
-    data() {
-        return {
-            manualCount: 0,
-            lessonCount: 0,
-            postCount: 0,
-            productActiveCount: 0,
-            answerCount: 0,
-            totalLikes: 0,
+const manualCount = ref(0)
+const lessonCount = ref(0)
+const postCount = ref(0)
+const productActiveCount = ref(0)
+const answerCount = ref(0)
+const totalLikes = ref(0)
+const products = ref([])
+const courses = ref([])
+const isLoading = ref(false)
+const showLimit = 2
 
-            products: [],
-            courses: [],
-            isLoading: false,
-            showLimit: 2,
+const limitedProducts = computed(() => {
+    return products.value.slice(0, showLimit)
+})
 
+const limitedCourses = computed(() => {
+    return courses.value.slice(0, showLimit)
+})
+
+const getStatusText = (product) => {
+    if (product.is_active) return 'На паузе'
+    if (product.is_bargain) return 'Торг уместен'
+    return 'Активно'
+}
+
+const fetchDashboardStats = async () => {
+    isLoading.value = true
+    
+    try {
+        const token = authService.getToken()
+        
+        if (!token) {
+            console.error('No authentication token found')
+            return
         }
-    },
-
-    computed: {
-        limitedProducts() {
-            return this.products.slice(0, this.showLimit)
-        },
-        limitedCourses() {
-            return this.courses.slice(0, this.showLimit)
+        
+        const isAuthenticated = await authService.checkAuth()
+        if (!isAuthenticated) {
+            console.error('User is not authenticated')
+            return
         }
-    },
-
-    mounted() {
-        this.fetchDashboardStats()
-    },
-
-    methods: {
-        async fetchDashboardStats() {
-            this.isLoading = true
-            try {
-                const token = localStorage.getItem('authToken')
-
-                const response = await axios.get('/api/statistic/dashboard', {
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
-                })
-
-                if (response.data) {
-                    this.manualCount = response.data.manuals_count || 0
-                    this.lessonCount = response.data.lessons_count || 0
-                    this.productActiveCount = response.data.product_active_count || 0
-                    this.postCount = response.data.posts_count || 0
-                    this.answerCount = response.data.answer_count || 0
-                    this.totalLikes = response.data.total_likes || 0
-                    this.courses = response.data.courses || []
-
-                    this.products = response.data.active_product_data || []
-
-                    this.products.sort((a, b) => {
-                        if (a.is_active !== b.is_active) {
-                            return b.is_active - a.is_active
-                        }
-                        return new Date(b.date_pub) - new Date(a.date_pub)
-                    })
-                }
-            } catch (error) {
-                console.error('Ошибка при получении количества мануалов: ', error)
-            } finally {
-                this.isLoading = false
+        
+        const response = await axios.get('/api/statistic/dashboard', {
+            headers: {
+                'Authorization': `Bearer ${token}`
             }
-        },
-
-        getStatusText(product) {
-            if (product.is_active) return 'На паузе'
-            if (product.is_bargain) return 'Торг уместен'
-            return 'Активно'
-        },
+        })
+        
+        if (response.data) {
+            manualCount.value = response.data.manuals_count || 0
+            lessonCount.value = response.data.lessons_count || 0
+            productActiveCount.value = response.data.product_active_count || 0
+            postCount.value = response.data.posts_count || 0
+            answerCount.value = response.data.answer_count || 0
+            totalLikes.value = response.data.total_likes || 0
+            courses.value = response.data.courses || []
+            
+            products.value = response.data.active_product_data || []
+            
+            products.value.sort((a, b) => {
+                if (a.is_active !== b.is_active) {
+                    return b.is_active - a.is_active
+                }
+                return new Date(b.date_pub) - new Date(a.date_pub)
+            })
+        }
+    } catch (error) {
+        console.error('Ошибка при получении данных дашборда:', error)
+        
+        if (error.response && error.response.status === 401) {
+            console.log('Token expired, trying to refresh...')
+            authService.clearAuth()
+        }
+    } finally {
+        isLoading.value = false
     }
 }
+
+onMounted(async () => {
+    console.log('Dashboard mounted, checking auth...')
+    
+    const isAuth = authService.isAuthenticated()
+    
+    if (isAuth) {
+        await fetchDashboardStats()
+    } else {
+        try {
+            const user = await authService.checkAuth(true)
+            if (user) {
+                await fetchDashboardStats()
+            } else {
+                console.log('User not authenticated, redirect might be needed')
+            }
+        } catch (error) {
+            console.error('Auth check failed:', error)
+        }
+    }
+})
 </script>
 
 <style scoped>

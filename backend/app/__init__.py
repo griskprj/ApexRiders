@@ -31,7 +31,13 @@ def create_app():
     db.init_app(app)
     jwt.init_app(app)
     migrate(app, db)
-    CORS(app, origins=['http://localhost:3000'], supports_credentials=True)
+    CORS(app, resources={
+        r"/api/*": {
+            "origins": ["http://localhost:3000", "http://localhost:5000", "http://192.168.1.*:3000"],
+            "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+            "allow_headers": ["Authorization", "Content-Type"]
+        }
+    })
 
     from app.routes import auth, motorcycles, statist, manuals, courses, product
     app.register_blueprint(auth.auth)

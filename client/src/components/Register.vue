@@ -7,7 +7,7 @@
             <h1 class="auth-title">Запустите двигатель</h1>
             <p class="auth-subtitle">Ваше путешествие начинается здесь</p>
             
-            <form @submit.prevent="register">
+            <form @submit.prevent="handleRegister">
                 <div class="form-group">
                     <label class="form-label">Имя пользователя</label>
                     <input 
@@ -40,6 +40,10 @@
                       required
                     >
                 </div>
+
+                <div v-if="error" class="error-message">
+                    {{ error }}
+                </div>
                 
                 <button type="submit" class="btn-login" :disabled="loading">
                   {{ loading ? 'Регистрация...' : 'Зарегистрироваться' }}
@@ -54,61 +58,64 @@
     </div>
 </template>
 
-<script>
+<script setup>
+import { ref, reactive } from 'vue'
+import { useRouter } from 'vue-router'
+import { authService } from '../utils/checkAuth'
 
-export default {
-  name: 'Register',
-  data() {
-      return {
-          form: {
-              username: '',
-              email: '',
-              password: ''
-          },
-          loading: false
-      }
-    },
-    methods: {
-        async register() {
-            this.loading = true
+const router = useRouter()
+const emit = defineEmits(['user-updated'])
 
-            try {
-                const response = await fetch('/api/auth/register', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(this.form)
-                })
+const form = reactive({
+    username: '',
+    email: '',
+    password: ''
+})
 
-                if (response.ok) {
-                    const data = await response.json()
-                    console.log('Register successful, data:', data)
-                    
-                    const token = data.access_token
-                    if (token) {
-                        localStorage.setItem('authToken', token)
-                        this.$emit('user-updated', data)
-                        this.$router.push('/dashboard')
-                    } else {
-                        alert('Ошибка: токен не получен при регистрации')
-                    }
-                } else {
-                    const errorData = await response.json()
-                    alert(errorData.error || 'Ошибка регистрации')
-                }
-            } catch (error) {
-                alert('Ошибка сети')
-                console.log('Error in register: ', error)
-            } finally {
-                this.loading = false
-            }
+const loading = ref(false)
+const error = ref('')
+
+const handleRegister = async () => {
+    error.value = ''
+    loading.value = true
+    
+    try {
+        const result = await authService.register(
+            form.username, 
+            form.email, 
+            form.password
+        )
+        
+        if (result && result.user) {
+            emit('user-updated', { 
+                user: result.user, 
+                access_token: result.token 
+            })
+            
+            router.push('/dashboard')
+        } else {
+            error.value = 'Не удалось получить данные пользователя после регистрации'
         }
+    } catch (err) {
+        console.error('Registration error:', err)
+        error.value = err.error || 'Ошибка регистрации. Проверьте введенные данные.'
+    } finally {
+        loading.value = false
     }
 }
 </script>
 
 <style scoped>
+.error-message {
+    color: #ff6b6b;
+    background: rgba(255, 107, 107, 0.1);
+    padding: 10px 15px;
+    border-radius: 8px;
+    margin-bottom: 15px;
+    font-size: 14px;
+    border-left: 3px solid #ff6b6b;
+}
+
 .auth-page {
   width: 100%;
   min-height: 100vh;

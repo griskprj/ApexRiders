@@ -65,7 +65,7 @@ import MarketModal from './market/MarketModal.vue';
                         :handle-image-error="handleImageError"
                         :is-loading="isLoading"
                         :show-details="showDetails"
-                        :toggle-favorite="toggleFavorite"
+                        :toggle-like="toggleLike"
                     />
                 </div>
                 
@@ -313,15 +313,51 @@ export default {
                 images: []
             }
         },
-        toggleFavorite(id) {
-            const item = this.listings.find(item => item.id === id)
-            if (item) {
-                item.isFavorite = !item.isFavorite
+        async toggleLike(productId) {
+            try {
+                const token = localStorage.getItem('authToken')
+                console.log('Отправка запроса на лайк для productId:', productId)
+                
+                const response = await fetch(`/api/product/${productId}/like`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                })
+
+                console.log('Ответ сервера:', response.status, response.statusText)
+                
+                if (response.ok) {
+                    const data = await response.json()
+                    console.log('Данные от сервера:', data)
+
+                    const productIndex = this.listings.findIndex(item => item.id === productId)
+                    if (productIndex !== -1) {
+                        this.listings[productIndex].is_liked = data.liked
+                        this.listings[productIndex].likes_count = data.likes_count
+                        console.log('Обновлен основной список')
+                    }
+
+                    const userProductIndex = this.userListings.findIndex(item => item.id === productId)
+                    if (userProductIndex !== -1) {
+                        this.userListings[userProductIndex].is_liked = data.liked
+                        this.userListings[userProductIndex].likes_count = data.likes_count
+                        console.log('Обновлен список пользователя')
+                    }
+
+                    this.fetchProducts()
+                } else {
+                    const errorData = await response.json().catch(() => ({}))
+                    console.error('Ошибка сервера:', response.status, errorData)
+                }
+            } catch (error) {
+                console.error('Ошибка при изменении лайка:', error)
             }
         },
+
         showDetails(item) {
             console.log('Детали объявления:', item)
-            // Здесь можно перейти на страницу детального просмотра
         },
         handleImageError(event) {
             event.target.src = 'https://via.placeholder.com/400x300/333333/ffffff?text=No+Image'
@@ -579,6 +615,27 @@ export default {
     display: grid;
     grid-template-columns: 300px 1fr;
     gap: 30px;
+}
+
+.listing-meta .likes {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
+
+.listing-meta .likes i {
+    font-size: 14px;
+    color: var(--primary);
+}
+
+.listing-favorite i {
+    transition: all 0.3s ease;
+}
+
+.listing-favorite:hover i {
+    transform: scale(1.2);
 }
 
 /* ===== БОКОВАЯ ПАНЕЛЬ ===== */

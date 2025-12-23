@@ -1,7 +1,7 @@
 <template>
     <div v-if="isLoading" class="products-loading">
-                        <div class="lodaing-spinner-small"></div>
-                        <p>Загрузка объявлений...</p>
+        <div class="lodaing-spinner-small"></div>
+        <p>Загрузка объявлений...</p>
     </div>
 
     <div v-else class="listing-card" v-for="item in filteredListings" :key="item.id">
@@ -10,8 +10,8 @@
             <div class="listing-badge" :class="item.is_active ? 'active' : 'sold'">
                 {{ item.is_active ? 'Активно' : 'Продано' }}
             </div>
-            <div class="listing-favorite" @click="toggleFavorite(item.id)">
-                <i class="fas fa-heart" :class="{ active: item.isFavorite }"></i>
+            <div class="listing-favorite" @click="toggleLike(item.id)">
+                <i class="fas fa-heart" :class="{ active: item.is_liked }"></i>
             </div>
         </div>
         
@@ -29,6 +29,9 @@
                 </span>
                 <span class="views">
                     <i class="fas fa-eye"></i> {{ item.watchs }}
+                </span>
+                <span class="likes">
+                    <i class="fas fa-heart"></i> {{ item.likes_count }}
                 </span>
             </div>
             
@@ -51,7 +54,7 @@
             isLoading: Boolean,
             filteredListings: Array,
             handleImageError: Function,
-            toggleFavorite: Function,
+            toggleLike: Function,
             formatTime: Function,
             formatPrice: Function,
             showDetails: Function,
@@ -71,7 +74,7 @@
                     'gear': 'Экипировка'
                 };
                 return categoriesMap[category] || category;
-            }
+            },
         }
     }
 </script>
@@ -231,6 +234,33 @@
     .listing-price .negotiable {
         font-size: 0.85rem;
         color: var(--text-secondary);
+    }
+
+    .listing-meta .likes {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 0.85rem;
+        color: var(--text-secondary);
+        z-index: 100;
+    }
+    
+    .listing-meta .likes i {
+        font-size: 14px;
+        color: var(--primary);
+    }
+    
+    .listing-favorite i.active {
+        color: var(--primary);
+        text-shadow: 0 0 10px rgba(255, 69, 0, 0.8);
+    }
+    
+    .listing-favorite i {
+        transition: all 0.3s ease;
+    }
+    
+    .listing-favorite:hover i {
+        transform: scale(1.2);
     }
 
     @media (max-width: 480px) {

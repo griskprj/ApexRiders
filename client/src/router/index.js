@@ -6,8 +6,8 @@ import Dashboard from '../components/Dashboard.vue'
 import Manuals from '../components/Manuals.vue'
 import Courses from '../components/Courses.vue'
 import Market from '../components/Market.vue'
-import { isAuthenticated } from '../utils/checkAuth'
 import Community from '../components/Community.vue'
+import { authService } from '../utils/checkAuth' 
 
 const routes = [
     {
@@ -18,12 +18,14 @@ const routes = [
     {
         path: '/register',
         name: 'Register',
-        component: Register
+        component: Register,
+        meta: { guestOnly: true }
     },
     {
         path: '/login',
         name: 'Login',
-        component: Login
+        component: Login,
+        meta: { guestOnly: true }
     },
     {
         path: '/dashboard',
@@ -62,21 +64,30 @@ const router = createRouter({
     routes
 })
 
-router.beforeEach((to, from, next) => {
+router.beforeEach(async (to, from, next) => {
     const requiresAuth = to.matched.some(record => record.meta.requiresAuth)
-    
-    const isAuth = isAuthenticated()
+    const guestOnly = to.matched.some(record => record.meta.guestOnly)
+
+    const isAuth = authService.isAuthenticated()
 
     if (requiresAuth && !isAuth) {
-        console.log('Auth required, redirecting to login')
-        next({ name: 'Login', query: { redirect: to.fullPath } })
-    } else if (to.name === 'Login' && isAuth) {
-        console.log('Already authenticated, redirecting from login')
-        next({ name: 'Dashboard' })
-    } else {
-        next()
-    }
-})
+        await authService.checkAuth(true)
 
+        if (!authService.isAuthenticated()) {
+            console.log('Auth required, redirecting to login')
+            return next({
+                name: 'Login',
+                query: { redirect: to.fullPath }
+            })
+        }
+    }
+
+    if (guestOnly && isAuth) {
+        console.log('Already authenticated, redirecting to dashboard')
+        return next({ name: 'Dashboard' })
+    }
+
+    next()
+})
 
 export default router

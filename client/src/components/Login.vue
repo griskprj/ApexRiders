@@ -7,7 +7,7 @@
         <h1 class="auth-title">Запустите двигатель</h1>
         <p class="auth-subtitle">Ваше путешествие начинается здесь</p>
         
-        <form @submit.prevent="login">
+        <form @submit.prevent="handleLogin">
             <div class="form-group">
                 <label class="form-label">Электронная почта</label>
                 <input 
@@ -29,6 +29,10 @@
                   required
                 >
             </div>
+
+            <div v-if="error" class="error-message">
+                {{ error }}
+            </div>
             
             <button type="submit" class="btn-login" :disabled="loading">
               {{ loading ? 'Вход...' : 'Войти в систему' }}
@@ -43,60 +47,61 @@
   </div>
 </template>
 
-<script>
-export default {
-  name: 'Login',
-  data() {
-      return {
-          form: {
-              email: '',
-              password: ''
-          },
-          loading: false
-      }
-  },
-  methods: {
-      async login() {
-          this.loading = true
+<script setup>
+import { ref, reactive } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
+import { authService } from '../utils/checkAuth'
 
-          try {
-            const response = await fetch('/api/auth/login', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(this.form)
+const router = useRouter()
+const route = useRoute()
+const emit = defineEmits(['user-updated'])
+
+const form = reactive({
+    email: '',
+    password: ''
+})
+
+const loading = ref(false)
+const error = ref('')
+
+const handleLogin = async () => {
+    error.value = ''
+    loading.value = true
+    
+    try {
+        const result = await authService.login(form.email, form.password)
+        
+        if (result && result.user) {
+            emit('user-updated', { 
+                user: result.user, 
+                access_token: result.token 
             })
-
-            if (response.ok) {
-              const data = await response.json()
-              
-              const token = data.access_token || data.authToken || data.token
-              
-              if (token) {
-                localStorage.setItem('authToken', token)
-                
-                this.$emit('user-updated', {
-                  user: data.member || data.user,
-                  access_token: token
-                })
-                this.$router.push('/dashboard')
-              } else {
-                alert('Ошибка: токен не получен')
-              }
-            } else {
-              const errorData = await response.json()
-              alert(errorData.error || 'Ошибка входа')
-            }
-          } catch (error) {
-            alert('Ошибка сети')
-          } finally {
-            this.loading = false
-          }
-      }
-  }
+            
+            const redirect = route.query.redirect || '/dashboard'
+            router.push(redirect)
+        } else {
+            error.value = 'Не удалось получить данные пользователя'
+        }
+    } catch (err) {
+        console.error('Login error:', err)
+        error.value = err.error || 'Ошибка входа. Проверьте email и пароль.'
+    } finally {
+        loading.value = false
+    }
 }
 </script>
 
 <style scoped>
+.error-message {
+    color: #ff6b6b;
+    background: rgba(255, 107, 107, 0.1);
+    padding: 10px 15px;
+    border-radius: 8px;
+    margin-bottom: 15px;
+    font-size: 14px;
+    border-left: 3px solid #ff6b6b;
+}
+
 .auth-page {
   width: 100%;
   min-height: 100vh;
