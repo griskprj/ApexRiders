@@ -84,7 +84,7 @@
 <script>
     export default {
         props: {
-            showModal: Function,
+            showModal: Boolean,
             submitNewAd: Function,
             triggerFileInput: Function,
             handleImageUpload: Function,

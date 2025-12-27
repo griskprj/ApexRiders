@@ -105,7 +105,7 @@
         data() {
             return {
                 selectedCity: '',
-                priceRange: [0, 10000000]
+                priceRange: [0, 1000000]
             }
         }
     }
