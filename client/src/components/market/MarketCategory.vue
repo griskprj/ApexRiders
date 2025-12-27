@@ -4,60 +4,74 @@
             <h3><i class="fas fa-filter"></i> Категории</h3>
             <div class="category-list">
                 <label class="category-item">
-                    <input type="checkbox" v-model="categories.motorcycles">
+                    <input 
+                        type="checkbox"
+                        :checked="categories.motorcycles"
+                        @change="updateCategory('motorcycles', $event.target.checked)"    
+                    >
                     <span>Мотоциклы</span>
-                    <span class="count">42</span>
+                    <span class="count">{{ getCategoryCount('motorcycles') }}</span>
                 </label>
                 <label class="category-item">
-                    <input type="checkbox" v-model="categories.engines">
+                    <input 
+                        type="checkbox"
+                        :checked="categories.engines"
+                        @change="updateCategory('engines', $event.target.checked)"    
+                    >
                     <span>Двигатели</span>
-                    <span class="count">156</span>
+                    <span class="count">{{ getCategoryCount('engines') }}</span>
                 </label>
                 <label class="category-item">
-                    <input type="checkbox" v-model="categories.frames">
+                    <input 
+                        type="checkbox"
+                        :checked="categories.frames"
+                        @change="updateCategory('frames', $event.target.checked)"    
+                    >
                     <span>Рамы и подвеска</span>
-                    <span class="count">89</span>
+                    <span class="count">{{ getCategoryCount('frames') }}</span>
                 </label>
                 <label class="category-item">
-                    <input type="checkbox" v-model="categories.electronics">
+                    <input 
+                        type="checkbox"
+                        :checked="categories.electronics"
+                        @change="updateCategory('electronics', $event.target.checked)"    
+                    >
                     <span>Электроника</span>
-                    <span class="count">67</span>
+                    <span class="count">{{ getCategoryCount('electronics') }}</span>
                 </label>
                 <label class="category-item">
-                    <input type="checkbox" v-model="categories.helmets">
+                    <input 
+                        type="checkbox"
+                        :checked="categories.helmets"
+                        @change="updateCategory('helmets', $event.target.checked)"    
+                    >
                     <span>Шлемы</span>
-                    <span class="count">124</span>
+                    <span class="count">{{ getCategoryCount('helmets') }}</span>
                 </label>
                 <label class="category-item">
-                    <input type="checkbox" v-model="categories.clothing">
+                    <input 
+                        type="checkbox"
+                        :checked="categories.clothing"
+                        @change="updateCategory('clothing', $event.target.checked)"    
+                    >
                     <span>Одежда</span>
-                    <span class="count">87</span>
+                    <span class="count">{{ getCategoryCount('clothing') }}</span>
                 </label>
                 <label class="category-item">
-                    <input type="checkbox" v-model="categories.accessories">
+                    <input 
+                        type="checkbox"
+                        :checked="categories.accessories"
+                        @change="updateCategory('accessories', $event.target.checked)"    
+                    >
                     <span>Аксессуары</span>
-                    <span class="count">203</span>
+                    <span class="count">{{ getCategoryCount('accessories') }}</span>
                 </label>
-            </div>
-        </div>
-        
-        <div class="sidebar-section">
-            <h3><i class="fas fa-tags"></i> Популярные теги</h3>
-            <div class="tags">
-                <span class="tag" @click="addTag('Yamaha')">Yamaha</span>
-                <span class="tag" @click="addTag('Honda')">Honda</span>
-                <span class="tag" @click="addTag('Kawasaki')">Kawasaki</span>
-                <span class="tag" @click="addTag('Suzuki')">Suzuki</span>
-                <span class="tag" @click="addTag('BMW')">BMW</span>
-                <span class="tag" @click="addTag('AGV')">AGV</span>
-                <span class="tag" @click="addTag('Alpinestars')">Alpinestars</span>
-                <span class="tag" @click="addTag('Yoshimura')">Yoshimura</span>
             </div>
         </div>
         
         <div class="sidebar-section">
             <h3><i class="fas fa-map-marker-alt"></i> Город</h3>
-            <select v-model="selectedCity" @change="handleCityChange">
+            <select v-model="localCity" @change="handleCityChange">
                 <option value="">Все города</option>
                 <option value="moscow">Москва</option>
                 <option value="spb">Санкт-Петербург</option>
@@ -70,11 +84,38 @@
         <div class="sidebar-section">
             <h3><i class="fas fa-ruble-sign"></i> Цена</h3>
             <div class="price-range">
-                <input type="range" min="0" max="1000000" v-model="priceRange[0]" @input="updatePriceRange">
-                <input type="range" min="0" max="1000000" v-model="priceRange[1]" @input="updatePriceRange">
+                <div class="price-inputs">
+                    <input
+                        type="number"
+                        v-model="localMinPrice"
+                        @input="updatePrice"
+                        placeholder="Мин"
+                    >
+                    <span>-</span>
+                    <input
+                        type="number"
+                        v-model="localMaxPrice"
+                        @input="updatePrice"
+                        placeholder="Макс"
+                    >
+                </div>
+                <input
+                    type="range"
+                    min="0"
+                    max="5000000"
+                    v-model="localMinPrice"
+                    @input="updatePrice"
+                >
+                <input
+                    type="range"
+                    min="0"
+                    max="5000000"
+                    v-model="localMaxPrice"
+                    @input="updatePrice"
+                >
                 <div class="price-values">
-                    <span>{{ formatPrice(priceRange[0]) }} ₽</span>
-                    <span>{{ formatPrice(priceRange[1]) }} ₽</span>
+                    <span>{{ formatPrice(localMinPrice) }} ₽</span>
+                    <span>{{ formatPrice(localMaxPrice) }} ₽</span>
                 </div>
             </div>
         </div>
@@ -87,27 +128,52 @@
             categories: {
                 type: Object,
                 required: true,
-                default: () => ({
-                    motorcycles: false,
-                    engines: false,
-                    frames: false,
-                    electronics: false,
-                    helmets: false,
-                    clothing: false,
-                    accessories: false
-                })
             },
-            addTag: Function,
-            handleCityChange: Function,
             formatPrice: Function,
-            updatePriceRange: Function
+            listings: Array
         },
         data() {
             return {
-                selectedCity: '',
-                priceRange: [0, 1000000]
+                localCity: '',
+                localMinPrice: 0,
+                localMaxPrice: 5000000
             }
-        }
+        },
+        methods: {
+            updateCategory(category, checked) {
+                this.$emit('category-change', { [category]: checked })
+                this.$emit('reset-active-filter')
+            },
+
+            handleCityChange() {
+                this.$emit('city-change', this.localCity)
+            },
+
+            updatePrice() {
+                if (this.localMinPrice > this.localMaxPrice) {
+                    this.localMinPrice = this.localMaxPrice
+                }
+                this.$emit('price-change', [this.localMinPrice, this.localMaxPrice])
+            },
+
+            getCategoryCount(category) {
+                if (!this.listings) return 0
+
+                const categoryMapping = {
+                    motorcycles: 'motorcycles',
+                    engines: 'engines',
+                    frames: 'frames',
+                    electronics: 'electronics',
+                    helmets: 'helmets',
+                    clothing: 'clothing',
+                    accessories: 'accessories'
+                }
+
+                const categoryValue = categoryMapping[category]
+                return this.listings.filter(item => item.category === categoryValue).length
+            }
+        },
+        emits: ['category-change', 'city-change', 'price-change', 'reset-active-filter']
     }
 </script>
 
@@ -183,28 +249,6 @@
         color: var(--text-secondary);
     }
 
-    .tags {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 10px;
-    }
-
-    .tags .tag {
-        padding: 8px 16px;
-        background: rgba(255, 255, 255, 0.05);
-        border-radius: 20px;
-        font-size: 0.9rem;
-        color: var(--text);
-        cursor: pointer;
-        transition: all 0.3s ease;
-    }
-
-    .tags .tag:hover {
-        background: var(--primary);
-        color: white;
-        transform: translateY(-2px);
-    }
-
     .sidebar-section select {
         width: 100%;
         padding: 12px 20px;
@@ -249,6 +293,27 @@
         justify-content: space-between;
         margin-top: 15px;
         font-size: 0.9rem;
+        color: var(--text-secondary);
+    }
+
+    .price-inputs {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        margin-bottom: 15px;
+    }
+    
+    .price-inputs input {
+        width: 100px;
+        padding: 8px 12px;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 6px;
+        color: var(--text);
+        text-align: center;
+    }
+    
+    .price-inputs span {
         color: var(--text-secondary);
     }
 

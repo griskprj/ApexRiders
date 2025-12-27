@@ -39,20 +39,22 @@ import MarketModal from './market/MarketModal.vue';
         <!-- Фильтры и категории -->
         <MarketFiltersCategory 
             :active-tags="activeTags"
-            :set-filter="setFilter"
-            :remove-tag="removeTag"
+            :user="user"
+            @filter-change="setFilter"
+            @sort-change="sortBy = $event"
         />
-        
 
         <!-- Основной контент -->
         <div class="market-content">
             <!-- Боковая панель с категориями -->
             <MarketCategory 
-                :add-tag="addTag"
                 :categories="categories"
+                :listings="listings"
                 :format-price="formatPrice"
-                :handle-city-change="handleCityChange"
-                :update-price-range="updatePriceRange"
+                @category-change="updateCategories"
+                @city-change="handleCityChange"
+                @price-change="priceRange = $event"
+                @reset-active-filter="activeFilter = 'all'"
             />
 
             <!-- Список объявлений -->
@@ -103,7 +105,8 @@ import MarketModal from './market/MarketModal.vue';
         :new-ad="newAd"
         :remove-image="removeImage"
         :show-modal="showModal"
-        :submit-new-ad="submitNewAd"
+        @close="showModal = false"
+        @submit="submitNewAd"
         :trigger-file-input="triggerFileInput"
     />
 </template>
@@ -119,9 +122,8 @@ export default {
             activeFilter: 'all',
             searchQuery: '',
             sortBy: 'newest',
-            activeTags: [],
             selectedCity: '',
-            priceRange: [0, 500000],
+            priceRange: [0, 5000000],
             categories: {
                 motorcycles: false,
                 engines: false,
@@ -166,6 +168,27 @@ export default {
 
         filteredListings() {
             let filtered = [...this.listings]
+
+            // Фильтрация по активному фильтру
+            if (this.activeFilter !== 'all') {
+                if (this.activeFilter === 'my') {
+                    filtered = this.userListings
+                } else {
+                    const filterToCategories = {
+                        'motorcycles': ['motorcycles'],
+                        'parts': ['engines', 'frames', 'electronics'],
+                        'gear': ['helmets', 'clothing', 'accessories', 'gear']
+                    }
+
+                    const targetCategories = filterToCategories[this.activeFilter] || []
+
+                    if (targetCategories.length > 0) {
+                        filtered = filtered.filter(item =>
+                            targetCategories.includes(item.category)
+                        )
+                    }
+                }
+            }
             
             // Фильтрация по поисковому запросу
             if (this.searchQuery) {
@@ -176,23 +199,60 @@ export default {
                     item.category.toLowerCase().includes(query)
                 )
             }
+
+            // Филтрация по категориям, чекбоксы эти
+            const activeCategories = Object.keys(this.categories).filter(
+                key => this.categories[key]
+            )
+
+            if (activeCategories.length > 0) {
+                const categoryMapping = {
+                    motorcycles: 'motorcycles',
+                    engines: 'engines',
+                    frames: 'frames',
+                    electronics: 'electronics',
+                    helmets: 'helmets',
+                    clothing: 'clothing',
+                    accessories: 'accessories'
+                }
+
+                filtered = filtered.filter(item => {
+                    return activeCategories.some(cat => {
+                        const categoryValue = categoryMapping[cat]
+                        return item.category === categoryValue
+                    })
+                })
+            }
+
+            // Филтрация по городу
+            if (this.selectedCity) {
+                filtered = filtered.filter(item => 
+                    item.city?.toLowerCase().includes(this.selectedCity.toLocaleLowerCase())
+                )
+            }
             
             // Фильтрация по цене
-            filtered = filtered.filter(item => 
-                item.cost >= this.priceRange[0] && item.cost <= this.priceRange[1]
-            )
+            filtered = filtered.filter(item => {
+                const price = Number(item.cost || item.price || 0)
+                return price >= this.priceRange[0] && price <= this.priceRange[1]
+            })
             
             // Сортировка
             filtered.sort((a, b) => {
+                const dateA = new Date(a.date_pub || 0)
+                const dateB = new Date(b.date_pub || 0)
+                const priceA = Number(a.cost || a.price || 0)
+                const priceB = Number(b.cost || b.price || 0)
+                
                 switch (this.sortBy) {
                     case 'price_low':
-                        return a.price - b.price
+                        return priceA - priceB
                     case 'price_high':
-                        return b.price - a.price
+                        return priceB - priceA
                     case 'popular':
-                        return b.views - a.views
+                        return (b.likes_count || 0) - (a.likes_count || 0)
                     default: // newest
-                        return new Date(b.date) - new Date(a.date)
+                        return dateB - dateA
                 }
             })
             
@@ -241,17 +301,118 @@ export default {
         setFilter(filter) {
             this.activeFilter = filter
             this.currentPage = 1
+
+            this.updateCategoriesForFilter(filter)
         },
-        handleSearch() {
+
+        updateCategoriesForFilter(filter) {
+            const filterMapping = {
+                'motorcycles': {
+                    motorcycles: true,
+                    engines: false,
+                    frames: false,
+                    electronics: false,
+                    helmets: false,
+                    clothing: false,
+                    accessories: false
+                },
+                'parts': {
+                    motorcycles: false,
+                    engines: true,
+                    frames: true,
+                    electronics: true,
+                    helmets: false,
+                    clothing: false,
+                    accessories: false
+                },
+                'gear': {
+                    motorcycles: false,
+                    engines: false,
+                    frames: false,
+                    electronics: false,
+                    helmets: true,
+                    clothing: true,
+                    accessories: true
+                }
+            }
+
+            if (filterMapping[filter]) {
+                this.categories = { ...this.categories, ...filterMapping[filter] }
+            }
+        },
+
+        handleSort(event) {
+            this.sortBy = event.target.value
             this.currentPage = 1
         },
-        handleSort() {
+
+        handleCityChange(city) {
+            this.selectedCity = city
             this.currentPage = 1
         },
-        handleCityChange() {
-            this.currentPage = 1
-        },
+
         updatePriceRange() {
+            this.currentPage = 1
+        },
+
+        updateCategories(updateCategories) {
+            const isMultipleCategories = Object.values(this.categories).filter(Boolean).length > 1
+
+            if (this.activeFilter !== 'all' && isMultipleCategories) {
+                const filterMapping = {
+                    'motorcycles': ['motorcycles'],
+                    'parts': ['engines', 'frames', 'electronics'],
+                    'gear': ['helmets', 'clothing', 'accessories', 'gear']
+                }
+
+                const currentFilterCategories = filterMapping[this.activeFilter] || []
+                const selectedCategories = Object.keys(this.categories)
+                    .filter(key => this.categories[key])
+                    .map(key => {
+                        const mapping = {
+                            motorcycles: 'motorcycles',
+                            engines: 'engines',
+                            frames: 'frames',
+                            electronics: 'electronics',
+                            helmets: 'helmets',
+                            clothing: 'clothing',
+                            accessories: 'accessories'
+                        }
+                        return mapping[key]
+                    })
+                
+                const hasNonMatchingCaetegory = selectedCategories.some(
+                    cat => !currentFilterCategories.includes(cat)
+                )
+
+                if (hasNonMatchingCaetegory) {
+                    this.activeFilter = 'all'
+                }
+            }
+
+            this.categories = { ...this.categories, ...updateCategories }
+            this.currentPage = 1
+        },
+
+        resetFilters() {
+            this.activeFilter = 'all'
+            this.searchQuery = ''
+            this.sortBy = 'newest'
+            this.selectedCity = ''
+            this.priceRange = [0, 500000]
+            this.categories = {
+                motorcycles: false,
+                engines: false,
+                frames: false,
+                electronics: false,
+                helmets: false,
+                clothing: false,
+                accessories: false
+            }
+            this.currentPage = 1
+        },
+
+        handleSearch() {
             this.currentPage = 1
         },
         formatPrice(price) {
@@ -297,9 +458,12 @@ export default {
 
             if (response.ok) {
                 alert('Объявление успешно размещено!')
+                this.showModal = false
+                this.fetchProducts()
+            } else {
+                alert('Ошибка при размещении объявления')
             }
 
-            this.showModal = false
             this.resetNewAdForm()
         },
         resetNewAdForm() {
@@ -372,24 +536,7 @@ export default {
                 this.currentPage++
             }
         },
-        resetFilters() {
-            this.activeFilter = 'all'
-            this.searchQuery = ''
-            this.sortBy = 'newest'
-            this.activeTags = []
-            this.selectedCity = ''
-            this.priceRange = [0, 500000]
-            this.categories = {
-                motorcycles: false,
-                engines: false,
-                frames: false,
-                electronics: false,
-                helmets: false,
-                clothing: false,
-                accessories: false
-            }
-            this.currentPage = 1
-        },
+        
         formatTime(timeString) {
             if (!timeString) return ''
             const date = new Date(timeString)

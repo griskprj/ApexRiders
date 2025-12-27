@@ -170,6 +170,10 @@ onUnmounted(() => {
     z-index: 0;
 }
 
+select option {
+    background-color: rgb(99, 99, 99);
+}
+
 /* ===== НАВИГАЦИЯ ===== */
 .navbar {
     position: fixed;

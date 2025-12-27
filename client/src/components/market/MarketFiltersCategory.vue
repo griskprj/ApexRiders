@@ -4,53 +4,27 @@
             <button 
                 class="filter-tab" 
                 :class="{ active: activeFilter === 'all' }"
-                @click="setFilter('all')"
+                @click="$emit('filter-change', 'all')"
             >
                 Все
             </button>
             <button 
                 class="filter-tab" 
-                :class="{ active: activeFilter === 'motorcycles' }"
-                @click="setFilter('motorcycles')"
-            >
-                Мотоциклы
-            </button>
-            <button 
-                class="filter-tab" 
-                :class="{ active: activeFilter === 'parts' }"
-                @click="setFilter('parts')"
-            >
-                Запчасти
-            </button>
-            <button 
-                class="filter-tab" 
-                :class="{ active: activeFilter === 'gear' }"
-                @click="setFilter('gear')"
-            >
-                Экипировка
-            </button>
-            <button 
-                class="filter-tab" 
                 :class="{ active: activeFilter === 'my' && user }"
-                @click="setFilter('my')"
+                @click="$emit('filter-change', 'my')"
                 v-if="user"
             >
                 Мои объявления
             </button>
         </div>
         
-        <div class="filter-sort">
-            <select v-model="sortBy" @change="handleSort">
-                <option value="newest" selected>Сначала новые</option>
+       <div class="filter-sort">
+            <select v-model="localSortBy" @change="handleSortChange">
+                <option value="newest">Сначала новые</option>
                 <option value="price_low">Цена (низкая → высокая)</option>
                 <option value="price_high">Цена (высокая → низкая)</option>
                 <option value="popular">Популярные</option>
             </select>
-            <div class="filter-tags">
-                <span class="tag" v-for="tag in activeTags" :key="tag">
-                    {{ tag }} <i class="fas fa-times" @click="removeTag(tag)"></i>
-                </span>
-            </div>
         </div>
     </div>
 </template>
@@ -58,10 +32,26 @@
 <script>
     export default {
         props: {
-            activeTags: Array,
-            setFilter: Function,
-            removeTag: Function
-        }
+            activeFilter: {
+                type: String,
+                default: 'all'
+            },
+            user: {
+                type: Object,
+                default: null
+            }
+        },
+        data() {
+            return {
+                localSortBy: 'newest'
+            }
+        },
+        methods: {
+            handleSortChange() {
+                this.$emit('sort-change', this.localSortBy)
+            }
+        },
+        emits: ['filter-change', 'sort-change']
     }
 </script>
 
@@ -90,6 +80,11 @@
         font-weight: 500;
         cursor: pointer;
         transition: all 0.3s ease;
+    }
+
+    .filter-tab i {
+        margin-right: 8px;
+        font-size: 14px;
     }
 
     .filter-tab:hover {

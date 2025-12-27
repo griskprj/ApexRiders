@@ -3,12 +3,12 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h3><i class="fas fa-plus-circle"></i> Новое объявление</h3>
-                <button class="modal-close" @click="showModal = false">
+                <button class="modal-close" @click="$emit('close')">
                     <i class="fas fa-times"></i>
                 </button>
             </div>
             <div class="modal-body">
-                <form @submit.prevent="submitNewAd">
+                <form @submit.prevent="$emit('submit')">
                     <div class="form-group">
                         <label>Заголовок объявления *</label>
                         <input type="text" v-model="newAd.title" placeholder="Например: Шлем AGV K6, размер L" required>
@@ -20,8 +20,11 @@
                             <select v-model="newAd.category" required>
                                 <option value="">Выберите категорию</option>
                                 <option value="motorcycles">Мотоциклы</option>
-                                <option value="parts">Запчасти</option>
-                                <option value="gear">Экипировка</option>
+                                <option value="engines">Двигатели</option>
+                                <option value="frames">Рамы и подвеска</option>
+                                <option value="electronics">Электроника</option>
+                                <option value="helmets">Шлемы</option>
+                                <option value="clothing">Одежда</option>
                                 <option value="accessories">Аксессуары</option>
                             </select>
                         </div>
@@ -67,7 +70,7 @@
                     </div>
                     
                     <div class="form-actions">
-                        <button type="button" class="btn btn-outline" @click="showModal = false">
+                        <button type="button" class="btn btn-outline" @click="$emit('close')">
                             Отмена
                         </button>
                         <button type="submit" class="btn btn-primary">
@@ -85,7 +88,6 @@
     export default {
         props: {
             showModal: Boolean,
-            submitNewAd: Function,
             triggerFileInput: Function,
             handleImageUpload: Function,
             removeImage: Function,
@@ -101,6 +103,12 @@
                     phone: String,
                     images: Array
                 })
+            }
+        },
+        emits: ['clpse', 'submit'],
+        methods: {
+            triggerFileInput() {
+                this.$refs.fileInput.click()
             }
         }
     }
