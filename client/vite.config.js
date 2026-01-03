@@ -14,8 +14,13 @@ export default defineConfig({
       protocol: 'ws'
     },
     proxy: {
-      '/api': {
+      '/uploads': {
         target: 'http://localhost:5000',
+        changeOrigin: true
+      },
+
+      '/api': {
+        target: 'http://192.168.1.42:5000',
         changeOrigin: true,
         secure: false,
         ws: true,
@@ -32,11 +37,6 @@ export default defineConfig({
           })
         }
       }
-    }
-  },
-  resolve: {
-    alias: {
-      '@': resolve(__dirname, 'src')
     }
   },
   build: {

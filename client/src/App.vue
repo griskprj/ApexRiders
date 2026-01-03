@@ -54,7 +54,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { authService } from './utils/checkAuth'
 
@@ -63,21 +63,40 @@ const isMobile = ref(false)
 const isMobileMenuOpen = ref(false)
 const isScrolled = ref(false)
 const user = ref(null)
+const isLoading = ref(false)
 
 const loadUser = async () => {
-    user.value = authService.getUser()
+    isLoading.value = true
     
-    if (isMobile.value) {
-        try {
+    try {
+        const cachedUser = authService.getUser()
+        user.value = cachedUser
+        
+        if (navigator.onLine) {
             const freshUser = await authService.checkAuth()
             if (freshUser) {
                 user.value = freshUser
+            } else if (!cachedUser) {
+                if (router.currentRoute.value.meta.requiresAuth) {
+                    await router.push('/login')
+                }
             }
-        } catch (error) {
-            console.log('Mobile auth check:', error)
         }
+    } catch (error) {
+        console.error('Error loading user:', error)
+    } finally {
+        isLoading.value = false
     }
 }
+
+watch(
+    () => router.currentRoute.value,
+    (to) => {
+        if (to.meta.requiresAuth && !user.value) {
+            loadUser()
+        }
+    }
+)
 
 const handleUserUpdate = (userData) => {
     if (userData) {

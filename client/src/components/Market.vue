@@ -19,7 +19,6 @@ import MarketModal from './market/MarketModal.vue';
                 :user-active-listings="userActiveListings"
             />
             
-            
             <div class="market-actions">
                 <button class="btn btn-primary" @click="showNewAdModal">
                     <i class="fas fa-plus"></i> Разместить объявление
@@ -38,41 +37,41 @@ import MarketModal from './market/MarketModal.vue';
 
         <!-- Фильтры и категории -->
         <MarketFiltersCategory 
-            :active-tags="activeTags"
+            :active-filter="activeFilter"
             :user="user"
             @filter-change="setFilter"
-            @sort-change="sortBy = $event"
+            @sort-change="setSort"
         />
+        
 
         <!-- Основной контент -->
         <div class="market-content">
             <!-- Боковая панель с категориями -->
             <MarketCategory 
                 :categories="categories"
-                :listings="listings"
+                :listings="filteredByUser"
                 :format-price="formatPrice"
                 @category-change="updateCategories"
-                @city-change="handleCityChange"
-                @price-change="priceRange = $event"
-                @reset-active-filter="activeFilter = 'all'"
+                @city-change="setCity"
+                @price-change="setPriceRange"
+                @reset-active-filter="resetActiveFilter"
             />
 
             <!-- Список объявлений -->
             <div class="listings">
                 <div class="listings-grid">
                     <MarketCard 
-                        :filtered-listings="filteredListings"
-                        :format-price="formatPrice"
-                        :format-time="formatTime"
-                        :handle-image-error="handleImageError"
                         :is-loading="isLoading"
-                        :show-details="showDetails"
+                        :filtered-listings="paginatedListings"
+                        :handle-image-error="handleImageError"
                         :toggle-like="toggleLike"
+                        :format-time="formatTime"
+                        :format-price="formatPrice"
                     />
                 </div>
                 
                 <!-- Пагинация -->
-                <div class="pagination" v-if="filteredListings.length > 0">
+                <div class="pagination" v-if="filteredByAll.length > 0">
                     <button class="page-btn" :disabled="currentPage === 1" @click="prevPage">
                         <i class="fas fa-chevron-left"></i>
                     </button>
@@ -87,7 +86,7 @@ import MarketModal from './market/MarketModal.vue';
                 </div>
                 
                 <!-- Сообщение если нет объявлений -->
-                <div class="empty-state" v-if="filteredListings.length === 0">
+                <div class="empty-state" v-if="filteredByAll.length === 0 && !isLoading">
                     <i class="fas fa-search"></i>
                     <h3>Объявления не найдены</h3>
                     <p>Попробуйте изменить параметры поиска или фильтры</p>
@@ -101,13 +100,10 @@ import MarketModal from './market/MarketModal.vue';
 
     <!-- Модальное окно нового объявления -->
     <MarketModal 
-        :handle-image-upload="handleImageUpload"
-        :new-ad="newAd"
-        :remove-image="removeImage"
+        v-if="showModal"
         :show-modal="showModal"
         @close="showModal = false"
-        @submit="submitNewAd"
-        :trigger-file-input="triggerFileInput"
+        @submit-success="handleAdSuccess"
     />
 </template>
 
@@ -140,15 +136,6 @@ export default {
             
             // Модальное окно
             showModal: false,
-            newAd: {
-                title: '',
-                category: '',
-                price: '',
-                description: '',
-                city: '',
-                phone: '',
-                images: []
-            },
             
             // Объявления
             listings: [],
@@ -162,244 +149,253 @@ export default {
         }
     },
     computed: {
-        limitedProducts() {
-            return this.listings.slice(0, 12)
+        // Основные данные в зависимости от фильтра "Мои/Все"
+        filteredByUser() {
+            return this.activeFilter === 'my' && this.user ? this.userListings : this.listings;
         },
-
-        filteredListings() {
-            let filtered = [...this.listings]
-
-            // Фильтрация по активному фильтру
-            if (this.activeFilter !== 'all') {
-                if (this.activeFilter === 'my') {
-                    filtered = this.userListings
-                } else {
-                    const filterToCategories = {
-                        'motorcycles': ['motorcycles'],
-                        'parts': ['engines', 'frames', 'electronics'],
-                        'gear': ['helmets', 'clothing', 'accessories', 'gear']
-                    }
-
-                    const targetCategories = filterToCategories[this.activeFilter] || []
-
-                    if (targetCategories.length > 0) {
-                        filtered = filtered.filter(item =>
-                            targetCategories.includes(item.category)
-                        )
-                    }
-                }
-            }
+        
+        // Применение всех фильтров (поиск, категории, город, цена)
+        filteredByAll() {
+            let filtered = [...this.filteredByUser];
             
             // Фильтрация по поисковому запросу
-            if (this.searchQuery) {
-                const query = this.searchQuery.toLowerCase()
+            if (this.searchQuery.trim()) {
+                const query = this.searchQuery.toLowerCase().trim();
                 filtered = filtered.filter(item => 
                     item.title.toLowerCase().includes(query) ||
                     item.description.toLowerCase().includes(query) ||
-                    item.category.toLowerCase().includes(query)
-                )
+                    (item.category && item.category.toLowerCase().includes(query))
+                );
             }
-
-            // Филтрация по категориям, чекбоксы эти
-            const activeCategories = Object.keys(this.categories).filter(
-                key => this.categories[key]
-            )
-
-            if (activeCategories.length > 0) {
-                const categoryMapping = {
-                    motorcycles: 'motorcycles',
-                    engines: 'engines',
-                    frames: 'frames',
-                    electronics: 'electronics',
-                    helmets: 'helmets',
-                    clothing: 'clothing',
-                    accessories: 'accessories'
-                }
-
-                filtered = filtered.filter(item => {
-                    return activeCategories.some(cat => {
-                        const categoryValue = categoryMapping[cat]
-                        return item.category === categoryValue
-                    })
-                })
+            
+            // Фильтрация по категориям
+            const selectedCategories = Object.keys(this.categories).filter(cat => this.categories[cat]);
+            if (selectedCategories.length > 0) {
+                filtered = filtered.filter(item => 
+                    item.category && selectedCategories.includes(item.category)
+                );
             }
-
-            // Филтрация по городу
+            
+            // Фильтрация по городу
             if (this.selectedCity) {
                 filtered = filtered.filter(item => 
-                    item.city?.toLowerCase().includes(this.selectedCity.toLocaleLowerCase())
-                )
+                    item.town && item.town.toLowerCase() === this.selectedCity.toLowerCase()
+                );
             }
             
             // Фильтрация по цене
             filtered = filtered.filter(item => {
-                const price = Number(item.cost || item.price || 0)
-                return price >= this.priceRange[0] && price <= this.priceRange[1]
-            })
+                const cost = item.cost || 0;
+                return cost >= this.priceRange[0] && cost <= this.priceRange[1];
+            });
             
             // Сортировка
             filtered.sort((a, b) => {
-                const dateA = new Date(a.date_pub || 0)
-                const dateB = new Date(b.date_pub || 0)
-                const priceA = Number(a.cost || a.price || 0)
-                const priceB = Number(b.cost || b.price || 0)
-                
                 switch (this.sortBy) {
                     case 'price_low':
-                        return priceA - priceB
+                        return (a.cost || 0) - (b.cost || 0);
                     case 'price_high':
-                        return priceB - priceA
+                        return (b.cost || 0) - (a.cost || 0);
                     case 'popular':
-                        return (b.likes_count || 0) - (a.likes_count || 0)
+                        return (b.watchs || 0) - (a.watchs || 0);
                     default: // newest
-                        return dateB - dateA
+                        return new Date(b.date_pub || 0) - new Date(a.date_pub || 0);
                 }
-            })
+            });
             
-            return filtered
+            return filtered;
         },
+        
+        // Пагинированные данные
+        paginatedListings() {
+            const start = (this.currentPage - 1) * this.itemsPerPage;
+            const end = start + this.itemsPerPage;
+            return this.filteredByAll.slice(start, end);
+        },
+        
         totalPages() {
-            return Math.ceil(this.filteredListings.length / this.itemsPerPage)
+            return Math.ceil(this.filteredByAll.length / this.itemsPerPage);
         },
+        
         user() {
-            const userData = localStorage.getItem('user')
-            return userData ? JSON.parse(userData) : null
+            const userData = localStorage.getItem('user');
+            return userData ? JSON.parse(userData) : null;
+        }
+    },
+
+    watch: {
+        // Сброс пагинации при изменении фильтров
+        activeFilter() {
+            this.currentPage = 1;
+        },
+        searchQuery() {
+            this.currentPage = 1;
+        },
+        sortBy() {
+            this.currentPage = 1;
+        },
+        selectedCity() {
+            this.currentPage = 1;
+        },
+        priceRange: {
+            handler() {
+                this.currentPage = 1;
+            },
+            deep: true
+        },
+        categories: {
+            handler() {
+                this.currentPage = 1;
+            },
+            deep: true
         }
     },
 
     mounted() {
-        this.fetchProducts()
+        this.fetchProducts();
     },
 
     methods: {
         async fetchProducts() {
             try {
-                const token = localStorage.getItem('authToken')
+                const token = localStorage.getItem('authToken');
 
                 const response = await axios.get('/api/products/get', {
                     headers: {
                         'Authorization': `Bearer ${token}`
                     }
-                })
+                });
                  
                 if (response.data) {
-                    this.listings = response.data.all_products || []
-                    this.userListings = response.data.user_products || []
-                    this.activeListings = response.data.product_count || 0
-                    this.userActiveListings = response.data.user_product_count || 0
-
+                    this.listings = response.data.all_products || [];
+                    this.userListings = response.data.user_products || [];
+                    this.activeListings = response.data.product_count || 0;
+                    this.userActiveListings = response.data.user_product_count || 0;
                 }
             } catch (error) {
-                console.error('Ошибка при получении объявлений: ', error)
-                this.listings = []
-                this.userListings = []
+                console.error('Ошибка при получении объявлений: ', error);
+                this.listings = [];
+                this.userListings = [];
             } finally {
-                this.isLoading = false
+                this.isLoading = false;
             }
         },
 
         setFilter(filter) {
-            this.activeFilter = filter
-            this.currentPage = 1
-
-            this.updateCategoriesForFilter(filter)
+            this.activeFilter = filter;
         },
 
-        updateCategoriesForFilter(filter) {
-            const filterMapping = {
-                'motorcycles': {
-                    motorcycles: true,
-                    engines: false,
-                    frames: false,
-                    electronics: false,
-                    helmets: false,
-                    clothing: false,
-                    accessories: false
-                },
-                'parts': {
-                    motorcycles: false,
-                    engines: true,
-                    frames: true,
-                    electronics: true,
-                    helmets: false,
-                    clothing: false,
-                    accessories: false
-                },
-                'gear': {
-                    motorcycles: false,
-                    engines: false,
-                    frames: false,
-                    electronics: false,
-                    helmets: true,
-                    clothing: true,
-                    accessories: true
-                }
+        resetActiveFilter() {
+            this.activeFilter = 'all';
+        },
+
+        handleSearch() {
+        },
+
+        setSort(sortBy) {
+            this.sortBy = sortBy;
+        },
+
+        setCity(city) {
+            this.selectedCity = city;
+        },
+
+        setPriceRange(range) {
+            this.priceRange = range;
+        },
+        
+        updateCategories(update) {
+            this.categories = { ...this.categories, ...update };
+        },
+
+        formatPrice(price) {
+            if (!price) return '0';
+            return price.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+        },
+
+        showNewAdModal() {
+            if (!this.user) {
+                alert('Для размещения объявлений необходимо авторизоваться');
+                this.$router.push('/login');
+                return;
             }
-
-            if (filterMapping[filter]) {
-                this.categories = { ...this.categories, ...filterMapping[filter] }
-            }
+            this.showModal = true;
+        },
+        
+        handleAdSuccess() {
+            this.showModal = false;
+            this.fetchProducts(); 
         },
 
-        handleSort(event) {
-            this.sortBy = event.target.value
-            this.currentPage = 1
-        },
-
-        handleCityChange(city) {
-            this.selectedCity = city
-            this.currentPage = 1
-        },
-
-        updatePriceRange() {
-            this.currentPage = 1
-        },
-
-        updateCategories(updateCategories) {
-            const isMultipleCategories = Object.values(this.categories).filter(Boolean).length > 1
-
-            if (this.activeFilter !== 'all' && isMultipleCategories) {
-                const filterMapping = {
-                    'motorcycles': ['motorcycles'],
-                    'parts': ['engines', 'frames', 'electronics'],
-                    'gear': ['helmets', 'clothing', 'accessories', 'gear']
-                }
-
-                const currentFilterCategories = filterMapping[this.activeFilter] || []
-                const selectedCategories = Object.keys(this.categories)
-                    .filter(key => this.categories[key])
-                    .map(key => {
-                        const mapping = {
-                            motorcycles: 'motorcycles',
-                            engines: 'engines',
-                            frames: 'frames',
-                            electronics: 'electronics',
-                            helmets: 'helmets',
-                            clothing: 'clothing',
-                            accessories: 'accessories'
-                        }
-                        return mapping[key]
-                    })
+        async toggleLike(productId) {
+            try {
+                const token = localStorage.getItem('authToken');
                 
-                const hasNonMatchingCaetegory = selectedCategories.some(
-                    cat => !currentFilterCategories.includes(cat)
-                )
+                const response = await fetch(`/api/product/${productId}/like`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
 
-                if (hasNonMatchingCaetegory) {
-                    this.activeFilter = 'all'
+                if (response.ok) {
+                    const data = await response.json();
+                    
+                    // Обновляем лайки в основном списке
+                    const updateListing = (list) => {
+                        const index = list.findIndex(item => item.id === productId);
+                        if (index !== -1) {
+                            list[index].is_liked = data.liked;
+                            list[index].likes_count = data.likes_count;
+                        }
+                    };
+                    
+                    updateListing(this.listings);
+                    updateListing(this.userListings);
+                    
+                    // Принудительное обновление реактивности
+                    this.listings = [...this.listings];
+                    this.userListings = [...this.userListings];
+                } else {
+                    const errorData = await response.json().catch(() => ({}));
+                    console.error('Ошибка сервера:', response.status, errorData);
                 }
+            } catch (error) {
+                console.error('Ошибка при изменении лайка:', error);
             }
-
-            this.categories = { ...this.categories, ...updateCategories }
-            this.currentPage = 1
         },
 
+        showDetails(item) {
+            console.log('Детали объявления:', item);
+            // Здесь можно добавить переход на страницу деталей
+            // this.$router.push(`/market/${item.id}`);
+        },
+        
+        handleImageError(event) {
+            console.log('Image load error: ', event.target.src)
+            event.target.src = '/DefaultListingPhoto.png'
+            event.target.onerror = null
+        },
+        
+        prevPage() {
+            if (this.currentPage > 1) {
+                this.currentPage--;
+            }
+        },
+        
+        nextPage() {
+            if (this.currentPage < this.totalPages) {
+                this.currentPage++;
+            }
+        },
+        
         resetFilters() {
-            this.activeFilter = 'all'
-            this.searchQuery = ''
-            this.sortBy = 'newest'
-            this.selectedCity = ''
-            this.priceRange = [0, 500000]
+            this.activeFilter = 'all';
+            this.searchQuery = '';
+            this.sortBy = 'newest';
+            this.selectedCity = '';
+            this.priceRange = [0, 5000000];
             this.categories = {
                 motorcycles: false,
                 engines: false,
@@ -408,149 +404,24 @@ export default {
                 helmets: false,
                 clothing: false,
                 accessories: false
-            }
-            this.currentPage = 1
-        },
-
-        handleSearch() {
-            this.currentPage = 1
-        },
-        formatPrice(price) {
-            return price.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ')
-        },
-        showNewAdModal() {
-            if (!this.user) {
-                alert('Для размещения объявлений необходимо авторизоваться')
-                this.$router.push('/login')
-                return
-            }
-            this.showModal = true
-        },
-        triggerFileInput() {
-            this.$refs.fileInput.click()
-        },
-        handleImageUpload(event) {
-            const files = event.target.files
-            for (let i = 0; i < Math.min(files.length, 5); i++) {
-                const reader = new FileReader()
-                reader.onload = (e) => {
-                    this.newAd.images.push(e.target.result)
-                }
-                reader.readAsDataURL(files[i])
-            }
-        },
-        removeImage(index) {
-            this.newAd.images.splice(index, 1)
-        },
-        async submitNewAd() {
-            console.log('Новое объявление:', this.newAd)
-
-            const token = localStorage.getItem('authToken')
-            
-            const response = await fetch('/api/product/new', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify(this.newAd)
-            })
-
-            if (response.ok) {
-                alert('Объявление успешно размещено!')
-                this.showModal = false
-                this.fetchProducts()
-            } else {
-                alert('Ошибка при размещении объявления')
-            }
-
-            this.resetNewAdForm()
-        },
-        resetNewAdForm() {
-            this.newAd = {
-                title: '',
-                category: '',
-                price: '',
-                description: '',
-                city: '',
-                phone: '',
-                images: []
-            }
-        },
-        async toggleLike(productId) {
-            try {
-                const token = localStorage.getItem('authToken')
-                console.log('Отправка запроса на лайк для productId:', productId)
-                
-                const response = await fetch(`/api/product/${productId}/like`, {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
-                    }
-                })
-
-                console.log('Ответ сервера:', response.status, response.statusText)
-                
-                if (response.ok) {
-                    const data = await response.json()
-                    console.log('Данные от сервера:', data)
-
-                    const productIndex = this.listings.findIndex(item => item.id === productId)
-                    if (productIndex !== -1) {
-                        this.listings[productIndex].is_liked = data.liked
-                        this.listings[productIndex].likes_count = data.likes_count
-                        console.log('Обновлен основной список')
-                    }
-
-                    const userProductIndex = this.userListings.findIndex(item => item.id === productId)
-                    if (userProductIndex !== -1) {
-                        this.userListings[userProductIndex].is_liked = data.liked
-                        this.userListings[userProductIndex].likes_count = data.likes_count
-                        console.log('Обновлен список пользователя')
-                    }
-
-                    this.fetchProducts()
-                } else {
-                    const errorData = await response.json().catch(() => ({}))
-                    console.error('Ошибка сервера:', response.status, errorData)
-                }
-            } catch (error) {
-                console.error('Ошибка при изменении лайка:', error)
-            }
-        },
-
-        showDetails(item) {
-            console.log('Детали объявления:', item)
-        },
-        handleImageError(event) {
-            event.target.src = 'https://via.placeholder.com/400x300/333333/ffffff?text=No+Image'
-        },
-        prevPage() {
-            if (this.currentPage > 1) {
-                this.currentPage--
-            }
-        },
-        nextPage() {
-            if (this.currentPage < this.totalPages) {
-                this.currentPage++
-            }
+            };
+            this.currentPage = 1;
         },
         
         formatTime(timeString) {
-            if (!timeString) return ''
-            const date = new Date(timeString)
-            const now = new Date()
-            const diff = now - date
+            if (!timeString) return '';
+            const date = new Date(timeString);
+            const now = new Date();
+            const diff = now - date;
             
-            const minutes = Math.floor(diff / 60000)
-            const hours = Math.floor(minutes / 60)
-            const days = Math.floor(hours / 24)
+            const minutes = Math.floor(diff / 60000);
+            const hours = Math.floor(minutes / 60);
+            const days = Math.floor(hours / 24);
             
-            if (minutes < 60) return `${minutes} мин назад`
-            if (hours < 24) return `${hours} час назад`
-            if (days < 7) return `${days} дн назад`
-            return date.toLocaleDateString()
+            if (minutes < 60) return `${minutes} мин назад`;
+            if (hours < 24) return `${hours} час назад`;
+            if (days < 7) return `${days} дн назад`;
+            return date.toLocaleDateString();
         }
     }
 }

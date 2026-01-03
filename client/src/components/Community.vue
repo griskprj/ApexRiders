@@ -177,26 +177,6 @@
                     </div>
                 </div>
                 
-                <!-- Популярные теги -->
-                <div class="sidebar-card tags-card">
-                    <h3 class="sidebar-title">
-                        <i class="fas fa-tags"></i>
-                        Популярные теги
-                    </h3>
-                    <div class="tags-list">
-                        <span 
-                            v-for="tag in popularTags" 
-                            :key="tag.name"
-                            class="tag"
-                            :style="{ fontSize: 0.8 + (tag.count / 10) + 'rem' }"
-                            @click="filterByTag(tag.name)"
-                        >
-                            #{{ tag.name }}
-                            <span class="tag-count">{{ tag.count }}</span>
-                        </span>
-                    </div>
-                </div>
-                
                 <!-- Активные пользователи -->
                 <div class="sidebar-card users-card">
                     <h3 class="sidebar-title">

@@ -1,51 +1,58 @@
 <template>
     <div v-if="isLoading" class="products-loading">
-        <div class="lodaing-spinner-small"></div>
+        <div class="loading-spinner-small"></div>
         <p>Загрузка объявлений...</p>
     </div>
 
-    <div v-else class="listing-card" v-for="item in filteredListings" :key="item.id">
-        <div class="listing-image">
-            <img :src="item.image" :alt="item.title" @error="handleImageError">
-            <div class="listing-badge" :class="item.is_active ? 'active' : 'sold'">
-                {{ item.is_active ? 'Активно' : 'Продано' }}
-            </div>
-            <div class="listing-favorite" @click="toggleLike(item.id)">
-                <i class="fas fa-heart" :class="{ active: item.is_liked }"></i>
-            </div>
-        </div>
-        
-        <div class="listing-content">
-            <div class="listing-category">{{ formatCategory(item.category) }}</div>
-            <h3 class="listing-title">{{ item.title }}</h3>
-            <p class="listing-description">{{ item.description }}</p>
-            
-            <div class="listing-meta">
-                <span class="location">
-                    <i class="fas fa-map-marker-alt"></i> {{ item.town[0].toUpperCase() + item.town.slice(1) }}
-                </span>
-                <span class="date">
-                    <i class="far fa-clock"></i> {{ formatTime(item.date_pub) }}
-                </span>
-                <span class="views">
-                    <i class="fas fa-eye"></i> {{ item.watchs }}
-                </span>
-                <span class="likes">
-                    <i class="fas fa-heart"></i> {{ item.likes_count }}
-                </span>
-            </div>
-            
-            <div class="listing-footer">
-                <div class="listing-price">
-                    <div class="price">{{ formatPrice(item.cost) }} ₽</div>
-                    <div class="negotiable" v-if="item.is_bargain">Торг уместен</div>
+    <template v-else-if="filteredListings && filteredListings.length > 0">
+        <div class="listing-card" v-for="item in filteredListings" :key="item.id">
+            <div class="listing-image">
+                <img 
+                    :src="getProductImage(item)" 
+                    :alt="item.title"
+                    @error="handleImageError"
+                    loading="lazy"
+                >
+                <div class="listing-badge" :class="item.is_active ? 'active' : 'sold'">
+                    {{ item.is_active ? 'Активно' : 'Продано' }}
                 </div>
-                <button class="btn btn-outline" @click="showDetails(item)">
-                    Подробнее
-                </button>
+                <div class="listing-favorite" @click="toggleLike(item.id)">
+                    <i class="fas fa-heart" :class="{ active: item.is_liked }"></i>
+                </div>
+            </div>
+            
+            <div class="listing-content">
+                <div class="listing-category">{{ formatCategory(item.category) }}</div>
+                <h3 class="listing-title">{{ item.title }}</h3>
+                <p class="listing-description">{{ item.description }}</p>
+                
+                <div class="listing-meta">
+                    <span class="location">
+                        <i class="fas fa-map-marker-alt"></i> {{ item.town[0].toUpperCase() + item.town.slice(1) }}
+                    </span>
+                    <span class="date">
+                        <i class="far fa-clock"></i> {{ formatTime(item.date_pub) }}
+                    </span>
+                    <span class="views">
+                        <i class="fas fa-eye"></i> {{ item.watchs }}
+                    </span>
+                    <span class="likes">
+                        <i class="fas fa-heart"></i> {{ item.likes_count }}
+                    </span>
+                </div>
+                
+                <div class="listing-footer">
+                    <div class="listing-price">
+                        <div class="price">{{ formatPrice(item.cost) }} ₽</div>
+                        <div class="negotiable" v-if="item.is_bargain">Торг уместен</div>
+                    </div>
+                    <button class="btn btn-outline" @click="goToDetails(item)">
+                        Подробнее
+                    </button>
+                </div>
             </div>
         </div>
-    </div>
+    </template>
 </template>
 
 <script>
@@ -57,7 +64,6 @@
             toggleLike: Function,
             formatTime: Function,
             formatPrice: Function,
-            showDetails: Function,
         },
 
         methods: {
@@ -75,11 +81,62 @@
                 };
                 return categoriesMap[category] || category;
             },
+
+            getProductImage(item) {
+                if (!item.images || item.images.length === 0) {
+                    return '/DefaultListingPhoto.png';
+                }
+
+                const firstImage = item.images[0];
+                
+                if (typeof firstImage === 'string' && firstImage.trim()) {
+                    let filename = firstImage.trim();
+                    
+                    if (filename.includes('_PNG')) {
+                        filename = filename.replace('_PNG', '.png');
+                    } else if (!filename.includes('.')) {
+                            filename = filename + '.jpg';
+                    }
+                    
+                    return '/uploads/' + filename;
+                }
+                
+                return '/DefaultListingPhoto.png';
+            },
+
+             goToDetails(item) {
+                this.$router.push(`/market/${item.id}`);
+            }
         }
     }
 </script>
 
 <style scoped>
+    .listing-image {
+        position: relative;
+        height: 200px;
+        overflow: hidden;
+    }
+
+    .listing-image img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover; 
+        object-position: center; 
+        display: block; 
+    }
+
+    .no-image-placeholder {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--text-secondary);
+        font-size: 0.9rem;
+        background: var(--dark);
+    }
+
     .listing-card {
         background: var(--dark-light);
         border-radius: 20px;
