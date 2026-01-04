@@ -1,3 +1,7 @@
+<script setup>
+    import EditProductModal from './market/EditProductModal.vue';
+</script>
+
 <template>
     <!-- Декоративные элементы -->
     <div class="decoration decoration-1"></div>
@@ -78,6 +82,9 @@
                         <span class="price-bargain" v-if="listing.is_bargain">
                             <i class="fas fa-handshake"></i> Торг уместен
                         </span>
+                        <span class="price-bargain" v-if="listing.status === 'reserved'">
+                            <i class="fas fa-box"></i> Товар зарезервирован
+                        </span>
                     </div>
                     <div class="price-actions">
                         <button class="btn btn-primary" @click="contactSeller">
@@ -90,6 +97,24 @@
                         </button>
                     </div>
                 </div>
+
+                <!-- Действия для владельца -->
+                 <div class="owner-actions" v-if="listing.is_owner">
+                    <button class="btn btn-outline" @click="deleteLising(listing.id)" :class="listing.is_active ? '' : 'sold'">
+                        <i class="fas fa-trash"></i> Удалить
+                    </button>
+                    <div v-if="listing.is_active">
+                        <button class="btn btn-outline" @click="openEditModal">
+                            <i class="fas fa-arrow-up"></i> Редактировать
+                        </button>
+                        <button class="btn btn-outline" @click="reservedProduct(listing.id)">
+                            <i class="fas fa-box"></i> {{ listing.status === 'reserved' ? 'Разрезервировать' : 'Зарезервировать' }}
+                        </button>
+                        <button class="btn btn-outline" @click="soldProduct(listing.id)">
+                            <i class="fas fa-box-open"></i> Продать
+                        </button>
+                    </div>
+                 </div>
 
                 <!-- Описание -->
                 <div class="detail-description">
@@ -235,6 +260,16 @@
         </div>
         <div class="contact-modal-overlay" @click="showContactModal = false"></div>
     </div>
+
+    <!-- Модальное окно редактирования -->
+    <EditProductModal
+        v-if="editingProduct"
+        :showModal="showEditModal"
+        :productId="editingProduct.id"
+        :productData="editingProduct"
+        @close="closeEditModal"
+        @update-success="handleUpdateSuccess"
+    />
 </template>
 
 <script>
@@ -249,7 +284,9 @@ export default {
             currentImageIndex: 0,
             isLoading: true,
             showContactModal: false,
-            error: null
+            error: null,
+            showEditModal: false,
+            editingProduct: null
         }
     },
     computed: {
@@ -402,6 +439,111 @@ export default {
             }
         },
 
+        async deleteLising(productId) {
+            if (!this.listing.is_owner) {
+                alert('Вы не являетесь владельцем этого объявления')
+                return
+            }
+
+            if (!confirm('Вы уверены, что хотите удалить это объявление?')) {
+                return
+            }
+
+            try {
+                const token = localStorage.getItem('authToken')
+                const response = await axios.delete(`/api/product/delete/${productId}`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                })
+
+                if (response.data) {
+                    this.$router.replace('/market')
+                }
+            } catch(error) {
+                console.error('Ошибка при удалении:', error)
+            }
+        },
+
+        async handleUpdateSuccess(updatedData) {
+            Object.assign(this.listing, updatedData.product)
+            this.closeEditModal()
+
+            alert('Объявление успешно обновлено!')
+        },
+
+        async reservedProduct(productId) {
+            if (!this.listing.is_owner) {
+                alert('Вы не являетесь владельцем этого объявления')
+            }
+
+            if (this.listing.status === 'sold') {
+                alert('Товар продан!')
+            }
+
+            const action = this.listing.status === 'reserved' ? 'разрезервировать' : 'зарезервировать'
+            if (!confirm(`Вы уверены, что хотите ${action} это объявление`)) {
+                return
+            }
+
+            try {
+                const token = localStorage.getItem('authToken')
+                const response = await axios.put(`/api/product/${productId}/reserved`, {}, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                })
+
+                if (response.data) {
+                    this.listing.status = response.data.status
+                    alert('Объявление успешно зарезервировано')
+                }
+            } catch (error) {
+                console.error('Ошибка при резервации: ', error)
+                if (error.response?.status === 401) {
+                    alert('Ошибка авторизации. Пожалуйста, войдите в систему заново.');
+                    this.$router.push('/login');
+                } else if (error.response?.status === 403) {
+                    alert('У вас нет прав для резервирования этого товара');
+                } else {
+                    alert('Произошла ошибка при резервировании');
+                }
+            }
+        },
+
+        async soldProduct(productId) {
+            if (!this.listing.is_owner) {
+                alert('Вы не являетесь владельцем этого объявления')
+            }
+
+            if (this.listing.status === 'sold') {
+                alert('Товар продан!')
+            }
+
+            if (!confirm('Вы уверены, что хотите установить статус "продано" для этого объявления? Отменить это действие невозможно!')) {
+                return
+            }
+
+            try {
+                const token = localStorage.getItem('authToken')
+                const response = await axios.put(`/api/product/${productId}/sold`, {}, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                })
+
+                if (response.data) {
+                    this.listing.is_active = response.data.is_active
+                    this.listing.status = response.data.status
+                    alert('Для объявления установлен статус "продано"!')
+                }
+            } catch (error) {
+                console.error('Error in sold: ', error)
+            }
+        },
+
         changeImage(index) {
             this.currentImageIndex = index;
         },
@@ -520,17 +662,25 @@ export default {
                 return;
             }
 
-            // Здесь можно реализовать отправку сообщения
             alert('Функция отправки сообщения будет реализована в будущем');
         },
 
         goToSimilar(productId) {
             this.$router.push(`/market/${productId}`);
-            // Перезагрузить страницу для нового объявления
             setTimeout(() => {
                 window.location.reload();
             }, 100);
-        }
+        },
+
+        openEditModal() {
+            this.editingProduct = { ...this.listing }
+            this.showEditModal = true
+        },
+
+        closeEditModal() {
+            this.showEditModal = false
+            this.editingProduct = null
+        },
     }
 }
 </script>
@@ -797,6 +947,23 @@ export default {
 
 .price-actions .btn {
     flex: 1;
+}
+
+/* Действия для владельца */
+.owner-actions {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 15px;
+    padding: 25px;
+
+    display: flex;
+    flex-direction: row;
+    gap: 15px;
+    justify-content: center;
+    margin-bottom: 30px;
+}
+
+.owner-actions .sold {
+    width: 100%;
 }
 
 /* Описание */
@@ -1317,6 +1484,10 @@ export default {
     
     .price-value {
         font-size: 2.2rem;
+    }
+
+    .owner-actions {
+        flex-direction: column;
     }
 }
 

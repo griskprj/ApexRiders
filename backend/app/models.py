@@ -140,6 +140,7 @@ class Product(db.Model):
     is_active = db.Column(db.Boolean, default=True)
     is_bargain = db.Column(db.Boolean, default=False)
     likes_count = db.Column(db.Integer, default=0)
+    status = db.Column(db.String(45), default='active')
 
     owner_id = db.Column(db.Integer, db.ForeignKey('members.id'), nullable=False)  
     owner = db.relationship('Member', backref='products', lazy=True)

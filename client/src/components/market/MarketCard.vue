@@ -104,8 +104,8 @@
                 return '/DefaultListingPhoto.png';
             },
 
-             goToDetails(item) {
-                this.$router.push(`/market/${item.id}`);
+            goToDetails(item) {
+                 this.$router.push(`/market/${item.id}`);
             }
         }
     }

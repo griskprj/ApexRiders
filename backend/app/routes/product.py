@@ -3,7 +3,7 @@ import uuid
 import mimetypes
 from werkzeug.utils import secure_filename
 from werkzeug.exceptions import NotFound
-from flask import Blueprint, current_app, request, jsonify, send_from_directory, abort
+from flask import Blueprint, current_app, request, jsonify, send_from_directory, abort, json
 from flask_jwt_extended import get_jwt_identity, jwt_required
 from app import db
 from app.models import Member, Product, Like
@@ -362,7 +362,7 @@ def get_product(product_id):
         'is_active': product.is_active,
         'is_bargain': product.is_bargain,
         'is_liked': product.id in liked_products_ids,
-        'is_owner': True if product.id == current_user_id else False
+        'is_owner': True if int(product.owner_id) == int(current_user_id) else False
     }
     return jsonify({
         'product': product_data
@@ -408,3 +408,188 @@ def get_simmilar_products(product_id):
     } for p in similar_products]
 
     return jsonify({ 'products': similar_data }), 200
+
+@product.route('/api/product/delete/<int:product_id>', methods=['DELETE'])
+@jwt_required()
+def delete_product(product_id):
+    product = Product.query.get(product_id)
+
+    if not product:
+        return jsonify({ 'error': 'Product not found' }), 404
+    
+    product_likes = Like.query.filter_by(
+        target_id = product_id,
+        target_type = 'product'
+    ).all()
+
+    if product_likes:
+        for like in product_likes:
+            db.session.delete(like)
+
+    db.session.delete(product)
+    db.session.commit()
+
+    return jsonify({ 'message': 'Product was delete successfully' }), 200
+
+@product.route('/api/product/<int:product_id>/edit', methods=['PUT', 'PATCH'])
+@jwt_required()
+def edit_product(product_id):
+    current_user_id = get_jwt_identity()
+    
+    product = Product.query.get(product_id)
+    if not product:
+        return jsonify({ 'error': 'Product not found' }), 404
+    
+    if int(product.owner_id) != int(current_user_id):
+        return jsonify({ 'error': 'Not authorized to edit this product' }), 403
+    
+    try:
+        current_images = product.images.copy() if product.images else []
+        
+        if request.content_type and 'multipart/form-data' in request.content_type:
+            if 'images_to_delete' in request.form:
+                try:
+                    images_to_delete = json.loads(request.form['images_to_delete'])
+                    for img in images_to_delete:
+                        if img in current_images:
+                            current_images.remove(img)
+                            try:
+                                img_path = os.path.join(current_app.config['UPLOAD_FOLDER'], img)
+                                if os.path.exists(img_path):
+                                    os.remove(img_path)
+                            except Exception as e:
+                                print(f'Error deleting image file {img}: {e}')
+                except json.JSONDecodeError:
+                    pass
+            
+            if 'images' in request.files:
+                files = request.files.getlist('images')
+                
+                if len(files) > 5:
+                    return jsonify({ 'error': 'Можно загрузить не более 5 изображений' }), 400
+                
+                try:
+                    image_filenames = save_images(files)
+                    current_images.extend(image_filenames)
+                except Exception as e:
+                    return jsonify({ 'error': f'Ошибка загрузки изображений: {str(e)}' }), 500
+            
+            if 'title' in request.form:
+                product.title = request.form.get('title')
+            if 'category' in request.form:
+                product.category = request.form.get('category')
+            if 'description' in request.form:
+                product.description = request.form.get('description')
+            if 'city' in request.form:
+                product.town = request.form.get('city')
+            if 'phone' in request.form:
+                product.phone_number = request.form.get('phone')
+            
+            if 'price' in request.form:
+                try:
+                    product.cost = int(request.form.get('price'))
+                except ValueError:
+                    return jsonify({ 'error': 'Invalid price format' }), 400
+
+            if 'is_active' in request.form:
+                product.is_active = request.form.get('is_active', 'false').lower() == 'true'
+            if 'is_bargain' in request.form:
+                product.is_bargain = request.form.get('is_bargain', 'false').lower() == 'true'
+            
+        else:
+            data = request.get_json()
+            if data:
+                if 'title' in data:
+                    product.title = data['title']
+                if 'category' in data:
+                    product.category = data['category']
+                if 'description' in data:
+                    product.description = data['description']
+                if 'city' in data:
+                    product.town = data['city']
+                if 'phone' in data:
+                    product.phone_number = data['phone']
+                if 'price' in data:
+                    try:
+                        product.cost = int(data['price'])
+                    except ValueError:
+                        return jsonify({ 'error': 'Invalid price format' }), 400
+                if 'is_active' in data:
+                    product.is_active = bool(data['is_active'])
+                if 'is_bargain' in data:
+                    product.is_bargain = bool(data['is_bargain'])
+        
+        if len(current_images) > 5:
+            return jsonify({ 'error': 'Нельзя иметь более 5 изображений' }), 400
+        
+        product.images = current_images
+        
+        db.session.commit()
+        
+        return jsonify({
+            'message': 'Product updated successfully',
+            'product': {
+                'id': product.id,
+                'title': product.title,
+                'description': product.description,
+                'images': product.images,
+                'cost': product.cost,
+                'category': product.category,
+                'town': product.town,
+                'phone_number': product.phone_number,
+                'is_active': product.is_active,
+                'is_bargain': product.is_bargain
+            }
+        }), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error updating product: {e}")
+        return jsonify({ 'error': f'Internal server error: {e}' }), 500
+    
+@product.route('/api/product/<int:product_id>/reserved', methods=['PUT'])
+@jwt_required()
+def reserve_product(product_id):
+    current_user_id = get_jwt_identity()
+
+    product = Product.query.get(product_id)
+
+    if not product:
+        return jsonify({ 'error': 'Product not found' }), 404
+    
+    if int(product.owner_id) != int(current_user_id):
+        return jsonify({ 'error': 'Not authorized to reserve this product' }), 403
+    
+    if product.status == 'reserved':
+        product.status = 'active'
+        message = 'Product unreserzed'
+    else:
+        product.status = 'reserved'
+        message = 'Product reserved'
+    
+    db.session.commit()
+
+    return jsonify({ 
+        'message': message,
+        'status': product.status
+    }), 200
+
+@product.route('/api/product/<int:product_id>/sold', methods=['PUT'])
+@jwt_required()
+def sold_product(product_id):
+    current_user_id = get_jwt_identity()
+
+    product = Product.query.get(product_id)
+
+    if not product:
+        return jsonify({ 'error': 'Product not found' }), 404
+    
+    if int(product.owner_id) != int(current_user_id):
+        return jsonify({ 'error': 'Not authorized to reserve this product' }), 403
+    
+    product.is_active = False
+    product.status = 'sold'
+
+    db.session.commit()
+
+    return jsonify({ 'message': 'Product sold' }), 200
