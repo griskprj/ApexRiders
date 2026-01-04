@@ -1,3 +1,4 @@
+import os
 from flask import Flask, jsonify
 from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
@@ -28,10 +29,23 @@ def create_app():
     app.config['JWT_SECRET_KEY'] = 'secretKeyChangeToProduct'
     app.config['JWT_ACCESS_TOKEN_EXPIRES'] = datetime.timedelta(hours=24)
 
+    BASE_DIR = os.path.abspath(os.path.dirname(__file__))
+    UPLOAD_FOLDER = os.path.join(BASE_DIR, 'uploads')
+    MAX_CONTENT_LENGTH = 16 * 1024 * 1024
+    app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+    app.config['MAX_CONTENT_LENGTH'] = MAX_CONTENT_LENGTH
+    os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+
     db.init_app(app)
     jwt.init_app(app)
     migrate(app, db)
-    CORS(app, origins=['http://localhost:3000'], supports_credentials=True)
+    CORS(app, resources={
+        r"/api/*": {
+            "origins": ["http://localhost:3000", "http://localhost:5000", "http://192.168.1.*:3000"],
+            "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+            "allow_headers": ["Authorization", "Content-Type"]
+        }
+    })
 
     from app.routes import auth, motorcycles, statist, manuals, courses, product
     app.register_blueprint(auth.auth)

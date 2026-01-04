@@ -69,4 +69,16 @@
         color: var(--text-secondary);
         font-size: 1rem;
     }
+
+    @media (max-width: 768px) {
+        .dashboard-title {
+            font-size: 2rem;
+        }
+        
+        .user-welcome {
+            flex-direction: column;
+            text-align: center;
+            padding: 20px;
+        }
+    }
 </style>

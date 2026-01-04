@@ -164,4 +164,27 @@
         gap: 8px;
         padding: 12px 20px;
     }
+
+    @media (max-width: 768px) {
+        .community-stats {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+
+    @media (max-width: 480px) {
+        .card-header {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 10px;
+        }
+        
+        .card-header h3 {
+            font-size: 1.2rem;
+        }
+        
+        .course-item {
+            flex-direction: column;
+            text-align: center;
+        }
+    }
 </style>

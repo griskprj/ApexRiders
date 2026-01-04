@@ -22,8 +22,14 @@
                 </div>
                 <div class="market-title">{{ product.title }}</div>
                 <div class="market-price">{{ product.cost.toLocaleString('ru-RU') }} ₽</div>
-                <div class="market-views">
-                    <i class="fas fa-eye"></i> {{ declensionViews(product.watchs) }}
+
+                <div class="market-meta">
+                    <div class="market-views">
+                        <i class="fas fa-eye"></i> {{ declensionViews(product.watchs) }}
+                    </div>
+                    <div class="market-likes">
+                        <i class="fas fa-heart"></i> {{ declensionLikes(product.likes_count) }}
+                    </div>
                 </div>
             </div>
         </div>
@@ -61,6 +67,25 @@ export default {
                         return `${count} просмотра`;
                     default:
                         return `${count} просмотров`
+            }
+        },
+        declensionLikes(count) {
+            const lastDigit = count % 10;
+            const lastTwoDigit = count % 100;
+
+            if (lastTwoDigit >= 11 && lastTwoDigit <= 19) {
+                return `${count} лайков`;
+            }
+
+            switch (lastDigit) {
+                case 1:
+                    return `${count} лайк`;
+                    case 2:
+                    case 3:
+                    case 4:
+                        return `${count} лайка`;
+                    default:
+                        return `${count} лайков`
             }
         }
     }
@@ -163,6 +188,12 @@ export default {
         margin-bottom: 10px;
     }
 
+    .market-meta {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+    }
+
     .market-views {
         font-size: 0.85rem;
         color: var(--text-secondary);
@@ -171,6 +202,14 @@ export default {
         gap: 5px;
     }
 
+    .market-likes {
+        font-size: 0.85rem;
+        color: var(--text-secondary);
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }
+    
     .market-loading, .no-products {
         text-align: center;
         padding: 40px 20px;
@@ -186,5 +225,17 @@ export default {
 
     .no-products p {
         margin-bottom: 20px;
+    }
+
+    @media (max-width: 480px) {
+        .card-header {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 10px;
+        }
+        
+        .card-header h3 {
+            font-size: 1.2rem;
+        }
     }
 </style>

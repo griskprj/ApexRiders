@@ -1,4 +1,10 @@
-[file name]: Market.vue
+<script setup>
+import MarketCard from './market/MarketCard.vue';
+import MarketCategory from './market/MarketCategory.vue';
+import MarketFiltersCategory from './market/MarketFiltersCategory.vue';
+import MarketHeader from './market/MarketHeader.vue';
+import MarketModal from './market/MarketModal.vue';
+</script>
 <template>
     <!-- Декоративные элементы -->
     <div class="decoration decoration-1"></div>
@@ -8,24 +14,10 @@
     <section class="market">
         <!-- Заголовок и фильтры -->
         <div class="market-header">
-            <div class="header-content">
-                <h1 class="market-title">
-                    <i class="fas fa-shopping-cart"></i>
-                    <span>Маркет запчастей</span>
-                </h1>
-                <p class="market-subtitle">Площадка для покупки и продажи мотоциклов, запчастей и экипировки</p>
-                
-                <div class="market-stats">
-                    <div class="stat-item">
-                        <div class="stat-value">{{ activeListings }}</div>
-                        <div class="stat-label">Активных объявлений</div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="stat-value">{{ userActiveListings }}</div>
-                        <div class="stat-label">Ваших <br> активных объявлений</div>
-                    </div>
-                </div>
-            </div>
+            <MarketHeader 
+                :active-listings="activeListings"
+                :user-active-listings="userActiveListings"
+            />
             
             <div class="market-actions">
                 <button class="btn btn-primary" @click="showNewAdModal">
@@ -44,196 +36,42 @@
         </div>
 
         <!-- Фильтры и категории -->
-        <div class="market-filters">
-            <div class="filter-tabs">
-                <button 
-                    class="filter-tab" 
-                    :class="{ active: activeFilter === 'all' }"
-                    @click="setFilter('all')"
-                >
-                    Все
-                </button>
-                <button 
-                    class="filter-tab" 
-                    :class="{ active: activeFilter === 'motorcycles' }"
-                    @click="setFilter('motorcycles')"
-                >
-                    Мотоциклы
-                </button>
-                <button 
-                    class="filter-tab" 
-                    :class="{ active: activeFilter === 'parts' }"
-                    @click="setFilter('parts')"
-                >
-                    Запчасти
-                </button>
-                <button 
-                    class="filter-tab" 
-                    :class="{ active: activeFilter === 'gear' }"
-                    @click="setFilter('gear')"
-                >
-                    Экипировка
-                </button>
-                <button 
-                    class="filter-tab" 
-                    :class="{ active: activeFilter === 'my' && user }"
-                    @click="setFilter('my')"
-                    v-if="user"
-                >
-                    Мои объявления
-                </button>
-            </div>
-            
-            <div class="filter-sort">
-                <select v-model="sortBy" @change="handleSort">
-                    <option value="newest">Сначала новые</option>
-                    <option value="price_low">Цена (низкая → высокая)</option>
-                    <option value="price_high">Цена (высокая → низкая)</option>
-                    <option value="popular">Популярные</option>
-                </select>
-                <div class="filter-tags">
-                    <span class="tag" v-for="tag in activeTags" :key="tag">
-                        {{ tag }} <i class="fas fa-times" @click="removeTag(tag)"></i>
-                    </span>
-                </div>
-            </div>
-        </div>
+        <MarketFiltersCategory 
+            :active-filter="activeFilter"
+            :user="user"
+            @filter-change="setFilter"
+            @sort-change="setSort"
+        />
+        
 
         <!-- Основной контент -->
         <div class="market-content">
             <!-- Боковая панель с категориями -->
-            <div class="sidebar">
-                <div class="sidebar-section">
-                    <h3><i class="fas fa-filter"></i> Категории</h3>
-                    <div class="category-list">
-                        <label class="category-item">
-                            <input type="checkbox" v-model="categories.motorcycles">
-                            <span>Мотоциклы</span>
-                            <span class="count">42</span>
-                        </label>
-                        <label class="category-item">
-                            <input type="checkbox" v-model="categories.engines">
-                            <span>Двигатели</span>
-                            <span class="count">156</span>
-                        </label>
-                        <label class="category-item">
-                            <input type="checkbox" v-model="categories.frames">
-                            <span>Рамы и подвеска</span>
-                            <span class="count">89</span>
-                        </label>
-                        <label class="category-item">
-                            <input type="checkbox" v-model="categories.electronics">
-                            <span>Электроника</span>
-                            <span class="count">67</span>
-                        </label>
-                        <label class="category-item">
-                            <input type="checkbox" v-model="categories.helmets">
-                            <span>Шлемы</span>
-                            <span class="count">124</span>
-                        </label>
-                        <label class="category-item">
-                            <input type="checkbox" v-model="categories.clothing">
-                            <span>Одежда</span>
-                            <span class="count">87</span>
-                        </label>
-                        <label class="category-item">
-                            <input type="checkbox" v-model="categories.accessories">
-                            <span>Аксессуары</span>
-                            <span class="count">203</span>
-                        </label>
-                    </div>
-                </div>
-                
-                <div class="sidebar-section">
-                    <h3><i class="fas fa-tags"></i> Популярные теги</h3>
-                    <div class="tags">
-                        <span class="tag" @click="addTag('Yamaha')">Yamaha</span>
-                        <span class="tag" @click="addTag('Honda')">Honda</span>
-                        <span class="tag" @click="addTag('Kawasaki')">Kawasaki</span>
-                        <span class="tag" @click="addTag('Suzuki')">Suzuki</span>
-                        <span class="tag" @click="addTag('BMW')">BMW</span>
-                        <span class="tag" @click="addTag('AGV')">AGV</span>
-                        <span class="tag" @click="addTag('Alpinestars')">Alpinestars</span>
-                        <span class="tag" @click="addTag('Yoshimura')">Yoshimura</span>
-                    </div>
-                </div>
-                
-                <div class="sidebar-section">
-                    <h3><i class="fas fa-map-marker-alt"></i> Город</h3>
-                    <select v-model="selectedCity" @change="handleCityChange">
-                        <option value="">Все города</option>
-                        <option value="moscow">Москва</option>
-                        <option value="spb">Санкт-Петербург</option>
-                        <option value="ekb">Екатеринбург</option>
-                        <option value="kazan">Казань</option>
-                        <option value="novosibirsk">Новосибирск</option>
-                    </select>
-                </div>
-                
-                <div class="sidebar-section">
-                    <h3><i class="fas fa-ruble-sign"></i> Цена</h3>
-                    <div class="price-range">
-                        <input type="range" min="0" max="1000000" v-model="priceRange[0]" @input="updatePriceRange">
-                        <input type="range" min="0" max="1000000" v-model="priceRange[1]" @input="updatePriceRange">
-                        <div class="price-values">
-                            <span>{{ formatPrice(priceRange[0]) }} ₽</span>
-                            <span>{{ formatPrice(priceRange[1]) }} ₽</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
+            <MarketCategory 
+                :categories="categories"
+                :listings="filteredByUser"
+                :format-price="formatPrice"
+                @category-change="updateCategories"
+                @city-change="setCity"
+                @price-change="setPriceRange"
+                @reset-active-filter="resetActiveFilter"
+            />
 
             <!-- Список объявлений -->
             <div class="listings">
                 <div class="listings-grid">
-                    <div v-if="isLoading" class="products-loading">
-                        <div class="lodaing-spinner-small"></div>
-                        <p>Загрузка объявлений...</p>
-                    </div>
-
-                    <div v-else class="listing-card" v-for="item in filteredListings" :key="item.id">
-                        <div class="listing-image">
-                            <img :src="item.image" :alt="item.title" @error="handleImageError">
-                            <div class="listing-badge" :class="item.status">
-                                {{ item.is_active ? 'Активно' : 'Продано' }}
-                            </div>
-                            <div class="listing-favorite" @click="toggleFavorite(item.id)">
-                                <i class="fas fa-heart" :class="{ active: item.isFavorite }"></i>
-                            </div>
-                        </div>
-                        
-                        <div class="listing-content">
-                            <div class="listing-category">{{ item.category }}</div>
-                            <h3 class="listing-title">{{ item.title }}</h3>
-                            <p class="listing-description">{{ item.description }}</p>
-                            
-                            <div class="listing-meta">
-                                <span class="location">
-                                    <i class="fas fa-map-marker-alt"></i> {{ item.town }}
-                                </span>
-                                <span class="date">
-                                    <i class="far fa-clock"></i> {{ formatTime(item.date_pub) }}
-                                </span>
-                                <span class="views">
-                                    <i class="fas fa-eye"></i> {{ item.watchs }}
-                                </span>
-                            </div>
-                            
-                            <div class="listing-footer">
-                                <div class="listing-price">
-                                    <div class="price">{{ formatPrice(item.cost) }} ₽</div>
-                                    <div class="negotiable" v-if="item.is_bargain">Торг уместен</div>
-                                </div>
-                                <button class="btn btn-outline" @click="showDetails(item)">
-                                    Подробнее
-                                </button>
-                            </div>
-                        </div>
-                    </div>
+                    <MarketCard 
+                        :is-loading="isLoading"
+                        :filtered-listings="paginatedListings"
+                        :handle-image-error="handleImageError"
+                        :toggle-like="toggleLike"
+                        :format-time="formatTime"
+                        :format-price="formatPrice"
+                    />
                 </div>
                 
                 <!-- Пагинация -->
-                <div class="pagination" v-if="filteredListings.length > 0">
+                <div class="pagination" v-if="filteredByAll.length > 0">
                     <button class="page-btn" :disabled="currentPage === 1" @click="prevPage">
                         <i class="fas fa-chevron-left"></i>
                     </button>
@@ -248,7 +86,7 @@
                 </div>
                 
                 <!-- Сообщение если нет объявлений -->
-                <div class="empty-state" v-if="filteredListings.length === 0">
+                <div class="empty-state" v-if="filteredByAll.length === 0 && !isLoading">
                     <i class="fas fa-search"></i>
                     <h3>Объявления не найдены</h3>
                     <p>Попробуйте изменить параметры поиска или фильтры</p>
@@ -261,86 +99,12 @@
     </section>
 
     <!-- Модальное окно нового объявления -->
-    <div class="modal" :class="{ active: showModal }">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3><i class="fas fa-plus-circle"></i> Новое объявление</h3>
-                <button class="modal-close" @click="showModal = false">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-            <div class="modal-body">
-                <form @submit.prevent="submitNewAd">
-                    <div class="form-group">
-                        <label>Заголовок объявления *</label>
-                        <input type="text" v-model="newAd.title" placeholder="Например: Шлем AGV K6, размер L" required>
-                    </div>
-                    
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>Категория *</label>
-                            <select v-model="newAd.category" required>
-                                <option value="">Выберите категорию</option>
-                                <option value="motorcycles">Мотоциклы</option>
-                                <option value="parts">Запчасти</option>
-                                <option value="gear">Экипировка</option>
-                                <option value="accessories">Аксессуары</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label>Цена (₽) *</label>
-                            <input type="number" v-model="newAd.price" placeholder="25000" required>
-                        </div>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label>Описание *</label>
-                        <textarea v-model="newAd.description" placeholder="Подробное описание товара..." rows="4" required></textarea>
-                    </div>
-                    
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>Город *</label>
-                            <input type="text" v-model="newAd.city" placeholder="Москва" required>
-                        </div>
-                        <div class="form-group">
-                            <label>Телефон для связи *</label>
-                            <input type="tel" v-model="newAd.phone" placeholder="+7 (XXX) XXX-XX-XX" required>
-                        </div>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label>Изображения (до 5 шт.)</label>
-                        <div class="image-upload">
-                            <div class="upload-area" @click="triggerFileInput">
-                                <i class="fas fa-cloud-upload-alt"></i>
-                                <p>Нажмите для загрузки изображений</p>
-                            </div>
-                            <input type="file" ref="fileInput" @change="handleImageUpload" multiple accept="image/*" style="display: none;">
-                            <div class="image-preview" v-if="newAd.images.length > 0">
-                                <div class="preview-item" v-for="(img, index) in newAd.images" :key="index">
-                                    <img :src="img" alt="Preview">
-                                    <button class="remove-image" @click="removeImage(index)">
-                                        <i class="fas fa-times"></i>
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="form-actions">
-                        <button type="button" class="btn btn-outline" @click="showModal = false">
-                            Отмена
-                        </button>
-                        <button type="submit" class="btn btn-primary">
-                            <i class="fas fa-paper-plane"></i> Опубликовать
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
-        <div class="modal-overlay" @click="showModal = false"></div>
-    </div>
+    <MarketModal 
+        v-if="showModal"
+        :show-modal="showModal"
+        @close="showModal = false"
+        @submit-success="handleAdSuccess"
+    />
 </template>
 
 <script>
@@ -354,9 +118,8 @@ export default {
             activeFilter: 'all',
             searchQuery: '',
             sortBy: 'newest',
-            activeTags: [],
             selectedCity: '',
-            priceRange: [0, 500000],
+            priceRange: [0, 5000000],
             categories: {
                 motorcycles: false,
                 engines: false,
@@ -373,15 +136,6 @@ export default {
             
             // Модальное окно
             showModal: false,
-            newAd: {
-                title: '',
-                category: '',
-                price: '',
-                description: '',
-                city: '',
-                phone: '',
-                images: []
-            },
             
             // Объявления
             listings: [],
@@ -395,189 +149,253 @@ export default {
         }
     },
     computed: {
-        limitedProducts() {
-            return this.listings.slice(0, 12)
+        // Основные данные в зависимости от фильтра "Мои/Все"
+        filteredByUser() {
+            return this.activeFilter === 'my' && this.user ? this.userListings : this.listings;
         },
-
-        filteredListings() {
-            let filtered = [...this.listings]
+        
+        // Применение всех фильтров (поиск, категории, город, цена)
+        filteredByAll() {
+            let filtered = [...this.filteredByUser];
             
             // Фильтрация по поисковому запросу
-            if (this.searchQuery) {
-                const query = this.searchQuery.toLowerCase()
+            if (this.searchQuery.trim()) {
+                const query = this.searchQuery.toLowerCase().trim();
                 filtered = filtered.filter(item => 
                     item.title.toLowerCase().includes(query) ||
                     item.description.toLowerCase().includes(query) ||
-                    item.category.toLowerCase().includes(query)
-                )
+                    (item.category && item.category.toLowerCase().includes(query))
+                );
+            }
+            
+            // Фильтрация по категориям
+            const selectedCategories = Object.keys(this.categories).filter(cat => this.categories[cat]);
+            if (selectedCategories.length > 0) {
+                filtered = filtered.filter(item => 
+                    item.category && selectedCategories.includes(item.category)
+                );
+            }
+            
+            // Фильтрация по городу
+            if (this.selectedCity) {
+                filtered = filtered.filter(item => 
+                    item.town && item.town.toLowerCase() === this.selectedCity.toLowerCase()
+                );
             }
             
             // Фильтрация по цене
-            filtered = filtered.filter(item => 
-                item.cost >= this.priceRange[0] && item.cost <= this.priceRange[1]
-            )
+            filtered = filtered.filter(item => {
+                const cost = item.cost || 0;
+                return cost >= this.priceRange[0] && cost <= this.priceRange[1];
+            });
             
             // Сортировка
             filtered.sort((a, b) => {
                 switch (this.sortBy) {
                     case 'price_low':
-                        return a.price - b.price
+                        return (a.cost || 0) - (b.cost || 0);
                     case 'price_high':
-                        return b.price - a.price
+                        return (b.cost || 0) - (a.cost || 0);
                     case 'popular':
-                        return b.views - a.views
+                        return (b.watchs || 0) - (a.watchs || 0);
                     default: // newest
-                        return new Date(b.date) - new Date(a.date)
+                        return new Date(b.date_pub || 0) - new Date(a.date_pub || 0);
                 }
-            })
+            });
             
-            return filtered
+            return filtered;
         },
+        
+        // Пагинированные данные
+        paginatedListings() {
+            const start = (this.currentPage - 1) * this.itemsPerPage;
+            const end = start + this.itemsPerPage;
+            return this.filteredByAll.slice(start, end);
+        },
+        
         totalPages() {
-            return Math.ceil(this.filteredListings.length / this.itemsPerPage)
+            return Math.ceil(this.filteredByAll.length / this.itemsPerPage);
         },
+        
         user() {
-            const userData = localStorage.getItem('user')
-            return userData ? JSON.parse(userData) : null
+            const userData = localStorage.getItem('user');
+            return userData ? JSON.parse(userData) : null;
+        }
+    },
+
+    watch: {
+        // Сброс пагинации при изменении фильтров
+        activeFilter() {
+            this.currentPage = 1;
+        },
+        searchQuery() {
+            this.currentPage = 1;
+        },
+        sortBy() {
+            this.currentPage = 1;
+        },
+        selectedCity() {
+            this.currentPage = 1;
+        },
+        priceRange: {
+            handler() {
+                this.currentPage = 1;
+            },
+            deep: true
+        },
+        categories: {
+            handler() {
+                this.currentPage = 1;
+            },
+            deep: true
         }
     },
 
     mounted() {
-        this.fetchProducts()
+        this.fetchProducts();
     },
 
     methods: {
         async fetchProducts() {
             try {
-                const token = localStorage.getItem('authToken')
+                const token = localStorage.getItem('authToken');
 
                 const response = await axios.get('/api/products/get', {
                     headers: {
                         'Authorization': `Bearer ${token}`
                     }
-                })
+                });
                  
                 if (response.data) {
-                    this.listings = response.data.all_products || []
-                    this.userListings = response.data.user_products || []
-                    this.activeListings = response.data.product_count || 0
-                    this.userActiveListings = response.data.user_product_count || 0
-
+                    this.listings = response.data.all_products || [];
+                    this.userListings = response.data.user_products || [];
+                    this.activeListings = response.data.product_count || 0;
+                    this.userActiveListings = response.data.user_product_count || 0;
                 }
             } catch (error) {
-                console.error('Ошибка при получении объявлений: ', error)
-                this.listings = []
-                this.userListings = []
+                console.error('Ошибка при получении объявлений: ', error);
+                this.listings = [];
+                this.userListings = [];
             } finally {
-                this.isLoading = false
+                this.isLoading = false;
             }
         },
 
         setFilter(filter) {
-            this.activeFilter = filter
-            this.currentPage = 1
+            this.activeFilter = filter;
         },
+
+        resetActiveFilter() {
+            this.activeFilter = 'all';
+        },
+
         handleSearch() {
-            this.currentPage = 1
         },
-        handleSort() {
-            this.currentPage = 1
+
+        setSort(sortBy) {
+            this.sortBy = sortBy;
         },
-        handleCityChange() {
-            this.currentPage = 1
+
+        setCity(city) {
+            this.selectedCity = city;
         },
-        updatePriceRange() {
-            this.currentPage = 1
+
+        setPriceRange(range) {
+            this.priceRange = range;
         },
+        
+        updateCategories(update) {
+            this.categories = { ...this.categories, ...update };
+        },
+
         formatPrice(price) {
-            return price.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ')
+            if (!price) return '0';
+            return price.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
         },
+
         showNewAdModal() {
             if (!this.user) {
-                alert('Для размещения объявлений необходимо авторизоваться')
-                this.$router.push('/login')
-                return
+                alert('Для размещения объявлений необходимо авторизоваться');
+                this.$router.push('/login');
+                return;
             }
-            this.showModal = true
+            this.showModal = true;
         },
-        triggerFileInput() {
-            this.$refs.fileInput.click()
+        
+        handleAdSuccess() {
+            this.showModal = false;
+            this.fetchProducts(); 
         },
-        handleImageUpload(event) {
-            const files = event.target.files
-            for (let i = 0; i < Math.min(files.length, 5); i++) {
-                const reader = new FileReader()
-                reader.onload = (e) => {
-                    this.newAd.images.push(e.target.result)
+
+        async toggleLike(productId) {
+            try {
+                const token = localStorage.getItem('authToken');
+                
+                const response = await fetch(`/api/product/${productId}/like`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    
+                    // Обновляем лайки в основном списке
+                    const updateListing = (list) => {
+                        const index = list.findIndex(item => item.id === productId);
+                        if (index !== -1) {
+                            list[index].is_liked = data.liked;
+                            list[index].likes_count = data.likes_count;
+                        }
+                    };
+                    
+                    updateListing(this.listings);
+                    updateListing(this.userListings);
+                    
+                    // Принудительное обновление реактивности
+                    this.listings = [...this.listings];
+                    this.userListings = [...this.userListings];
+                } else {
+                    const errorData = await response.json().catch(() => ({}));
+                    console.error('Ошибка сервера:', response.status, errorData);
                 }
-                reader.readAsDataURL(files[i])
+            } catch (error) {
+                console.error('Ошибка при изменении лайка:', error);
             }
         },
-        removeImage(index) {
-            this.newAd.images.splice(index, 1)
-        },
-        async submitNewAd() {
-            console.log('Новое объявление:', this.newAd)
 
-            const token = localStorage.getItem('authToken')
-            
-            const response = await fetch('/api/product/new', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify(this.newAd)
-            })
-
-            if (response.ok) {
-                alert('Объявление успешно размещено!')
-            }
-
-            this.showModal = false
-            this.resetNewAdForm()
-        },
-        resetNewAdForm() {
-            this.newAd = {
-                title: '',
-                category: '',
-                price: '',
-                description: '',
-                city: '',
-                phone: '',
-                images: []
-            }
-        },
-        toggleFavorite(id) {
-            const item = this.listings.find(item => item.id === id)
-            if (item) {
-                item.isFavorite = !item.isFavorite
-            }
-        },
         showDetails(item) {
-            console.log('Детали объявления:', item)
-            // Здесь можно перейти на страницу детального просмотра
+            console.log('Детали объявления:', item);
+            // Здесь можно добавить переход на страницу деталей
+            // this.$router.push(`/market/${item.id}`);
         },
+        
         handleImageError(event) {
-            event.target.src = 'https://via.placeholder.com/400x300/333333/ffffff?text=No+Image'
+            console.log('Image load error: ', event.target.src)
+            event.target.src = '/DefaultListingPhoto.png'
+            event.target.onerror = null
         },
+        
         prevPage() {
             if (this.currentPage > 1) {
-                this.currentPage--
+                this.currentPage--;
             }
         },
+        
         nextPage() {
             if (this.currentPage < this.totalPages) {
-                this.currentPage++
+                this.currentPage++;
             }
         },
+        
         resetFilters() {
-            this.activeFilter = 'all'
-            this.searchQuery = ''
-            this.sortBy = 'newest'
-            this.activeTags = []
-            this.selectedCity = ''
-            this.priceRange = [0, 500000]
+            this.activeFilter = 'all';
+            this.searchQuery = '';
+            this.sortBy = 'newest';
+            this.selectedCity = '';
+            this.priceRange = [0, 5000000];
             this.categories = {
                 motorcycles: false,
                 engines: false,
@@ -586,23 +404,24 @@ export default {
                 helmets: false,
                 clothing: false,
                 accessories: false
-            }
-            this.currentPage = 1
+            };
+            this.currentPage = 1;
         },
+        
         formatTime(timeString) {
-            if (!timeString) return ''
-            const date = new Date(timeString)
-            const now = new Date()
-            const diff = now - date
+            if (!timeString) return '';
+            const date = new Date(timeString);
+            const now = new Date();
+            const diff = now - date;
             
-            const minutes = Math.floor(diff / 60000)
-            const hours = Math.floor(minutes / 60)
-            const days = Math.floor(hours / 24)
+            const minutes = Math.floor(diff / 60000);
+            const hours = Math.floor(minutes / 60);
+            const days = Math.floor(hours / 24);
             
-            if (minutes < 60) return `${minutes} мин назад`
-            if (hours < 24) return `${hours} час назад`
-            if (days < 7) return `${days} дн назад`
-            return date.toLocaleDateString()
+            if (minutes < 60) return `${minutes} мин назад`;
+            if (hours < 24) return `${hours} час назад`;
+            if (days < 7) return `${days} дн назад`;
+            return date.toLocaleDateString();
         }
     }
 }
@@ -814,6 +633,27 @@ export default {
     display: grid;
     grid-template-columns: 300px 1fr;
     gap: 30px;
+}
+
+.listing-meta .likes {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
+
+.listing-meta .likes i {
+    font-size: 14px;
+    color: var(--primary);
+}
+
+.listing-favorite i {
+    transition: all 0.3s ease;
+}
+
+.listing-favorite:hover i {
+    transform: scale(1.2);
 }
 
 /* ===== БОКОВАЯ ПАНЕЛЬ ===== */

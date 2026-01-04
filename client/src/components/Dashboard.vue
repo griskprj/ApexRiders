@@ -1,20 +1,6 @@
-<script setup>
-    import DashboardHeader from './dashboard/DashboardHeader.vue';
-    import DashboardStats from './dashboard/DashboardStats.vue';
-    import QuickActions from './dashboard/QuickActions.vue';
-    import MyCourses from './dashboard/MyCourses.vue';
-    import MyProducts from './dashboard/MyProducts.vue';
-    import SocialActivites from './dashboard/SocialActivites.vue';
-</script>
-
 <template>
     <div class="decoration decoration-1"></div>
     <div class="decoration decoration-2"></div>
-
-    <loading v-model:active="isLoading"
-        :can-cancel="false"
-        :is-full-page="true"
-    />
 
     <section class="dashboard">
          <DashboardHeader />
@@ -25,7 +11,7 @@
                 :manualCount="manualCount"
                 :lessonCount="lessonCount"
                 :postCount="postCount"
-                :productActiveCount="productActiveCount"
+                :productActiveCount="productActiveCount",
             />
 
             <!-- Быстрый доступ -->
@@ -53,68 +39,94 @@
 </template>
 
 <script>
-import Loading from 'vue-loading-overlay'
-import 'vue-loading-overlay/dist/css/index.css'
+import { ref, computed, onMounted, defineAsyncComponent } from 'vue'
 import axios from 'axios'
+import { authService } from '../utils/checkAuth'
+
+const DashboardHeader = defineAsyncComponent(() => 
+    import('./dashboard/DashboardHeader.vue')
+)
+const DashboardStats = defineAsyncComponent(() => 
+    import('./dashboard/DashboardStats.vue')
+)
+const QuickActions = defineAsyncComponent(() => 
+    import('./dashboard/QuickActions.vue')
+)
+const MyCourses = defineAsyncComponent(() => 
+    import('./dashboard/MyCourses.vue')
+)
+const MyProducts = defineAsyncComponent(() => 
+    import('./dashboard/MyProducts.vue')
+)
+const SocialActivites = defineAsyncComponent(() => 
+    import('./dashboard/SocialActivites.vue')
+)
 
 export default {
-    components: { Loading },
     name: 'Dashboard',
+    
+    components: {
+        DashboardHeader,
+        DashboardStats,
+        QuickActions,
+        MyCourses,
+        MyProducts,
+        SocialActivites
+    },
 
-    data() {
-        return {
-            manualCount: 0,
-            lessonCount: 0,
-            postCount: 0,
-            productActiveCount: 0,
-            answerCount: 0,
-            totalLikes: 0,
+    setup() {
+        const manualCount = ref(0)
+        const lessonCount = ref(0)
+        const postCount = ref(0)
+        const productActiveCount = ref(0)
+        const answerCount = ref(0)
+        const totalLikes = ref(0)
+        const products = ref([])
+        const courses = ref([])
+        const isLoading = ref(true)
+        const showLimit = ref(2)
 
-            products: [],
-            courses: [],
-            isLoading: false,
-            showLimit: 2,
+        const limitedProducts = computed(() => {
+            return products.value.slice(0, showLimit.value)
+        })
 
+        const limitedCourses = computed(() => {
+            return courses.value.slice(0, showLimit.value)
+        })
+
+        const getStatusText = (product) => {
+            if (!product.is_active) return 'На паузе'
+            if (product.is_bargain) return 'Торг уместен'
+            return 'Активно'
         }
-    },
 
-    computed: {
-        limitedProducts() {
-            return this.products.slice(0, this.showLimit)
-        },
-        limitedCourses() {
-            return this.courses.slice(0, this.showLimit)
-        }
-    },
-
-    mounted() {
-        this.fetchDashboardStats()
-    },
-
-    methods: {
-        async fetchDashboardStats() {
-            this.isLoading = true
+        const fetchDashboardStats = async () => {
             try {
-                const token = localStorage.getItem('authToken')
-
+                const token = authService.getToken()
+                
+                if (!token) {
+                    console.error('No authentication token found')
+                    throw new Error('No token')
+                }
+                
                 const response = await axios.get('/api/statistic/dashboard', {
                     headers: {
                         'Authorization': `Bearer ${token}`
                     }
                 })
-
+                
                 if (response.data) {
-                    this.manualCount = response.data.manuals_count || 0
-                    this.lessonCount = response.data.lessons_count || 0
-                    this.productActiveCount = response.data.product_active_count || 0
-                    this.postCount = response.data.posts_count || 0
-                    this.answerCount = response.data.answer_count || 0
-                    this.totalLikes = response.data.total_likes || 0
-                    this.courses = response.data.courses || []
-
-                    this.products = response.data.active_product_data || []
-
-                    this.products.sort((a, b) => {
+                    manualCount.value = response.data.manuals_count || 0
+                    lessonCount.value = response.data.lessons_count || 0
+                    productActiveCount.value = response.data.product_active_count || 0
+                    postCount.value = response.data.posts_count || 0
+                    answerCount.value = response.data.answer_count || 0
+                    totalLikes.value = response.data.total_likes || 0
+                    courses.value = response.data.courses || []
+                    
+                    products.value = response.data.active_product_data || []
+                    
+                    products.value.sort((a, b) => {
                         if (a.is_active !== b.is_active) {
                             return b.is_active - a.is_active
                         }
@@ -122,17 +134,68 @@ export default {
                     })
                 }
             } catch (error) {
-                console.error('Ошибка при получении количества мануалов: ', error)
-            } finally {
-                this.isLoading = false
+                console.error('Ошибка при получении данных дашборда:', error)
+                
+                if (error.response && error.response.status === 401) {
+                    console.log('Token expired')
+                    authService.clearAuth()
+                }
+                
+                manualCount.value = 0
+                lessonCount.value = 0
+                productActiveCount.value = 0
+                postCount.value = 0
+                answerCount.value = 0
+                totalLikes.value = 0
+                products.value = []
+                courses.value = []
             }
-        },
+        }
 
-        getStatusText(product) {
-            if (product.is_active) return 'На паузе'
-            if (product.is_bargain) return 'Торг уместен'
-            return 'Активно'
-        },
+        const loadDashboardData = async () => {
+            isLoading.value = true
+            
+            try {
+                const isAuth = authService.isAuthenticated()
+                
+                if (isAuth) {
+                    await fetchDashboardStats()
+                } else {
+                    const user = await authService.checkAuth(true)
+                    if (user) {
+                        await fetchDashboardStats()
+                    } else {
+                        console.log('User not authenticated')
+                    }
+                }
+            } catch (error) {
+                console.error('Dashboard load error:', error)
+            } finally {
+                isLoading.value = false
+            }
+        }
+
+        onMounted(() => {
+            loadDashboardData()
+        })
+
+        return {
+            manualCount,
+            lessonCount,
+            postCount,
+            productActiveCount,
+            answerCount,
+            totalLikes,
+            products,
+            courses,
+            isLoading,
+            showLimit,
+            limitedProducts,
+            limitedCourses,
+            getStatusText,
+            fetchDashboardStats,
+            loadDashboardData
+        }
     }
 }
 </script>

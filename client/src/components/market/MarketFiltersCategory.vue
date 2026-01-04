@@ -1,0 +1,175 @@
+<template>
+    <div class="market-filters">
+        <div class="filter-tabs">
+            <button 
+                class="filter-tab" 
+                :class="{ active: activeFilter === 'all' }"
+                @click="$emit('filter-change', 'all')"
+            >
+                Все
+            </button>
+            <button 
+                class="filter-tab" 
+                :class="{ active: activeFilter === 'my' && user }"
+                @click="$emit('filter-change', 'my')"
+                v-if="user"
+            >
+                Мои объявления
+            </button>
+        </div>
+        
+       <div class="filter-sort">
+            <select v-model="localSortBy" @change="handleSortChange">
+                <option value="newest">Сначала новые</option>
+                <option value="price_low">Цена (низкая → высокая)</option>
+                <option value="price_high">Цена (высокая → низкая)</option>
+                <option value="popular">Популярные</option>
+            </select>
+        </div>
+    </div>
+</template>
+
+<script>
+    export default {
+        props: {
+            activeFilter: {
+                type: String,
+                default: 'all'
+            },
+            user: {
+                type: Object,
+                default: null
+            }
+        },
+        data() {
+            return {
+                localSortBy: 'newest'
+            }
+        },
+        methods: {
+            handleSortChange() {
+                this.$emit('sort-change', this.localSortBy)
+            }
+        },
+        emits: ['filter-change', 'sort-change']
+    }
+</script>
+
+<style scoped>
+    .market-filters {
+        background: var(--dark-light);
+        border-radius: 15px;
+        padding: 25px 30px;
+        margin-bottom: 30px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .filter-tabs {
+        display: flex;
+        gap: 15px;
+        flex-wrap: wrap;
+        margin-bottom: 20px;
+    }
+
+    .filter-tab {
+        padding: 10px 24px;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 30px;
+        color: var(--text-secondary);
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+    .filter-tab i {
+        margin-right: 8px;
+        font-size: 14px;
+    }
+
+    .filter-tab:hover {
+        background: rgba(255, 255, 255, 0.1);
+        color: var(--text);
+    }
+
+    .filter-tab.active {
+        background: var(--primary);
+        color: white;
+        border-color: var(--primary);
+        box-shadow: 0 0 15px rgba(255, 69, 0, 0.3);
+    }
+
+    .filter-sort {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 20px;
+    }
+
+    .filter-sort select {
+        padding: 12px 20px;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 10px;
+        color: var(--text);
+        font-size: 1rem;
+        min-width: 200px;
+        cursor: pointer;
+        outline: none;
+    }
+
+    .filter-sort select:focus {
+        border-color: var(--primary);
+    }
+
+    .filter-tags {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    .filter-tags .tag {
+        padding: 8px 16px;
+        background: rgba(255, 69, 0, 0.15);
+        border-radius: 20px;
+        font-size: 0.9rem;
+        color: var(--primary);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+    .filter-tags .tag:hover {
+        background: rgba(255, 69, 0, 0.25);
+    }
+
+    .filter-tags .tag i {
+        font-size: 12px;
+        cursor: pointer;
+    }
+
+    @media (max-width: 768px) {
+        .filter-tabs {
+            justify-content: center;
+        }
+        
+        .filter-sort {
+            flex-direction: column;
+            align-items: stretch;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .market-filters {
+            padding: 20px;
+        }
+        
+        .filter-tab {
+            padding: 8px 16px;
+            font-size: 0.9rem;
+        }
+    }
+</style>
