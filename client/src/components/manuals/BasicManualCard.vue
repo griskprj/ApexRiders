@@ -4,7 +4,7 @@
             <i class="fas fa-fire"></i> {{ manual.difficulty }}
         </div>
         <div class="manual-image">
-            <img src="https://images.unsplash.com/photo-1558981403-c5f9899a28bc?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80" alt="Yamaha R6">
+            <img src="/DefaultListingPhoto.png" alt="Yamaha R6" style="object-fit: cover; width: 150px; height: 100px;">
         </div>
         <div class="manual-content">
             <div class="manual-category">{{ manual.moto_type }}</div>
@@ -26,9 +26,9 @@
                 </div>
             </div>
             
-            <a href="#" class="btn btn-primary btn-block">
+            <button @click="read(manual)" class="btn btn-primary btn-block">
                 <i class="fas fa-book-open"></i> Открыть мануал
-            </a>
+            </button>
         </div>
     </div>
 </template> 
@@ -37,6 +37,36 @@
     export default {
         props: {
             limiterManuals: Array
+        },
+
+        created() {
+            console.log('BasicManualCard props:', this.limiterManuals)
+            if (this.limiterManuals && this.limiterManuals.length > 0) {
+                console.log('First manual object:', this.limiterManuals[0])
+                console.log('First manual id:', this.limiterManuals[0].id)
+            }
+        },
+
+        methods: {
+            read(manual) {
+                console.log('read() called with manual:', manual)
+                console.log('manual.id:', manual.id)
+                
+                if (!manual || !manual.id) {
+                    console.error('Invalid manual object:', manual)
+                    alert('Не удалось открыть мануал: ID не найден')
+                    return
+                }
+                
+                console.log('Navigating to manual with ID:', manual.id)
+                
+                this.$router.push({ 
+                    name: 'ManualViewer', 
+                    params: { id: manual.id.toString() } 
+                }).catch(err => {
+                    console.error('Navigation error:', err)
+                })
+            }
         }
     }
 </script>

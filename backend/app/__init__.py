@@ -38,7 +38,7 @@ def create_app():
 
     db.init_app(app)
     jwt.init_app(app)
-    migrate(app, db)
+    migrate(app, db, render_as_batch=True)
     CORS(app, resources={
         r"/api/*": {
             "origins": ["http://localhost:3000", "http://localhost:5000", "http://192.168.1.*:3000"],

@@ -10,9 +10,15 @@ class Member(db.Model):
     email = db.Column(db.String(120), unique=True, nullable=False)
     password_hash = db.Column(db.String(128))
     role = db.Column(db.String(20), default='member')  
-    join_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))  
+    join_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
 
-    manual_history = db.relationship(  
+    is_verified = db.Column(db.Boolean, default=False)
+    verification_date = db.Column(db.DateTime, nullable=True)
+
+    manual_progress = db.relationship('UserManualProgress', back_populates='user', lazy=True)
+    manual_ratings = db.relationship('ManualRating', back_populates='user', lazy=True)
+
+    manual_history = db.relationship(
         'UserManualHistory',
         back_populates='user'
     )
@@ -201,32 +207,200 @@ class Like(db.Model):
     )
 
 class MaintenanceManual(db.Model):
-    __tablename__ = 'manuals'  
+    __tablename__ = 'manuals'
     
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(200), nullable=False)
     description = db.Column(db.Text)
     moto_type = db.Column(db.String(50))
-    drive_type = db.Column(db.String(20))
+    
+    category = db.Column(db.String(50))
     difficulty = db.Column(db.String(20))
-    estimated_time = db.Column(db.Integer)
-    tools_required = db.Column(db.Text)
-    parts_required = db.Column(db.Text)
-    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))  
+    estimated_time = db.Column(db.String(50))
+    tools_required = db.Column(db.JSON, default=list)
+    parts_required = db.Column(db.JSON, default=list)
+    warnings = db.Column(db.Text)
+    
     views = db.Column(db.Integer, default=0)
     rating = db.Column(db.Float, default=0)
+    rating_count = db.Column(db.Integer, default=0)
+    completions = db.Column(db.Integer, default=0)
+    
+    status = db.Column(db.String(20), default='draft')
+    is_featured = db.Column(db.Boolean, default=False)
+    
+    author_id = db.Column(db.Integer, db.ForeignKey('members.id'), nullable=False)
+    author = db.relationship('Member', backref=db.backref('authored_manuals', lazy=True), foreign_keys=[author_id])
+    
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    published_at = db.Column(db.DateTime, nullable=True)
+    updated_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+    
+    steps = db.relationship('ManualStep', back_populates='manual', lazy=True, order_by='ManualStep.order', cascade='all, delete-orphan')
+    ratings = db.relationship('ManualRating', back_populates='manual', lazy=True)
+    progress_records = db.relationship('UserManualProgress', back_populates='manual', lazy=True)
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'title': self.title,
+            'description': self.description,
+            'moto_type': self.moto_type,
+            'category': self.category,
+            'difficulty': self.difficulty,
+            'estimated_time': self.estimated_time,
+            'tools_required': self.tools_required or [],
+            'parts_required': self.parts_required or [],
+            'warnings': self.warnings,
+            'views': self.views,
+            'rating': self.rating,
+            'rating_count': self.rating_count,
+            'completions': self.completions,
+            'status': self.status,
+            'is_featured': self.is_featured,
+            'author_id': self.author_id,
+            'author_username': self.author.username if self.author else None,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'published_at': self.published_at.isoformat() if self.published_at else None,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None,
+            'step_count': len(self.steps) if self.steps else 0
+        }
+    
+class ManualDraft(db.Model):
+    __tablename__ = 'manual_drafts'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('members.id'), nullable=False)
+    
+    manual_data = db.Column(db.JSON)
+    steps_data = db.Column(db.JSON)
+    uploaded_images = db.Column(db.JSON, default=list)
+    
+    last_modified = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    
+    user = db.relationship('Member', backref='manual_drafts', lazy=True)
 
 class ManualStep(db.Model):
-    __tablename__ = 'manual_steps'  
-
+    __tablename__ = 'manual_steps'
+    
     id = db.Column(db.Integer, primary_key=True)
     manual_id = db.Column(db.Integer, db.ForeignKey('manuals.id'), nullable=False)
-    step_number = db.Column(db.Integer, nullable=False)
+    order = db.Column(db.Integer, nullable=False)
     title = db.Column(db.String(200), nullable=False)
     description = db.Column(db.Text, nullable=False)
-    image = db.Column(db.LargeBinary)
-    warning = db.Column(db.Text)
+    
+    image_url = db.Column(db.String(500))
+    video_url = db.Column(db.String(500))
+    
+    warnings = db.Column(db.Text)
     tips = db.Column(db.Text)
+    estimated_time = db.Column(db.String(50))
+    
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+    
+    manual = db.relationship('MaintenanceManual', back_populates='steps')
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'manual_id': self.manual_id,
+            'order': self.order,
+            'title': self.title,
+            'description': self.description,
+            'image_url': self.image_url,
+            'video_url': self.video_url,
+            'warnings': self.warnings,
+            'tips': self.tips,
+            'estimated_time': self.estimated_time,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None
+        }
+
+class UserManualProgress(db.Model):
+    __tablename__ = 'user_manual_progress'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('members.id'), nullable=False)
+    manual_id = db.Column(db.Integer, db.ForeignKey('manuals.id'), nullable=False)
+    
+    completed_steps = db.Column(db.JSON, default=list)
+    
+    is_completed = db.Column(db.Boolean, default=False)
+    completed_at = db.Column(db.DateTime, nullable=True)
+    
+    started_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    last_activity = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+    total_time_spent = db.Column(db.Integer, default=0)
+    
+    __table_args__ = (
+        db.UniqueConstraint('user_id', 'manual_id', name='unique_user_manual_progress'),
+    )
+    
+    user = db.relationship('Member', back_populates='manual_progress')
+    manual = db.relationship('MaintenanceManual', back_populates='progress_records')
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'user_id': self.user_id,
+            'manual_id': self.manual_id,
+            'completed_steps': self.completed_steps or [],
+            'is_completed': self.is_completed,
+            'completed_at': self.completed_at.isoformat() if self.completed_at else None,
+            'started_at': self.started_at.isoformat() if self.started_at else None,
+            'last_activity': self.last_activity.isoformat() if self.last_activity else None,
+            'total_time_spent': self.total_time_spent,
+            'progress_percentage': self.get_progress_percentage()
+        }
+    
+    def get_progress_percentage(self):
+        if not self.manual or not self.manual.steps:
+            return 0
+        total_steps = len(self.manual.steps)
+        completed = len(self.completed_steps) if self.completed_steps else 0
+        return round((completed / total_steps) * 100) if total_steps > 0 else 0
+    
+class ManualRating(db.Model):
+    __tablename__ = 'manual_ratings'
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('members.id'), nullable=False)
+    manual_id = db.Column(db.Integer, db.ForeignKey('manuals.id'), nullable=False)
+
+    rating = db.Column(db.Integer, nullable=False)
+
+    comment = db.Column(db.Text)
+
+    was_helpful = db.Column(db.Boolean, default=True)
+
+    actual_difficulty = db.Column(db.String(20))
+    actual_time_spent = db.Column(db.String(50))
+
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+
+    __table_args__ = (
+        db.UniqueConstraint('user_id', 'manual_id', name='unique_user_manual_rating'),
+    )
+
+    user = db.relationship('Member', back_populates='manual_ratings')
+    manual = db.relationship('MaintenanceManual', back_populates='ratings')
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'user_id': self.user_id,
+            'manual_id': self.manual_id,
+            'rating': self.rating,
+            'comment': self.comment,
+            'was_helpful': self.was_helpful,
+            'actual_difficulty': self.actual_difficulty,
+            'actual_time_spent': self.actual_time_spent,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'user_username': self.user.username if self.user else None
+        }
 
 class UserManualHistory(db.Model):
     __tablename__ = 'user_manual_history'  
@@ -241,12 +415,4 @@ class UserManualHistory(db.Model):
     )
 
     user = db.relationship('Member', back_populates='manual_history')  
-    manual = db.relationship('MaintenanceManual') 
-
-MaintenanceManual.steps = db.relationship(
-    'ManualStep', 
-    backref='manual', 
-    lazy='dynamic', 
-    cascade='all, delete-orphan',
-    order_by='ManualStep.step_number'
-)
+    manual = db.relationship('MaintenanceManual')

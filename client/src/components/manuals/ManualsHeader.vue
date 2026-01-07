@@ -11,6 +11,10 @@
                 <i class="fas fa-search"></i>
                 <input type="text" placeholder="Поиск по марке, модели или детали..." class="search-input">
             </div>
+
+            <router-link to="/create-manual" class="btn btn-primary">
+                <i class="fas fa-plus"></i> Создать мануал
+            </router-link>
         </div>
     </div>
 </template>
@@ -40,6 +44,13 @@
         color: var(--text-secondary);
         margin-bottom: 30px;
         max-width: 600px;
+    }
+
+    .manuals-controls {
+        display: flex;
+        gap: 15px;
+        align-items: center;
+        flex-wrap: wrap;
     }
 
     .search-box {
@@ -77,5 +88,12 @@
 
     .search-input::placeholder {
         color: var(--text-secondary);
+    }
+
+    @media (max-width: 768px) {
+        .manuals-controls {
+            flex-direction: column;
+            align-items: stretch;
+        }
     }
 </style>

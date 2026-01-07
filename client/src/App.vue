@@ -186,7 +186,7 @@ onUnmounted(() => {
         radial-gradient(circle at 20% 80%, rgba(255, 69, 0, 0.1) 0%, transparent 50%),
         radial-gradient(circle at 80% 20%, rgba(0, 191, 255, 0.1) 0%, transparent 50%),
         radial-gradient(circle at 40% 40%, rgba(50, 205, 50, 0.05) 0%, transparent 50%);
-    z-index: 0;
+    z-index: -1;
 }
 
 select option {

@@ -1,4 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import { authService } from '../utils/checkAuth'
 import Home from '../components/Home.vue'
 import Register from '../components/Register.vue'
 import Login from '../components/Login.vue'
@@ -7,8 +8,9 @@ import Manuals from '../components/Manuals.vue'
 import Courses from '../components/Courses.vue'
 import Market from '../components/Market.vue'
 import Community from '../components/Community.vue'
-import { authService } from '../utils/checkAuth'
 import ProductDetails from '../components/ProductDetails.vue'
+import CreateManual from '../components/manuals/CreateManual.vue'
+import ManualViewer from '../components/manuals/ManualViewer.vue'
 
 const routes = [
     {
@@ -39,6 +41,19 @@ const routes = [
         path: '/manuals',
         name: 'Manuals',
         component: Manuals,
+        meta: { requiresAuth: true }
+    },
+    {
+        path: '/create-manual',
+        name: 'CreateManual',
+        component: CreateManual,
+        meta: { requiresAuth: true }
+    },
+    {
+        path: '/manual/:id',
+        name: 'ManualViewer',
+        component: ManualViewer,
+        props: true,
         meta: { requiresAuth: true }
     },
     {

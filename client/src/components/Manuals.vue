@@ -37,7 +37,7 @@
             <div v-else class="manuals-main">
                 <div class="manuals-grid">
                     <BasicManualCard 
-                        :limiterManuals="limiterManuals"
+                        :limiterManuals="limiterManuals",
                     />
                 </div>
 
