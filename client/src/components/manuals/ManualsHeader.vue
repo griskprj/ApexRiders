@@ -9,7 +9,20 @@
         <div class="manuals-controls">
             <div class="search-box">
                 <i class="fas fa-search"></i>
-                <input type="text" placeholder="Поиск по марке, модели или детали..." class="search-input">
+                <input 
+                    type="text" 
+                    class="search-input"
+                    placeholder="Поиск по названию мануала..." 
+                    v-model="searchQuery"
+                    @input="handleSearch"
+                >
+                <button
+                    v-if="searchQuery"
+                    class="search-clear-btn"
+                    @click="clearSearch"
+                >
+                    <i class="fas fa-times"></i>
+                </button>
             </div>
 
             <router-link to="/create-manual" class="btn btn-primary">
@@ -18,6 +31,32 @@
         </div>
     </div>
 </template>
+
+<script>
+export default {
+    name: 'ManualsHeader',
+    emits: ['search'],
+    data() {
+        return {
+            searchQuery: ''
+        }
+    },
+    
+    methods: {
+        handleSearch() {
+            clearTimeout(this.searchTimeout)
+            this.searchTimeout = setTimeout(() => {
+                this.$emit('search', this.searchQuery.trim())
+            }, 300)
+        },
+
+        clearSearch() {
+            this.searchQuery = ''
+            this.$emit('search', '')
+        }
+    }
+}
+</script>
 
 <style scoped>
     .manuals-header {
@@ -84,10 +123,30 @@
         outline: none;
         border-color: var(--primary);
         box-shadow: 0 0 20px rgba(255, 69, 0, 0.2);
+        padding-right: 50px;
     }
 
     .search-input::placeholder {
         color: var(--text-secondary);
+    }
+
+    .search-clear-btn {
+        position: absolute;
+        right: 40px;
+        top: 50%;
+        transform: translateY(-50%);
+        background: none;
+        border: none;
+        color: var(--text-secondary);
+        cursor: pointer;
+        padding: 5px;
+        font-size: 1.1rem;
+        transition: color 0.3s ease;
+        z-index: 2;
+    }
+
+    .search-clear-btn:hover {
+        color: var(--text);
     }
 
     @media (max-width: 768px) {

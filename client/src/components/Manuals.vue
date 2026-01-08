@@ -13,7 +13,7 @@
     <!-- Страница мануалов -->
     <section class="manuals">
         <!-- Заголовок и фильтры -->
-        <ManualsHeader />
+        <ManualsHeader @search="handleSearch" />
 
         <!-- Основной контент -->
         <div class="manuals-content" :class="{ 'no-content': manuals.length === 0 }">
@@ -23,37 +23,58 @@
                 <p>Загрузка мануалов...</p>
             </div>
             
-            <div v-else-if="manuals.length === 0" class="empty-state">
+            <div v-else-if="filteredManuals.length === 0" class="empty-state">
                 <div class="empty-icon">
                     <i class="fas fa-book-open"></i>
                 </div>
-                <h3>Пока что тут пусто</h3>
-                <p>Будьте первым, кто добавит мануал!</p>
-                <button class="btn btn-primary">
-                    <i class="fas fa-plus"></i> Добавить мануал
+                <h3>{{ searchQuery ? 'По вашему запросу ничего не найдено' : 'По выбранной категории нет мануалов'}}</h3>
+                <p>{{ searchQuery ? 'Попробуйте изменить запрос' : 'Попробуйте выбрать другую категорию'}}</p>
+                <button class="btn btn-primary" @click="resetFilter">
+                    <i class="fas fa-undo"></i> Показать все мануалы
                 </button>
             </div>
 
             <div v-else class="manuals-main">
+                <div v-if="searchQuery" class="search-info">
+                    <span class="search-results-count">
+                        Найдено мануалов: {{ filteredManuals.length }}
+                    </span>
+                    <button v-if="searchQuery" class="search-clear-btn" @click="clearSearch">
+                        <i class="fas fa-times"></i> Очистить поиск
+                    </button>
+                </div>
+
                 <div class="manuals-grid">
                     <BasicManualCard 
-                        :limiterManuals="limiterManuals",
+                        :limiterManuals="currentPageManuals",
                     />
                 </div>
 
                 <!-- Пагинация -->
-                <div v-if="manuals.length > 6" class="pagination">
-                    <button class="pagination-btn prev">
+                <div v-if="filteredManuals.length > itemsPerPage" class="pagination">
+                    <button 
+                        class="pagination-btn prev"
+                        @click="prevPage"
+                        :disabled="currentPage === 1"
+                    >
                         <i class="fas fa-chevron-left"></i> Назад
                     </button>
                     <div class="pagination-pages">
-                        <button class="page-btn active">1</button>
-                        <button class="page-btn">2</button>
-                        <button class="page-btn">3</button>
-                        <button class="page-btn">4</button>
-                        <button class="page-btn">5</button>
+                        <button
+                            v-for="page in totalPages"
+                            :key="page"
+                            class="page-btn"
+                            :class="{ active: currentPage === page }"
+                            @click="goToPage(page)"
+                        >
+                            {{ page }}
+                        </button>
                     </div>
-                    <button class="pagination-btn next">
+                    <button 
+                        class="pagination-btn next"
+                        @click="nextPage"
+                        :disabled="currentPage === totalPages"
+                    >
                         Вперед <i class="fas fa-chevron-right"></i>
                     </button>
                 </div>
@@ -66,6 +87,8 @@
                     <ManualsCategory 
                         :manuals="manuals",
                         :getCategoryCount="getCategoryCount"
+                        :activeFilter="activeFilter"
+                        @filter-change="handleFilterChange"
                     />
                 </div>
 
@@ -89,17 +112,71 @@ export default {
             manuals: [],
             userManuals: [],
             isLoading: true,
+            activeFilter: 'all',
+            searchQuery: '',
+            currentPage: 1,
+            itemsPerPage: 6,
+
+            categories: {
+                'engine': 'Двигатель',
+                'transmission': 'Трансмиссия',
+                'brakes': 'Тормозная система',
+                'suspension': 'Подвеска',
+                'electrics': 'Электрика',
+                'maintenance': 'Обслуживание'
+            }
         }
     },
 
     computed: {
+        filteredManuals() {
+            let filtered = this.manuals
+
+            if (this.activeFilter !== 'all') {
+                const categoryName = this.categories[this.activeFilter]
+                filtered = filtered.filter(manual =>
+                    manual.category === categoryName || manual.moto_type === categoryName
+                )
+            }
+
+            if (this.searchQuery) {
+                const query = this.searchQuery.toLowerCase().trim()
+                filtered = filtered.filter(manual =>
+                    manual.title.toLowerCase().includes(query) ||
+                    manual.description.toLowerCase().includes(query)
+                )
+            }
+
+            return filtered
+        },
+
+        currentPageManuals() {
+            const start = (this.currentPage - 1) * this.itemsPerPage
+            const end = start + this.itemsPerPage
+            return this.filteredManuals.slice(start, end)
+        },
+
+        totalPages() {
+            return Math.ceil(this.filteredManuals.length / this.itemsPerPage)
+        },
+        
         limiterManuals() {
             return this.manuals.slice(0, 6)
-        }
+        },
     },
 
     mounted() {
         this.fetchManuals()
+    },
+
+    watch: {
+        activeFilter() {
+            this.currentPage = 1
+        },
+
+        searchQuery() {
+            this.currentPage = 1
+        }
     },
 
     methods: {
@@ -126,9 +203,44 @@ export default {
             }
         },
         
-        getCategoryCount(category) {
-            return Math.floor(this.manuals.length / 2)
+        getCategoryCount(categoryName) {
+            return this.manuals.filter(manual =>
+                manual.category === categoryName || manual.moto_type === categoryName
+            ).length
         },
+
+        handleFilterChange(filterId) {
+            this.activeFilter = filterId
+        },
+
+        handleSearch(query) {
+            this.searchQuery = query
+        },
+
+        resetFilter() {
+            this.activeFilter = 'all'
+            this.currentPage = 1
+        },
+
+        clearSearch() {
+            this.searchQuery = ''
+        },
+
+        prevPage() {
+            if (this.currentPage > 1) {
+                this.currentPage--
+            }
+        },
+
+        nextPage() {
+            if (this.currentPage < this.totalPages) {
+                this.currentPage++
+            }
+        },
+
+        goToPage(page) {
+            this.currentPage = page
+        }, 
         
         formatTime(timeString) {
             if (!timeString) return ''
@@ -144,7 +256,7 @@ export default {
             if (hours < 24) return `${hours} час назад`
             if (days < 7) return `${days} дн назад`
             return date.toLocaleDateString()
-        }
+        },
     }
 }
 </script>
@@ -198,6 +310,44 @@ export default {
 
 .manuals-main {
     flex: 1;
+}
+
+/* ===== ИНФОРМАЦИЯ О ПОИСКЕ ===== */
+.search-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding: 15px 20px;
+    background: rgba(255, 69, 0, 0.1);
+    border-radius: 10px;
+    border-left: 4px solid var(--primary);
+}
+
+.search-results-count {
+    font-size: 1rem;
+    color: var(--text);
+    font-weight: 500;
+}
+
+.search-info .search-clear-btn {
+    background: var(--dark-light);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    padding: 8px 16px;
+    font-size: 0.9rem;
+    color: var(--text);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    backdrop-filter: blur(10px);
+}
+
+.search-info .search-clear-btn:hover {
+    background: rgba(255, 69, 0, 0.2);
+    border-color: var(--primary);
 }
 
 /* ===== СЕТКА МАНУАЛОВ ===== */

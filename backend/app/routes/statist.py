@@ -28,7 +28,8 @@ def dashboard_stat():
         'title': p.title,
         'cost': p.cost,
         'watchs': p.watchs,
-        'likes_count': p.likes_count
+        'likes_count': p.likes_count,
+        'status': p.status
     } for p in active_products]
 
     posts_count = Post.query.filter_by(author_id=current_user_id).count()

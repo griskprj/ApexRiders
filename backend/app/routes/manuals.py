@@ -90,6 +90,8 @@ def get_one_manual(manual_id):
         'created_at': manual.created_at.isoformat() if manual.created_at else None,
     }
 
+    manual.views += 1
+
     steps = ManualStep.query.filter_by(manual_id=manual_id).all()
     steps_data = [{
         'id': s.id,
@@ -99,7 +101,8 @@ def get_one_manual(manual_id):
         'video_url': s.video_url,
     } for s in steps]
 
-    
+    db.session.commit()
+
     return jsonify({
         'manual': manual_data,
         'steps': steps_data

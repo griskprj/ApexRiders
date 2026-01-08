@@ -7,7 +7,7 @@
             <img src="/DefaultListingPhoto.png" alt="Yamaha R6">
         </div>
         <div class="manual-content">
-            <div class="manual-category">{{ manual.moto_type }}</div>
+            <div class="manual-category">{{ manual.category || manual.moto_type }}</div>
             <h3 class="manual-title">{{ manual.title }}</h3>
             <p class="manual-desc">{{ manual.description }}</p>
             
@@ -210,5 +210,17 @@
     .manual-stats i {
         font-size: 14px;
         color: var(--primary)
+    }
+
+    .stat {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 0.9rem;
+        color: var(--text-secondary);
+    }
+
+    .stat i {
+        color: var(--primary);
     }
 </style>

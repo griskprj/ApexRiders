@@ -95,9 +95,14 @@ export default {
         })
 
         const getStatusText = (product) => {
-            if (!product.is_active) return 'На паузе'
+            if (product.status === 'active') {
+                return 'Активно'
+            } else if (product.status === 'inactive') {
+                return 'На паузе'
+            } else if (product.status === 'reserved') {
+                return 'Зарезервирован'
+            }
             if (product.is_bargain) return 'Торг уместен'
-            return 'Активно'
         }
 
         const fetchDashboardStats = async () => {

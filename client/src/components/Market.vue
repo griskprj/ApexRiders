@@ -29,7 +29,6 @@ import MarketModal from './market/MarketModal.vue';
                         type="text" 
                         placeholder="Поиск по маркету..." 
                         v-model="searchQuery"
-                        @input="handleSearch"
                     >
                 </div>
             </div>
@@ -287,9 +286,6 @@ export default {
 
         resetActiveFilter() {
             this.activeFilter = 'all';
-        },
-
-        handleSearch() {
         },
 
         setSort(sortBy) {
