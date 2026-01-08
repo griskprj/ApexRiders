@@ -48,20 +48,20 @@ def get_manuals():
         'created_at': m.created_at.isoformat() if m.created_at else None,
     } for m in all_manuals ]
 
-    user_manuals_all = UserManualHistory.query.filter_by(user_id=current_user_id) \
+    user_manuals_history = UserManualHistory.query.filter_by(user_id=current_user_id) \
         .order_by(UserManualHistory.viewed_at.desc()) \
         .limit(3) \
         .all()
-    
-    user_manuals = [{
+    user_manuals = [MaintenanceManual.query.get(manual_record.id) for manual_record in user_manuals_history]
+
+    user_manuals_data = [{
         'id': m.id,
         'title': m.title,
-        'viewed_at': m.viewed_at.isoformat()
-    } for m in user_manuals_all]
+    } for m in user_manuals]
     
     return jsonify({
         'manuals_data': manuals_data,
-        'user_manuals': user_manuals
+        'user_manuals': user_manuals_data
     })
 
 @manuals.route('/api/manuals/get/<int:manual_id>', methods=['GET'])
@@ -90,7 +90,7 @@ def get_one_manual(manual_id):
         'created_at': manual.created_at.isoformat() if manual.created_at else None,
     }
 
-    steps = ManualStep.query.filter_by(manual_id=manual_id)
+    steps = ManualStep.query.filter_by(manual_id=manual_id).all()
     steps_data = [{
         'id': s.id,
         'title': s.title,
@@ -350,32 +350,42 @@ def manage_progress(manual_id):
                 started_at=datetime.now(timezone.utc)
             )
             db.session.add(progress)
+            db.session.flush()
+        
+
         
         step = ManualStep.query.filter_by(manual_id=manual_id, id=step_id).first()
         if not step:
             return jsonify({ 'error': 'Шаг не найден' }), 404
         
-        completed_steps = progress.completed_steps or []
+        completed_steps = list(progress.completed_steps or [])
 
         if completed:
             if step_id not in completed_steps:
                 completed_steps.append(step_id)
-
-                all_steps = ManualStep.query.filter_by(manual_id=manual_id).all()
-                if len(completed_steps) >= len(all_steps):
-                    progress.is_completed = True
-                    progress.completed_at = datetime.now(timezone.utc)
-
-                    manual.completions += 1
         else:
             if step_id in completed_steps:
                 completed_steps.remove(step_id)
-                progress.is_completed = False
-                progress.completed_at = None
         
         progress.completed_steps = completed_steps
         progress.last_activity = datetime.now(timezone.utc)
 
+        from sqlalchemy.orm.attributes import flag_modified
+        flag_modified(progress, 'completed_steps')
+
+        all_steps = ManualStep.query.filter_by(manual_id=manual_id).all()
+        total_steps = len(all_steps)
+        completed_count = len(completed_steps)
+
+        if completed_count >= total_steps and total_steps > 0:
+            progress.is_completed = True
+            progress.completed_at = datetime.now(timezone.utc)
+            manual.completions += 1
+
+        else:
+            progress.is_completed = False
+            progress.completed_at = None
+        
         db.session.commit()
 
         return jsonify(progress.to_dict())
@@ -494,4 +504,55 @@ def get_user_manuals():
             'manual': record.manual.to_dict(),
             'progress': record.to_dict()
         } for record in progress_manuals if record.is_completed]
+    })
+
+@manuals.route('/api/manuals/<int:manual_id>/complete-all', methods=['POST'])
+@jwt_required()
+def complete_all(manual_id):
+    current_user_id = get_jwt_identity()
+
+    manual = MaintenanceManual.query.get(manual_id)
+    if not manual:
+        return jsonify({ 'error': 'Мануал не найден' }), 404
+    
+    progress = UserManualProgress.query.filter_by(
+        user_id=current_user_id,
+        manual_id=manual_id
+    ).first()
+    if not progress:
+        progress = UserManualProgress(
+            user_id=current_user_id,
+            manual_id=manual_id,
+            started_at=datetime.now(timezone.utc)
+        )
+        db.session.add(progress)
+    
+    user_manual_history = UserManualHistory.query.filter_by(user_id=current_user_id, manual_id=manual_id).first()
+    if not user_manual_history:
+        user_manual_history = UserManualHistory(
+            user_id=current_user_id,
+            manual_id=manual_id,
+            viewed_at=datetime.now(timezone.utc)
+        )
+        db.session.add(user_manual_history)
+    else:
+        user_manual_history.viewed_at = datetime.now(timezone.utc)
+
+    steps = ManualStep.query.filter_by(manual_id=manual_id).all()
+    
+    step_ids = [step.id for step in steps]
+    
+    progress.completed_steps = step_ids
+    progress.is_completed = True
+    progress.completed_at = datetime.now(timezone.utc)
+    progress.last_activity = datetime.now(timezone.utc)
+
+    manual.completions += 1
+    
+    db.session.commit()
+    
+    return jsonify({
+        'success': True,
+        'message': 'Все шаги отмечены как выполненные',
+        'progress': progress.to_dict()
     })

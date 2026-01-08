@@ -148,7 +148,6 @@
 
                     <div v-if="step.video_url" class="step-video">
                         <div class="video-embed">
-                            <!-- Здесь можно встроить iframe для YouTube/Vimeo -->
                             <a :href="step.video_url" target="_blank" class="video-link">
                                 <div class="video-thumbnail">
                                     <i class="fas fa-play-circle"></i>
@@ -296,22 +295,25 @@ export default {
 
         const toggleStepComplete = async (index) => {
             const step = steps.value[index]
-            step.completed = !step.completed
+            const newCompletedState = !step.completed
 
             try {
                 const token = localStorage.getItem('authToken')
                 const id = manualId.value
+
                 await axios.post(`/api/manuals/constructor/${id}/progress`, {
                     step_id: step.id,
-                    completed: step.completed
+                    completed: newCompletedState
                 }, {
                     headers: {
                         'Authorization': `Bearer ${token}`
                     }
                 })
+
+                step.completed = newCompletedState
+
             } catch (error) {
                 console.error('Ошибка сохранения прогресса:', error)
-                step.completed = !step.completed
             }
         }
 
@@ -361,7 +363,6 @@ export default {
                 step.completed = true
             })
 
-            // Сохраняем все шаги как выполненные
             saveAllProgress()
         }
 
@@ -377,6 +378,10 @@ export default {
                 })
             } catch (error) {
                 console.error('Ошибка сохранения прогресса:', error)
+
+                steps.value.forEach(step => {
+                    step.completed = false
+                })
             }
         }
 
@@ -399,7 +404,6 @@ export default {
         }
 
         const findSimilar = () => {
-            // Переход к похожим мануалам
             window.location.href = `/manuals?category=${encodeURIComponent(category)}`
         }
 

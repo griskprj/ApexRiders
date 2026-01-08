@@ -5,14 +5,18 @@
             Недавно просмотренные
         </h3>
         <div class="recent-list">
-            <a v-for="item in userManuals" :key="item.id" href="#" class="recent-item">
-                <div class="recent-icon">
-                    <i class="fas fa-motorcycle"></i>
+            <a v-for="item in userManuals" :key="item.id" class="recent-item">
+                <div class="recent-wrapper">
+                    <div class="recent-icon">
+                        <i class="fas fa-motorcycle"></i>
+                    </div>
+                    <div class="recent-info">
+                        <div class="recent-title">{{ item.title }}</div>
+                    </div>
                 </div>
-                <div class="recent-info">
-                    <div class="recent-title">{{ item.title }}</div>
-                    <div class="recent-time">{{ formatTime(item.viewed_at) }}</div>
-                </div>
+                <button class="btn btn-primary" @click="goToManual(item)">
+                    Подробнее
+                </button>
             </a>
         </div>
     </div>
@@ -23,6 +27,12 @@
         props: {
             userManuals: Array,
             formatTime: Function
+        },
+
+        methods: {
+            goToManual(item) {
+                this.$router.push(`/manual/${item.id}`);
+            }
         }
     }
 </script>
@@ -59,6 +69,7 @@
 
     .recent-item {
         display: flex;
+        flex-direction: column;
         align-items: center;
         gap: 15px;
         padding: 12px 15px;
@@ -91,8 +102,22 @@
         margin-bottom: 3px;
     }
 
-    .recent-time {
-        font-size: 0.85rem;
-        color: var(--text-secondary);
+    .recent-wrapper {
+        display: flex;
+        flex-direction: column;
+        align-items: left;
+    }
+
+    @media (max-width: 992px) {
+        .recent-item {
+            flex-direction: row;
+            justify-content: space-between;
+        }
+
+        .recent-wrapper {
+            flex-direction: row;
+            align-items: center;
+            gap: 15px;
+        }
     }
 </style>

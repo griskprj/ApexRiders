@@ -7,11 +7,11 @@
         <div class="stats-grid">
             <div class="stat-item">
                 <div class="stat-value">{{ manualCount }}</div>
-                <div class="stat-label">Просмотрено мануалов</div>
+                <div class="stat-label">Пройдено мануалов</div>
             </div>
             <div class="stat-item">
                 <div class="stat-value">{{ lessonCount }}</div>
-                <div class="stat-label">Пройдено уроков</div>
+                <div class="stat-label">Пройдено <br> уроков</div>
             </div>
             <div class="stat-item">
                 <div class="stat-value">{{ postCount }}</div>
