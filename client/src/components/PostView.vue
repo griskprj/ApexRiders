@@ -27,7 +27,7 @@
                             <i class="fas fa-user"></i>
                         </div>
                         <div class="author-info">
-                            <div class="author-name">{{ post.author.name }}</div>
+                            <div class="author-name">{{ post.author.username }} <i v-if="post.author.isVerified" class="fas fa-check"></i></div>
                             <div class="post-date">{{ formatDate(post.createdAt) }}</div>
                         </div>
                     </div>
@@ -43,6 +43,21 @@
                         </span>
                     </div>
                 </div>
+            </div>
+
+            <!-- Действия для автора поста -->
+            <div class="author-actions" v-if="post.author.isUser === true">
+                <button
+                    class="btn btn-outline"
+                    @click="deletePost(post)"
+                >
+                    <i class="fas fa-trash"></i> Удалить
+                </button>
+                <button
+                    class="btn btn-outline"
+                >
+                    <i class="fas fa-edit"></i> Редактировать
+                </button>
             </div>
             
             <!-- Изображение поста -->
@@ -64,6 +79,7 @@
                         #{{ tag }}
                     </span>
                 </div>
+
                 
                 <!-- Действия с постом -->
                 <div class="post-actions">
@@ -142,7 +158,7 @@
                         
                         <div class="comment-content">
                             <div class="comment-header">
-                                <div class="comment-author">{{ comment.author.username }}</div>
+                                <div class="comment-author">{{ comment.author.username }} <i class="fas fa-check" v-if="comment.author.isVerified"></i></div>
                                 <div class="comment-date">{{ formatDate(comment.createdAt) }}</div>
                             </div>
                             
@@ -237,7 +253,9 @@ export default {
                 author: {
                     id: null,
                     username: '',
-                    name: ''
+                    name: '',
+                    isVerified: false,
+                    isUser: false
                 },
                 createdAt: '',
                 updatedAt: '',
@@ -273,22 +291,35 @@ export default {
             this.fetchComments();
         },
         
-        postId() {
-            this.fetchPost();
+        postId: {
+            immediate: true,
+            handler() {
+                this.fetchPost()
+            }
         }
     },
     
     async mounted() {
-        await this.fetchPost();
-        await Promise.all([
-            this.fetchComments(),
-            this.fetchRelatedPosts()
-        ]);
+        if (this.postId) {
+            await this.fetchPost();
+        }
     },
     
     methods: {
+        resetState() {
+            this.comments = []
+            this.relatedPosts = []
+            this.commentsPage = 1
+            this.commentsTotal = 0
+            this.newComment = ''
+            this.loadingComments = true
+            this.loadingRelated = true
+        },
+        
         async fetchPost() {
             try {
+                this.resetState()
+
                 const token = localStorage.getItem('authToken');
                 const response = await fetch(`/api/posts/${this.postId}`, {
                     method: 'GET',
@@ -307,8 +338,14 @@ export default {
                     ...data,
                     category: 'General',
                     categoryIcon: 'fas fa-comment',
-                    isLiked: false
                 };
+
+                await Promise.all([
+                    this.fetchComments(),
+                    this.fetchRelatedPosts()
+                ])
+
+                console.log(this.post.author.isVerified)
             } catch (error) {
                 console.error('Ошибка при загрузке поста:', error);
                 alert('Не удалось загрузить пост');
@@ -352,7 +389,6 @@ export default {
                 this.loadingRelated = true;
                 const token = localStorage.getItem('authToken');
                 
-                // Заглушка для похожих постов - сделать эндпоинт
                 const response = await fetch(`/api/posts?page=1&per_page=3&filter=recent`, {
                     method: 'GET',
                     headers: {
@@ -435,6 +471,30 @@ export default {
                 this.post.isLiked = data.liked;
             } catch (error) {
                 console.error('Ошибка при лайке:', error);
+            }
+        },
+
+        async deletePost() {
+            try {
+                if (!confirm('Вы действительно хотите удалить пост? Отменить это действие невозможно')) return
+
+                const token = localStorage.getItem('authToken')
+                const response = await fetch(`/api/posts/${this.postId}/delete`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                })
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`)
+                } else {
+                    alert('Пост успешно удален!')
+                    this.$router.push('/community')
+                }
+            } catch (error) {
+                console.error('Ошибка при удалении: ', error)
             }
         },
         
@@ -617,6 +677,13 @@ export default {
 
 .post-stat i {
     color: var(--primary);
+}
+
+/* ===== ДЕЙСТВИЯ ДЛЯ АВТОРА ПОСТА */
+.author-actions {
+    display: flex;
+    flex-direction: row;
+    gap: 10px;
 }
 
 /* ===== ИЗОБРАЖЕНИЕ ПОСТА ===== */
