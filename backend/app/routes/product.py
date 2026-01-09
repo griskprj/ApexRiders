@@ -65,6 +65,7 @@ def user_product():
         'phone_number': p.phone_number,
         'date_pub': p.date_pub,
         'watchs': p.watchs,
+        'likes_count': p.likes_count,
         'is_active': p.is_active,
         'is_bargain': p.is_bargain
     } for p in all_products])
@@ -117,6 +118,7 @@ def get_products():
         'phone_number': p.phone_number,
         'date_pub': p.date_pub,
         'watchs': p.watchs,
+        'likes_count': p.likes_count,
         'is_active': p.is_active,
         'is_bargain': p.is_bargain
     } for p in user_products])

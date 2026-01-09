@@ -104,17 +104,7 @@
                                         <i class="fas fa-eye"></i>
                                         {{ post.views }}
                                     </span>
-                                </div>
-                                
-                                <div class="post-tags">
-                                    <span 
-                                        v-for="tag in post.tags" 
-                                        :key="tag"
-                                        class="post-tag"
-                                    >
-                                        #{{ tag }}
-                                    </span>
-                                </div>
+                                </div>                                
                             </div>
                         </div>
                     </div>
@@ -155,28 +145,6 @@
             
             <!-- Боковая панель -->
             <div class="sidebar">
-                <!-- Моя активность -->
-                <div class="sidebar-card activity-card">
-                    <h3 class="sidebar-title">
-                        <i class="fas fa-chart-line"></i>
-                        Моя активность
-                    </h3>
-                    <div class="activity-stats">
-                        <div class="activity-stat">
-                            <div class="stat-value">{{ userStats.posts }}</div>
-                            <div class="stat-label">Постов</div>
-                        </div>
-                        <div class="activity-stat">
-                            <div class="stat-value">{{ userStats.comments }}</div>
-                            <div class="stat-label">Комментариев</div>
-                        </div>
-                        <div class="activity-stat">
-                            <div class="stat-value">{{ userStats.likes }}</div>
-                            <div class="stat-label">Лайков</div>
-                        </div>
-                    </div>
-                </div>
-                
                 <!-- Активные пользователи -->
                 <div class="sidebar-card users-card">
                     <h3 class="sidebar-title">
@@ -289,7 +257,6 @@ export default {
     
     data() {
         return {
-            // Фильтры
             filters: [
                 { id: 'all', label: 'Все посты', icon: 'fas fa-globe' },
                 { id: 'popular', label: 'Популярные', icon: 'fas fa-fire' },
@@ -297,44 +264,16 @@ export default {
                 { id: 'my', label: 'Мои посты', icon: 'fas fa-user' }
             ],
             activeFilter: 'all',
-            
-            // Посты
             posts: [],
             loading: true,
-            
-            // Пагинация
             currentPage: 1,
             postsPerPage: 6,
-            
-            // Пользовательская статистика
+            totalPosts: 0,
             userStats: {
-                posts: 5,
-                comments: 23,
-                likes: 45
+                posts: 0,
+                comments: 0
             },
-            
-            // Популярные теги
-            popularTags: [
-                { name: 'ремонт', count: 42 },
-                { name: 'путешествие', count: 38 },
-                { name: 'советы', count: 31 },
-                { name: 'байк', count: 29 },
-                { name: 'мото', count: 27 },
-                { name: 'обзор', count: 21 },
-                { name: 'тюнинг', count: 18 },
-                { name: 'безопасность', count: 15 }
-            ],
-            
-            // Активные пользователи
-            activeUsers: [
-                { id: 1, name: 'Алексей В.', posts: 12 },
-                { id: 2, name: 'Марина К.', posts: 9 },
-                { id: 3, name: 'Дмитрий С.', posts: 8 },
-                { id: 4, name: 'Иван М.', posts: 7 },
-                { id: 5, name: 'Ольга П.', posts: 6 }
-            ],
-            
-            // Модальное окно создания поста
+            activeUsers: [],
             showCreateModal: false,
             creatingPost: false,
             newPost: {
@@ -348,93 +287,86 @@ export default {
     
     computed: {
         filteredPosts() {
-            let filtered = [...this.posts];
-            
-            switch (this.activeFilter) {
-                case 'popular':
-                    return filtered.sort((a, b) => b.likesCount - a.likesCount);
-                case 'recent':
-                    return filtered.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-                case 'my':
-                    // Здесь должна быть логика фильтрации постов текущего пользователя
-                    return filtered.filter(post => post.author.id === 'current-user');
-                default:
-                    return filtered;
-            }
+            return this.posts;
         },
         
         totalPages() {
-            return Math.ceil(this.filteredPosts.length / this.postsPerPage);
-        },
-        
-        paginatedPosts() {
-            const start = (this.currentPage - 1) * this.postsPerPage;
-            const end = start + this.postsPerPage;
-            return this.filteredPosts.slice(start, end);
+            return Math.ceil(this.totalPosts / this.postsPerPage);
         },
     },
+
+    watch: {
+        activeFilter() {
+            this.currentPage = 1;
+            this.fetchPosts();
+        },
+        
+        currentPage() {
+            this.fetchPosts();
+        }
+    },
     
-    mounted() {
-        this.fetchPosts();
+    async mounted() {
+        await Promise.all([
+            this.fetchPosts(),
+            this.fetchCommunityStats()
+        ]);
     },
     
     methods: {
         async fetchPosts() {
             try {
-                // Имитация загрузки данных с API
-                await new Promise(resolve => setTimeout(resolve, 1000));
-                
-                // Примерные данные (в реальном приложении здесь будет запрос к API)
-                this.posts = [
-                    {
-                        id: 1,
-                        title: 'Как я восстановил старый мотоцикл',
-                        excerpt: 'История восстановления Honda CB400 1985 года из ржавого металлолома в блестящий аппарат...',
-                        content: 'Полный текст поста...',
-                        imageUrl: 'https://images.unsplash.com/photo-1558981285-6f0c94958bb6?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80',
-                        category: 'Ремонт',
-                        categoryIcon: 'fas fa-tools',
-                        author: { id: 1, name: 'Алексей В.' },
-                        createdAt: '2024-01-15T14:30:00',
-                        commentsCount: 12,
-                        likesCount: 45,
-                        views: 234,
-                        tags: ['ремонт', 'реставрация', 'байк']
-                    },
-                    {
-                        id: 2,
-                        title: 'Мототур по Кавказу: 3000 км впечатлений',
-                        excerpt: 'Недельное путешествие по горным серпантинам, где каждый поворот открывает новую картину...',
-                        imageUrl: 'https://images.unsplash.com/photo-1511994717241-8e4e484dfa8c?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80',
-                        category: 'Путешествия',
-                        categoryIcon: 'fas fa-map-marked-alt',
-                        author: { id: 2, name: 'Марина К.' },
-                        createdAt: '2024-01-14T10:15:00',
-                        commentsCount: 8,
-                        likesCount: 32,
-                        views: 187,
-                        tags: ['путешествие', 'мототур', 'горы']
-                    },
-                    {
-                        id: 3,
-                        title: 'Советы по зимнему хранению мотоцикла',
-                        excerpt: 'Правильная подготовка и хранение мотоцикла зимой - залог его долгой службы...',
-                        imageUrl: null,
-                        category: 'Советы',
-                        categoryIcon: 'fas fa-lightbulb',
-                        author: { id: 3, name: 'Дмитрий С.' },
-                        createdAt: '2024-01-13T16:45:00',
-                        commentsCount: 15,
-                        likesCount: 28,
-                        views: 156,
-                        tags: ['зима', 'хранение', 'советы']
+                this.loading = true;
+
+                const token = localStorage.getItem('authToken');
+                const params = new URLSearchParams({
+                    page: this.currentPage,
+                    per_page: this.postsPerPage,
+                    filter: this.activeFilter
+                });
+
+                const response = await fetch(`/api/posts?${params}`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
                     }
-                ];
-                
-                this.loading = false;
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                this.posts = data.posts || [];
+                this.totalPosts = data.total || 0;
             } catch (error) {
                 console.error('Ошибка при загрузке постов:', error);
+            } finally {
                 this.loading = false;
+            }
+        },
+
+        async fetchCommunityStats() {
+            try {
+                const token = localStorage.getItem('authToken');
+                const response = await fetch('/api/community/stats', {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                this.userStats = data.userStats || { posts: 0, comments: 0 };
+                this.activeUsers = data.activeUsers || [];
+            } catch (error) {
+                console.error('Ошибка при загрузке статистики:', error);
             }
         },
         
@@ -445,75 +377,105 @@ export default {
             const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
             
             if (diffDays === 0) {
-                return 'Сегодня';
+                const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+                if (diffHours === 0) {
+                    const diffMinutes = Math.floor(diffMs / (1000 * 60));
+                    return `${diffMinutes} минут назад`;
+                }
+                return `${diffHours} часов назад`;
             } else if (diffDays === 1) {
                 return 'Вчера';
             } else if (diffDays < 7) {
-                return `${diffDays} дня назад`;
+                return `${diffDays} дней назад`;
             } else {
                 return date.toLocaleDateString('ru-RU', {
                     day: 'numeric',
-                    month: 'long'
+                    month: 'long',
+                    year: 'numeric'
                 });
             }
         },
-        
-        filterByTag(tagName) {
-            // Фильтрация по тегу
-            console.log('Фильтр по тегу:', tagName);
-        },
-        
-        openPost(post) {
-            // Навигация к полному посту
-            this.$router.push(`/community/post/${post.id}`);
-        },
-        
+
         async createPost() {
-            if (!this.newPost.title || !this.newPost.content) return;
-            
+            if (!this.newPost.title || !this.newPost.content) {
+                alert('Заголовок и содержание обязательны');
+                return;
+            }
+
             this.creatingPost = true;
-            
+
             try {
-                // Имитация отправки на сервер
-                await new Promise(resolve => setTimeout(resolve, 1500));
-                
-                const newPost = {
-                    id: Date.now(),
-                    title: this.newPost.title,
-                    excerpt: this.newPost.content.substring(0, 150) + '...',
-                    content: this.newPost.content,
-                    imageUrl: this.newPost.imageUrl || null,
-                    category: 'Общее',
-                    categoryIcon: 'fas fa-comment',
-                    author: { id: 'current-user', name: 'Вы' },
-                    createdAt: new Date().toISOString(),
-                    commentsCount: 0,
-                    likesCount: 0,
-                    views: 0,
-                    tags: this.newPost.tags ? this.newPost.tags.split(',').map(tag => tag.trim()) : []
-                };
-                
-                this.posts.unshift(newPost);
+                const token = localStorage.getItem('authToken');
+                const response = await fetch('/api/posts', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        title: this.newPost.title,
+                        content: this.newPost.content,
+                        tags: this.newPost.tags,
+                        imageUrl: this.newPost.imageUrl
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const newPostData = await response.json();
+                newPostData.excerpt = newPostData.content.substring(0, 150) + '...';
+                newPostData.category = 'General';
+                newPostData.categoryIcon = 'fas fa-comment';
+                newPostData.imageUrl = this.newPost.imageUrl;
+
+                this.posts.unshift(newPostData);
                 this.userStats.posts++;
-                
-                // Сброс формы
+
                 this.newPost = {
                     title: '',
                     content: '',
                     tags: '',
                     imageUrl: ''
                 };
-                
+
                 this.showCreateModal = false;
-                
-                // Уведомление об успехе
-                console.log('Пост успешно создан!');
-                
+                alert('Пост успешно создан!');
             } catch (error) {
                 console.error('Ошибка при создании поста:', error);
+                alert('Не удалось создать пост. Проверьте введенные данные');
             } finally {
                 this.creatingPost = false;
             }
+        },
+
+        async toggleLike(post) {
+            try {
+                const token = localStorage.getItem('authToken');
+                const response = await fetch(`/api/posts/${post.id}/like`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                post.likesCount = data.likesCount;
+                
+                console.log(data.liked ? 'Лайк добавлен' : 'Лайк удален');
+            } catch (error) {
+                console.error('Ошибка при лайке:', error);
+            }
+        },
+
+        openPost(post) {
+            console.log('Открыть пост:', post.id);
         }
     }
 };

@@ -364,8 +364,6 @@ export default {
 
         showDetails(item) {
             console.log('Детали объявления:', item);
-            // Здесь можно добавить переход на страницу деталей
-            // this.$router.push(`/market/${item.id}`);
         },
         
         handleImageError(event) {
