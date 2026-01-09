@@ -57,6 +57,12 @@ const routes = [
         meta: { requiresAuth: true }
     },
     {
+        path: '/constructor/edit/:id',
+        name: 'EditManual',
+        component: () => import('../components/manuals/EditManual.vue'),
+        meta: { requiresAuth: true }
+    },
+    {
         path: '/courses',
         name: 'Courses',
         component: Courses,

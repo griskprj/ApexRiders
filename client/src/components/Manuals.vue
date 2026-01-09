@@ -257,6 +257,10 @@ export default {
             if (days < 7) return `${days} дн назад`
             return date.toLocaleDateString()
         },
+
+        isManualAuthor (manual) {
+            return manual.author_id === current_user_id
+        }
     }
 }
 </script>

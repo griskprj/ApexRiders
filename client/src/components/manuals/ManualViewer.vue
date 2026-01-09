@@ -64,6 +64,21 @@
             </div>
         </div>
 
+        <div class="manual-actions">
+            <button
+                class="btn btn-outline"
+                @click="deleteManual(manual)"
+            >
+                <i class="fas fa-trash"></i> Удалить
+            </button>
+            <button
+                class="btn btn-outline"
+                @click="editManual(manual)"
+            >
+                <i class="fas fa-edit"></i> Редактировать
+            </button>
+        </div>
+
         <!-- Предупреждения -->
         <div v-if="manual.warnings" class="warning-card">
             <div class="warning-icon">
@@ -210,11 +225,12 @@ import axios from 'axios'
 export default {
     name: 'ManualViewer',
     props: {
-        manualId: String
+        manualId: String,
     },
     setup(props) {
         const route = useRoute()
         const manual = ref({})
+        const user_verified = ref(false)
         const steps = ref([])
         const userProgress = ref({})
         const isLoading = ref(true)
@@ -225,6 +241,8 @@ export default {
             console.log('Manual ID from route: ', id)
             return id
         })
+        
+        console.log(user_verified.value)
 
         const completedSteps = computed(() => {
             return steps.value.filter(step => step.completed).length
@@ -257,6 +275,8 @@ export default {
                         completed: false,
                         expanded: false
                     }))
+                    user_verified.value = response.data.user_verified
+                    console.log(user_verified.value)
 
                     await loadUserProgress()
                 }
@@ -407,6 +427,61 @@ export default {
             window.location.href = `/manuals?category=${encodeURIComponent(category)}`
         }
 
+        const editManual = async (manual) => {
+            try {
+                const token = localStorage.getItem('authToken')
+                const id = manualId.value
+
+                const response = await axios.get(`/api/manuals/constructor/${id}/edit`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                })
+
+                if (response.data.can_edit) {
+                    window.location.href = `/constructor/edit/${id}`
+                } else {
+                    alert('У вас нет прав для редактирования этого мануала')
+                }
+            } catch (error) {
+                console.error('Ошибка при проверке прав на редактирование: ', error)
+                if (error.response?.status === 403) {
+                    alert(error.response.data.error || 'У вас нет прав на редактирование этого мануала')
+                } else {
+                    alert('Произошла ошибка при проверке прав')
+                }
+            }
+        }
+
+        const deleteManual = async (manual) => {
+            if (!confirm(`Вы уверены, что хотите удалить мануал "${manual.title}"? Это действие нельзя отменить`)) {
+                return
+            }
+
+            try {
+                const token = localStorage.getItem('authToken')
+                const id = manualId.value
+                
+                const response = await axios.delete(`/api/manuals/constructor/${id}/delete`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                })
+
+                if (response.data.success) {
+                    alert('Мануал успешно удален!')
+                    window.location.href = '/manuals'
+                }
+            } catch (error) {
+                console.error('Ошибка при удалении мануала: ', error)
+                if (error.response?.data?.error) {
+                    alert(error.response.data.error)
+                } else {
+                    alert('Не удалось удалить мануал')
+                }
+            }
+        }
+
         onMounted(() => {
             loadManual()
         })
@@ -424,7 +499,9 @@ export default {
             completeAll,
             rateManual,
             shareManual,
-            findSimilar
+            findSimilar,
+            editManual,
+            deleteManual
         }
     }
 }

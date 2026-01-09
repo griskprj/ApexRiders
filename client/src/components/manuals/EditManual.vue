@@ -278,7 +278,7 @@
                 <button type="button" @click="previewManual" class="btn btn-outline">
                     <i class="fas fa-eye"></i> Предпросмотр
                 </button>
-                <button type="button" @click="publishManual" :disabled="!isFormValid" class="btn btn-primary">
+                <button type="button" @click="updateManual" :disabled="!isFormValid" class="btn btn-primary">
                     <i class="fas fa-paper-plane"></i> Опубликовать мануал
                 </button>
             </div>
@@ -294,7 +294,6 @@
                     </button>
                 </div>
                 <div class="modal-body">
-                    <!-- Здесь будет компонент предпросмотра -->
                     <ManualPreview :manual="manual" :steps="steps" />
                 </div>
             </div>
@@ -304,16 +303,20 @@
 
 <script>
 import { ref, computed, onMounted } from 'vue'
-import axios from 'axios'
+import { useRoute } from 'vue-router';
+import axios from 'axios';
 import ManualPreview from './ManualPreview.vue';
 
 export default {
-    name: 'CreateManual',
+    name: 'EditManual',
     components: {
         ManualPreview
     },
 
     setup() {
+        const route = useRoute()
+        const manualId = ref(route.params.id)
+
         const manual = ref({
             title: '',
             moto_type: '',
@@ -327,10 +330,57 @@ export default {
         })
 
         const steps = ref([])
+        const stepCounter = ref(0)
         const newTool = ref('')
         const newMaterial = ref('')
         const showPreview = ref(false)
-        const stepCounter = ref(0)
+        const isLoading = ref(true)
+
+        const loadManualData = async () => {
+            try {
+                const token = localStorage.getItem('authToken')
+
+                if (!token) {
+                    alert('Необходимо авторизоваться')
+                    window.location.href = '/login'
+                    return
+                }
+
+                const response = await axios.get(`/api/manuals/constructor/${manualId.value}/edit`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                })
+
+                if (response.data.can_edit) {
+                    manual.value = response.data.manual
+
+                    if (!manual.value.tools) manual.value.tools = []
+                    if (!manual.value.materials) manual.value.materials = []
+
+                    steps.value = response.data.steps
+
+                    steps.value.forEach((step, index) => {
+                        if (!step.id) {
+                            step.id = `step_${Date.now()}_${index}`
+                        }
+                    })
+
+                    if (steps.value.length > 0) {
+                        stepCounter.value = steps.value.length
+                    }
+                } else {
+                    alert('У вас нет прав на редактирование этого мануала')
+                    window.location.href = `/manual/${manualId.value}`
+                }
+            } catch (error) {
+                console.error('Ошибка загрузки мануала для редактирования: ', error)
+                alert('Не удалось загрузить мануал для редактирования')
+                window.history.back()
+            } finally {
+                isLoading.value = false
+            }
+        }
 
         const isFormValid = computed(() => {
             return manual.value.title &&
@@ -450,73 +500,49 @@ export default {
             showPreview.value = true
         }
 
-        const publishManual = async () => {
+        const updateManual = async () => {
             if (!isFormValid.value) {
-                alert('Заполните все обязательные поля')
+                alert('Заполните обязательные поля')
                 return
             }
 
             const manualData = {
                 ...manual.value,
                 steps: steps.value,
-                published_at: new Date().toISOString(),
-                status: 'published'
+                updated_at: new Date().toISOString()
             }
 
             try {
                 const token = localStorage.getItem('authToken')
-                const response = await axios.post('/api/manuals/constructor/create', manualData, {
+
+                const manualData = {
+                    ...manual.value,
+                    steps: steps.value.map((step, index) => ({
+                        ...step,
+                        order: index
+                    })),
+                    updated_at: new Date().toISOString()
+                }
+
+                const response = await axios.put(`/api/manuals/constructor/${manualId.value}/edit`, manualData, {
                     headers: {
-                        'Authorization': `Bearer ${token}`
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
                     }
                 })
 
                 if (response.data.success) {
-                    alert('Мануал успешно опубликован!')
-                    window.location.href = `/manual/${response.data.manual_id}`
+                    alert('Мануал успешно обновлен!')
+                    window.location.href = `/manual/${manualId.value}`
                 }
             } catch (error) {
-                console.error('Ошибка публикации:', error)
-                alert('Не удалось опубликовать мануал')
+                console.error('Ошибка обновления: ', error)
+                alert('Не удалось обновить мануал')
             }
         }
 
-        onMounted(async () => {
-            const token = localStorage.getItem('authToken')
-            if (!token) {
-                window.location.href = '/login'
-                return
-            }
-
-            try {
-                const response = await axios.get('/api/manuals/constructor/verify-access', {
-                    headers: { 'Authorization': `Bearer ${token}`}
-                })
-
-                if (!response.data.is_verified) {
-                    alert('Только верифицированные пользователи могут создать мануалы')
-                    this.$router.push('/manuals')
-                    return
-                }
-
-                const draftResponse = await axios.get('/api/manuals/constructor/draft', {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                })
-
-                if (draftResponse.data) {
-                    manual.value = draftResponse.data.manual || manual.value
-                    steps.value = draftResponse.data.steps || []
-
-                    if (!manual.value.tools || !Array.isArray(manual.value.tools)) {
-                        manual.value.tools = []
-                    }
-                    if (!manual.value.materials || !Array.isArray(manual.value.materials)) {
-                        manual.value.materials = []
-                    }
-                }
-            } catch (error) {
-                console.error('Ошибка загрузки:', error)
-            }
+        onMounted(() => {
+            loadManualData()
         })
 
         return {
@@ -535,7 +561,7 @@ export default {
             removeTag,
             saveDraft,
             previewManual,
-            publishManual
+            updateManual
         }
     }
 }

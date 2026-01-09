@@ -73,6 +73,9 @@ def get_one_manual(manual_id):
         print('User not found')
         return jsonify({ 'error': 'User not found' }), 404
     
+    is_verified = True if user.is_verified else False
+    print(is_verified)
+    
     manual = MaintenanceManual.query.get(manual_id)
     manual_data = {
         'id': manual.id,
@@ -105,7 +108,8 @@ def get_one_manual(manual_id):
 
     return jsonify({
         'manual': manual_data,
-        'steps': steps_data
+        'steps': steps_data,
+        'user_verified': is_verified
     })
 
 @manuals.route('/api/manuals/constructor/create', methods=['POST'])
@@ -559,3 +563,126 @@ def complete_all(manual_id):
         'message': 'Все шаги отмечены как выполненные',
         'progress': progress.to_dict()
     })
+
+@manuals.route('/api/manuals/constructor/<int:manual_id>/edit', methods=['GET', 'PUT'])
+@jwt_required()
+def edit_manual(manual_id):
+    current_user_id = get_jwt_identity()
+
+    user = Member.query.get(current_user_id)
+    if not user or not user.is_verified:
+        return jsonify({ 'error': 'Только верифицированные пользователи могут редактировать мануалы' }), 403
+    
+    manual = MaintenanceManual.query.get_or_404(manual_id)
+
+    if int(manual.author_id) != int(current_user_id):
+        return jsonify({ 'error': 'Вы можете редактировать только свои мануалы' }), 403
+    
+    if request.method == 'GET':
+        manual_data = {
+            'id': manual.id,
+            'title': manual.title,
+            'description': manual.description,
+            'moto_type': manual.moto_type,
+            'category': manual.category,
+            'difficulty': manual.difficulty,
+            'estimated_time': manual.estimated_time,
+            'tools': manual.tools_required or [],
+            'materials': manual.parts_required or [],
+            'warnings': manual.warnings,
+            'status': manual.status,
+            'author_id': manual.author_id
+        }
+
+        steps = ManualStep.query.filter_by(manual_id=manual_id).order_by(ManualStep.order).all()
+        steps_data = [{
+            'id': s.id,
+            'title': s.title,
+            'description': s.description,
+            'image_url': s.image_url,
+            'video_url': s.video_url,
+            'order': s.order,
+            'warnings': s.warnings,
+            'tips': s.tips,
+            'estimated_time': s.estimated_time
+        } for s in steps]
+
+        return jsonify({
+            'manual': manual_data,
+            'steps': steps_data,
+            'can_edit': True
+        })
+    
+    elif request.method == 'PUT':
+        data = request.get_json()
+
+        manual.title = data.get('title', manual.title)
+        manual.moto_type = data.get('moto_type', manual.moto_type)
+        manual.category = data.get('category', manual.category)
+        manual.difficulty = data.get('difficulty', manual.difficulty)
+        manual.description = data.get('description', manual.description)
+        manual.estimated_time = data.get('estimated_time', manual.estimated_time)
+        manual.tools_required = data.get('tools', manual.tools_required)
+        manual.parts_required = data.get('materials', manual.parts_required)
+        manual.warnings = data.get('warnings', manual.warnings)
+        manual.updated_at = datetime.now(timezone.utc)
+
+        steps_data = data.get('steps', [])
+
+        ManualStep.query.filter_by(manual_id=manual_id).delete()
+
+        for i, step_data in enumerate(steps_data):
+            step = ManualStep(
+                manual_id=manual.id,
+                title=step_data['title'],
+                description=step_data['description'],
+                image_url=step_data.get('image_url', ''),
+                video_url=step_data.get('video_url', ''),
+                warnings=step_data.get('warnings', ''),
+                tips=step_data.get('tips', ''),
+                estimated_time=step_data.get('estimated_time', ''),
+                order=step_data.get('order', i)
+            )
+            db.session.add(step)
+
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'message': 'Мануал успешно обновлен',
+            'manual_id': manual.id
+        })
+    
+@manuals.route('/api/manuals/constructor/<int:manual_id>/delete', methods=['DELETE'])
+@jwt_required()
+def delete_manual(manual_id):
+    current_user_id = get_jwt_identity()
+
+    user = Member.query.get(current_user_id)
+    if not user or not user.is_verified:
+        return jsonify({ 'error': 'Только верифицированные пользователи могут удалять мануалы' }), 403
+    
+    manual = MaintenanceManual.query.get_or_404(manual_id)
+
+    if int(manual.author_id) != int(current_user_id):
+        return jsonify({ 'error': 'Вы можете удалять только свои мануалы' }), 403
+    
+    try:
+        UserManualProgress.query.filter_by(manual_id=manual_id).delete()
+        UserManualHistory.query.filter_by(manual_id=manual_id).delete()
+        ManualRating.query.filter_by(manual_id=manual_id).delete()
+
+        ManualStep.query.filter_by(manual_id=manual_id).delete()
+
+        db.session.delete(manual)
+
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'message': 'Мануал успешно удален'
+        })
+    
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({ 'error': f'Ошибка при удалении: {str(e)}' }), 500
