@@ -1,8 +1,10 @@
+import markdown
+from bleach import clean
+import bleach
 from flask import Blueprint, request, jsonify, current_app
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from app.models import Member, Post, Comment, Like, db
 from datetime import datetime, timezone
-import json
 
 community = Blueprint('community', __name__)
 
@@ -31,10 +33,17 @@ def get_posts():
         posts_data = []
         for post in posts:
             author = Member.query.get(post.author_id)
+
+            html_content = markdown.markdown(
+                post.content[:500] + '...' if len(post.content) > 500 else post.content,
+                extensions=['tables', 'fenced_code', 'nl2br']
+            )
+
             posts_data.append({
                 'id': post.id,
                 'title': post.title,
                 'content': post.content,
+                'htmlContent': html_content,
                 'excerpt': post.content[:150] + '...' if len(post.content) > 150 else post.content,
                 'author': {
                     'id': author.id,
@@ -74,10 +83,40 @@ def get_post(post_id):
 
         author = Member.query.get(post.author_id)
 
+        raw_content = post.content
+        html_content = markdown.markdown(
+            raw_content, 
+            extensions=['tables', 'fenced_code', 'nl2br']
+        )
+        
+        allowed_tags = [
+            'p', 'br', 'strong', 'em', 'b', 'i', 'u', 
+            'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
+            'ul', 'ol', 'li', 'blockquote', 'code', 'pre', 
+            'hr', 'a', 'img', 'table', 'thead', 'tbody', 
+            'tr', 'th', 'td', 'span', 'div'
+        ]
+        
+        allowed_attrs = {
+            'a': ['href', 'title', 'target', 'rel'],
+            'img': ['src', 'alt', 'title', 'width', 'height', 'class', 'style'],
+            'code': ['class'],
+            'pre': ['class']
+        }
+        
+        safe_html = clean(
+            html_content, 
+            tags=allowed_tags, 
+            attributes=allowed_attrs,
+            protocols=['http', 'https', 'mailto', 'data'],
+            strip=False
+        )
+
         return jsonify({
             'id': post.id,
             'title': post.title,
-            'content': post.content,
+            'content': post.html_content,
+            'htmlContent': safe_html,
             'author': {
                 'id': author.id,
                 'username': author.username
@@ -103,9 +142,37 @@ def create_post():
         if not data.get('title') or not data.get('content'):
             return jsonify({ 'error': 'Title and content are required' }), 400
         
+        raw_content = data['content']
+        html_content = markdown.markdown(raw_content)
+
+        allowed_tags = [
+            'p', 'br', 'strong', 'em', 'b', 'i', 'u', 
+            'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
+            'ul', 'ol', 'li', 'blockquote', 'code', 'pre', 
+            'hr', 'a', 'img', 'table', 'thead', 'tbody', 
+            'tr', 'th', 'td', 'span', 'div'
+        ]
+        
+        allowed_attrs = {
+            '*': ['class', 'id', 'style'],
+            'a': ['href', 'title', 'target', 'rel'],
+            'img': ['src', 'alt', 'title', 'width', 'height', 'class', 'style'],
+            'code': ['class'],
+            'pre': ['class']
+        }
+        
+        safe_html = clean(
+            html_content, 
+            tags=allowed_tags, 
+            attributes=allowed_attrs,
+            protocols=['http', 'https', 'mailto', 'data'],
+            strip=False
+        )
+
         new_post = Post(
             title=data['title'],
-            content=data['content'],
+            content=raw_content,
+            html_content=safe_html,
             author_id=current_user_id,
             created_at=datetime.now(timezone.utc),
             updated_at=datetime.now(timezone.utc)
@@ -214,7 +281,7 @@ def get_comments(post_id):
 def create_comment(post_id):
     try:
         current_user_id = get_jwt_identity()
-        data = request.json()
+        data = request.get_json()
 
         if not data.get('content'):
             return jsonify({ 'error': 'Comment content is required' }), 400

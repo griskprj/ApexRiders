@@ -333,6 +333,51 @@ select option {
     box-shadow: 0 0 15px rgba(255, 69, 0, 0.3);
 }
 
+/* ===== MARKDOWN стили ===== */
+.markdown-content {
+  line-height: 1.8;
+}
+
+.markdown-content h1,
+.markdown-content h2,
+.markdown-content h3,
+.markdown-content h4 {
+  margin-top: 1.5em;
+  margin-bottom: 0.5em;
+  color: var(--text);
+  font-weight: 600;
+}
+
+.markdown-content h1 { 
+  font-size: 1.8em; 
+  border-bottom: 2px solid var(--primary); 
+  padding-bottom: 0.3em; 
+}
+
+.markdown-content pre {
+  background: rgba(0, 0, 0, 0.3);
+  padding: 1em;
+  border-radius: 8px;
+  overflow-x: auto;
+  margin: 1em 0;
+}
+
+.markdown-content code {
+  background: rgba(255, 255, 255, 0.1);
+  padding: 0.2em 0.4em;
+  border-radius: 4px;
+  font-family: 'Consolas', monospace;
+  font-size: 0.9em;
+}
+
+.markdown-content blockquote {
+  border-left: 4px solid var(--primary);
+  padding-left: 1em;
+  margin-left: 0;
+  color: var(--text-secondary);
+  background: rgba(255, 69, 0, 0.05);
+}
+
 @media (max-width: 992px) {
     .hero h1 {
         font-size: 2.8rem;

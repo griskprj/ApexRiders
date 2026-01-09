@@ -11,6 +11,8 @@ import Community from '../components/Community.vue'
 import ProductDetails from '../components/ProductDetails.vue'
 import CreateManual from '../components/manuals/CreateManual.vue'
 import ManualViewer from '../components/manuals/ManualViewer.vue'
+import EditManual from '../components/manuals/EditManual.vue'
+import PostView from '../components/PostView.vue'
 
 const routes = [
     {
@@ -59,7 +61,7 @@ const routes = [
     {
         path: '/constructor/edit/:id',
         name: 'EditManual',
-        component: () => import('../components/manuals/EditManual.vue'),
+        component: EditManual,
         meta: { requiresAuth: true }
     },
     {
@@ -85,6 +87,12 @@ const routes = [
         path: '/community',
         name: 'Community',
         component: Community,
+        meta: { requiresAuth: true }
+    },
+    {
+        path: '/community/post/:id',
+        name: 'PostView',
+        component: PostView,
         meta: { requiresAuth: true }
     },
     {

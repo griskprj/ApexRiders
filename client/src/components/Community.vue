@@ -1,3 +1,6 @@
+<script setup>
+import MarkdownEditor from './MarkdownEditor.vue';
+</script>
 <template>
     <!-- Декоративные элементы -->
     <div class="decoration decoration-1"></div>
@@ -181,7 +184,7 @@
                 </div>
                 
                 <div class="modal-body">
-                    <form @submit.prevent="createPost">
+                    <div>
                         <div class="form-group">
                             <label for="postTitle">Заголовок</label>
                             <input
@@ -194,14 +197,12 @@
                         </div>
                         
                         <div class="form-group">
-                            <label for="postContent">Содержание</label>
-                            <textarea
-                                id="postContent"
+                            <label for="postContent">Содержание (Markdown)</label>
+                            <MarkdownEditor
                                 v-model="newPost.content"
-                                rows="6"
-                                placeholder="Поделитесь своим опытом, задайте вопрос или расскажите историю..."
-                                required
-                            ></textarea>
+                                :rows="8"
+                                placeholder="Напишите ваш пост используя Markdown..."
+                            />
                         </div>
                         
                         <div class="form-group">
@@ -239,12 +240,13 @@
                                 type="submit" 
                                 class="btn btn-primary"
                                 :disabled="creatingPost"
+                                @click.prevent="createPost"
                             >
                                 <span v-if="creatingPost">Публикация...</span>
                                 <span v-else>Опубликовать</span>
                             </button>
                         </div>
-                    </form>
+                    </div>
                 </div>
             </div>
         </div>
@@ -397,56 +399,77 @@ export default {
         },
 
         async createPost() {
-            if (!this.newPost.title || !this.newPost.content) {
-                alert('Заголовок и содержание обязательны');
-                return;
+            const title = String(this.newPost.title || '').trim()
+            const content = String(this.newPost.content || '')
+            
+            if (!title) {
+                alert('Заголовок обязателен')
+                return
             }
-
+            
+            if (!content) {
+                alert('Содержание поста обязательно')
+                return
+            }
+            
             this.creatingPost = true;
-
+            
             try {
                 const token = localStorage.getItem('authToken');
+                
+                const postData = {
+                    title: title,
+                    content: content,
+                    tags: String(this.newPost.tags || '').trim(),
+                    imageUrl: String(this.newPost.imageUrl || '').trim()
+                }
+                
+                console.log('Sending to server:', postData)
+                
                 const response = await fetch('/api/posts', {
                     method: 'POST',
                     headers: {
                         'Authorization': `Bearer ${token}`,
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({
-                        title: this.newPost.title,
-                        content: this.newPost.content,
-                        tags: this.newPost.tags,
-                        imageUrl: this.newPost.imageUrl
-                    })
+                    body: JSON.stringify(postData)
                 });
 
                 if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
+                    throw new Error(`HTTP error! status: ${response.status}`)
                 }
 
                 const newPostData = await response.json();
-                newPostData.excerpt = newPostData.content.substring(0, 150) + '...';
-                newPostData.category = 'General';
-                newPostData.categoryIcon = 'fas fa-comment';
-                newPostData.imageUrl = this.newPost.imageUrl;
-
-                this.posts.unshift(newPostData);
-                this.userStats.posts++;
-
-                this.newPost = {
-                    title: '',
-                    content: '',
-                    tags: '',
-                    imageUrl: ''
-                };
-
+                
+                // Сбрасываем форму
+                this.resetForm()
+                
+                // Обновляем данные
+                await this.fetchPosts()
+                await this.fetchCommunityStats()
+                
                 this.showCreateModal = false;
                 alert('Пост успешно создан!');
+                
             } catch (error) {
                 console.error('Ошибка при создании поста:', error);
-                alert('Не удалось создать пост. Проверьте введенные данные');
+                alert('Не удалось создать пост');
             } finally {
                 this.creatingPost = false;
+            }
+        },
+            
+        resetForm() {
+            this.newPost = {
+                title: '',
+                content: '',
+                tags: '',
+                imageUrl: ''
+            }
+            
+            // Принудительно обновляем редактор
+            if (this.$refs.markdownEditor) {
+                this.$refs.markdownEditor.internalValue = ''
             }
         },
 
@@ -475,7 +498,7 @@ export default {
         },
 
         openPost(post) {
-            console.log('Открыть пост:', post.id);
+            this.$router.push(`/community/post/${post.id}`)
         }
     }
 };

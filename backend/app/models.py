@@ -163,6 +163,7 @@ class Post(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(256), nullable=False)
     content = db.Column(db.Text, nullable=False)
+    html_content = db.Column(db.Text, nullable=True)
 
     author_id = db.Column(db.Integer, db.ForeignKey('members.id'), nullable=False)  
     author = db.relationship('Member', backref='posts', lazy=True)  
