@@ -76,6 +76,8 @@ def get_posts():
 @jwt_required()
 def get_post(post_id):
     try:
+        current_user_id = get_jwt_identity()
+
         post = Post.query.get_or_404(post_id)
 
         post.view_count += 1
@@ -112,6 +114,11 @@ def get_post(post_id):
             strip=False
         )
 
+        is_liked_data = Like.query.filter_by(target_type='post', user_id=current_user_id, target_id=post_id).first()
+        if is_liked_data:
+            is_liked = True
+        print('Лайк есть: ', is_liked)
+
         return jsonify({
             'id': post.id,
             'title': post.title,
@@ -119,8 +126,11 @@ def get_post(post_id):
             'htmlContent': safe_html,
             'author': {
                 'id': author.id,
-                'username': author.username
+                'username': author.username,
+                'isVerified': author.is_verified,
+                'isUser': True if int(author.id) == int(current_user_id) else False
             },
+            'isLiked': is_liked,
             'createdAt': post.created_at.isoformat(),
             'updatedAt': post.updated_at.isoformat(),
             'commentsCount': post.comment_count,
@@ -251,6 +261,8 @@ def get_comments(post_id):
             .order_by(Comment.created_at.desc())\
             .paginate(page=page, per_page=per_page, error_out=False)
         
+        print(post_id)
+        
         comments_data = []
         for comment in comments.items:
             author = Member.query.get(comment.author_id)
@@ -259,7 +271,8 @@ def get_comments(post_id):
                 'content': comment.content,
                 'author': {
                     'id': author.id,
-                    'username': author.username
+                    'username': author.username,
+                    'isVerified': author.is_verified
                 },
                 'createdAt': comment.created_at.isoformat(),
                 'likeCount': comment.like_count
@@ -356,3 +369,36 @@ def get_community_stats():
     except Exception as e:
         current_app.logger.error(f'Error fetching community stats: {str(e)}')
         return jsonify({ 'error': 'Error fetching community stats'}), 500
+    
+@community.route('/api/posts/<int:post_id>/delete', methods=['DELETE'])
+@jwt_required()
+def delete_post(post_id):
+    try:
+        current_user_id = get_jwt_identity()
+
+        post = Post.query.get(post_id)
+        if not post:
+            current_app.logger.error('Post not found')
+            return jsonify({ 'error': 'Post not found' }), 404
+        
+        comments = Comment.query.filter_by(post_id=post_id).all()
+        likes = Like.query.filter_by(target_type='post', target_id=post_id).all()
+
+        if comments:
+            for comment in comments:
+                db.session.delete(comment)
+        if likes:
+            for like in likes:
+                db.session.delete(like)
+
+        db.session.delete(post)
+
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'message': 'Пост удален'
+        })
+    except Exception as e:
+        current_app.logger.error(f'Error delete post: {str(e)}')
+        return jsonify({ 'error': 'Error delete post'}), 500
