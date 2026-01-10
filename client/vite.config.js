@@ -20,7 +20,7 @@ export default defineConfig({
       },
 
       '/api': {
-        target: 'http://192.168.1.42:5000',
+        target: 'http://localhost:5000',
         changeOrigin: true,
         secure: false,
         ws: true,

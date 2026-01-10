@@ -1,3 +1,6 @@
+<script setup>
+import MarkdownEditor from './MarkdownEditor.vue';
+</script>
 <template>
     <section class="post-view">
         <!-- Декоративные элементы -->
@@ -55,6 +58,7 @@
                 </button>
                 <button
                     class="btn btn-outline"
+                    @click="openEditModal"
                 >
                     <i class="fas fa-edit"></i> Редактировать
                 </button>
@@ -238,11 +242,69 @@
             </div>
         </div>
     </section>
-</template>
-
+    <!-- Модальное окно редактирования поста -->
+     <div v-if="showEditModal" class="modal-overlay" @click.self="closeEditModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Редактировать пост</h2>
+                <button class="modal-close" @click="closeEditModal">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div class="modal-body">
+                <form @submit.prevent="updatePost">
+                    <div class="form-group">
+                        <label for="editTitle">Заголовок</label>
+                        <input
+                            id="editTitle"
+                            v-model="editData.title"
+                            type="text"
+                            placeholder="Заголовок поста"
+                            required
+                        />
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="editContent">Содержание (Markdown)</label>
+                        <MarkdownEditor
+                            ref="markdownEditorRef"
+                            v-model="editData.content"
+                            :rows="8"
+                            placeholder="Содержание поста..."
+                        />
+                    </div>
+                    
+                    <div class="form-actions">
+                        <button 
+                            type="button" 
+                            class="btn btn-outline"
+                            @click="closeEditModal"
+                        >
+                            Отмена
+                        </button>
+                        <button 
+                            type="submit" 
+                            class="btn btn-primary"
+                            :disabled="updatingPost"
+                        >
+                            <span v-if="updatingPost">Сохранение...</span>
+                            <span v-else>Сохранить изменения</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    </template>
 <script>
+import { formatDistanceToNow } from 'date-fns'
+import { da, ru, tr } from 'date-fns/locale'
 export default {
     name: 'PostView',
+    components: {
+        MarkdownEditor
+    },
     
     data() {
         return {
@@ -276,7 +338,14 @@ export default {
             addingComment: false,
             commentsPage: 1,
             commentsPerPage: 20,
-            commentsTotal: 0
+            commentsTotal: 0,
+
+            showEditModal: false,
+            updatingPost: false,
+            editData: {
+                title: '',
+                content: ''
+            }
         };
     },
     
@@ -497,35 +566,109 @@ export default {
                 console.error('Ошибка при удалении: ', error)
             }
         },
-        
-        formatDate(dateString) {
-            const date = new Date(dateString);
-            const now = new Date();
-            const diffMs = now - date;
-            const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-            
-            if (diffDays === 0) {
-                const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-                if (diffHours === 0) {
-                    const diffMinutes = Math.floor(diffMs / (1000 * 60));
-                    return `${diffMinutes} минут назад`;
+
+        async updatePost() {
+            if (!this.editData.title.trim() || !this.editData.content.trim()) {
+                alert('Заголовок и содержание обязательны')
+                return
+            }
+
+            this.updatingPost = true
+
+            try {
+                const token = localStorage.getItem('authToken')
+                const response = await fetch(`/api/posts/${this.postId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        title: this.editData.title,
+                        content: this.editData.content
+                    })
+                })
+
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({}))
+                    throw new Error(errorData.error || `HTTP error! status ${response.status}`)
                 }
-                return `${diffHours} часов назад`;
-            } else if (diffDays === 1) {
-                return 'Вчера';
-            } else if (diffDays < 7) {
-                return `${diffDays} дней назад`;
-            } else {
-                return date.toLocaleDateString('ru-RU', {
-                    day: 'numeric',
-                    month: 'long',
-                    year: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit'
-                });
+
+                const updatedPost = await response.json()
+
+                this.post.title = updatedPost.title
+                this.post.content = updatedPost.content
+                this.post.htmlContent = updatedPost.htmlContent
+                this.post.updatedAt = updatedPost.updatedAt
+
+                if (updatedPost.htmlContent) {
+                    this.post.htmlContent = updatedPost.htmlContent
+                }
+
+                this.closeEditModal()
+                alert('Пост обновлен успешно')
+            } catch (error) {
+                console.error('Ошибка при обновлении поста: ', error)
+                alert(`Не удалось обновить пост: ${error.message}`)
+            } finally {
+                this.updatingPost = false
             }
         },
         
+        openEditModal() {
+            console.log('Открываем модалку редактирования')
+            
+            this.editData = {
+                title: this.post.title || '',
+                content: this.post.content || ''
+            }
+            
+            this.showEditModal = true
+            
+            // Ждем пока компонент отрендерится
+            this.$nextTick(() => {
+                // Принудительно устанавливаем значение в редактор
+                if (this.$refs.markdownEditorRef) {
+                    console.log('Устанавливаем значение в редактор:', this.editData.content)
+                    // Очищаем внутреннее состояние редактора
+                    this.$refs.markdownEditorRef.internalValue = ''
+                    // Даем Vue обновить DOM
+                    this.$nextTick(() => {
+                        // Теперь устанавливаем нужное значение
+                        this.$refs.markdownEditorRef.internalValue = this.editData.content
+                    })
+                }
+            })
+        },
+
+        closeEditModal() {
+            this.showEditModal = false
+            this.editData = {
+                title: '',
+                content: ''
+            }
+
+            if (this.$refs.markdownEditor) {
+                this.$refs.markdownEditor.internalValue = ''
+            }
+        },
+        
+        formatDate(dateString) {
+            if (!dateString) return '';
+            const date = new Date(dateString);
+            const now = new Date();
+            const diff = now - date;
+            
+            const minutes = Math.floor(diff / 60000);
+            const hours = Math.floor(minutes / 60);
+            const days = Math.floor(hours / 24);
+            
+            if (minutes < 60) return `${minutes} мин назад`;
+            if (hours < 24) return `${hours} час назад`;
+            if (days < 7) return `${days} дн назад`;
+            return date.toLocaleDateString('ru-RU');
+        },
+
         formatDateShort(dateString) {
             const date = new Date(dateString);
             return date.toLocaleDateString('ru-RU', {
@@ -1092,6 +1235,117 @@ export default {
     color: var(--primary);
     margin-right: 5px;
 }
+
+/* ===== МОДАЛЬНОЕ ОКНО ===== */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(5px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+    padding: 20px;
+}
+
+.modal-content {
+    background: var(--dark-light);
+    border-radius: 20px;
+    width: 100%;
+    max-width: 800px;
+    max-height: 90vh;
+    overflow-y: auto;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 25px 30px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.modal-header h2 {
+    font-size: 1.5rem;
+    font-weight: 600;
+}
+
+.modal-close {
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    font-size: 1.2rem;
+    cursor: pointer;
+    transition: color 0.3s ease;
+}
+
+.modal-close:hover {
+    color: var(--text);
+}
+
+.modal-body {
+    padding: 30px;
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 500;
+    color: var(--text);
+}
+
+.form-group input {
+    width: 100%;
+    padding: 12px 15px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    color: var(--text);
+    font-size: 1rem;
+    transition: all 0.3s ease;
+}
+
+.form-group input:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 2px rgba(255, 69, 0, 0.2);
+}
+
+.form-actions {
+    display: flex;
+    gap: 15px;
+    margin-top: 30px;
+}
+
+.form-actions .btn {
+    flex: 1;
+    justify-content: center;
+}
+
+@media (max-width: 768px) {
+    .modal-content {
+        margin: 20px;
+    }
+    
+    .modal-body {
+        padding: 20px;
+    }
+    
+    .form-actions {
+        flex-direction: column;
+    }
+}
+
 
 /* ===== ДЕКОРАТИВНЫЕ ЭЛЕМЕНТЫ ===== */
 .decoration {

@@ -136,7 +136,7 @@ export default {
   
   data() {
     return {
-      internalValue: this.value || '',  // Используем internalValue вместо markdown
+      internalValue: this.value || '',
       showPreview: this.autoPreview,
       splitView: false,
       editorMode: 'edit',
@@ -196,14 +196,6 @@ export default {
   },
   
   methods: {
-    // Удалите метод updateContent, так как теперь используем watch на internalValue
-    // updateContent() {
-    //   const valueToSend = String(this.internalValue || '')
-    //   console.log('MarkdownEditor emitting input:', valueToSend.substring(0, 50) + '...')
-    //   this.$emit('input', valueToSend)
-    //   this.$emit('change', valueToSend)
-    // },
-    
     setEditorMode(mode) {
       this.editorMode = mode
       if (mode === 'edit') {
@@ -233,16 +225,11 @@ export default {
       const end = textarea.selectionEnd
       
       const spaces = '  '
-      // Vue автоматически обновит internalValue через v-model
-      // и watch на internalValue отправит событие родителю
-      
-      // Вставляем пробелы
+
       const newValue = this.internalValue.substring(0, start) + spaces + this.internalValue.substring(end)
       
-      // Устанавливаем новое значение
       this.internalValue = newValue
       
-      // Устанавливаем курсор
       this.$nextTick(() => {
         textarea.selectionStart = textarea.selectionEnd = start + spaces.length
       })
@@ -300,10 +287,8 @@ export default {
           break
       }
       
-      // Обновляем значение
       this.internalValue = this.internalValue.substring(0, start) + formattedText + this.internalValue.substring(end)
       
-      // Устанавливаем курсор
       this.$nextTick(() => {
         textarea.focus()
         if (selectedText) {
