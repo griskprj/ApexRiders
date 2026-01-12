@@ -114,6 +114,7 @@ def get_post(post_id):
             strip=False
         )
 
+        is_liked = False
         is_liked_data = Like.query.filter_by(target_type='post', user_id=current_user_id, target_id=post_id).first()
         if is_liked_data:
             is_liked = True
@@ -122,8 +123,8 @@ def get_post(post_id):
         return jsonify({
             'id': post.id,
             'title': post.title,
-            'content': post.html_content,
-            'htmlContent': safe_html,
+            'content': post.content,
+            'htmlContent': post.html_content or safe_html,
             'author': {
                 'id': author.id,
                 'username': author.username,
@@ -131,8 +132,8 @@ def get_post(post_id):
                 'isUser': True if int(author.id) == int(current_user_id) else False
             },
             'isLiked': is_liked,
-            'createdAt': post.created_at.isoformat(),
-            'updatedAt': post.updated_at.isoformat(),
+            'createdAt': post.created_at,
+            'updatedAt': post.updated_at,
             'commentsCount': post.comment_count,
             'likesCount': post.like_count,
             'views': post.view_count
@@ -274,7 +275,7 @@ def get_comments(post_id):
                     'username': author.username,
                     'isVerified': author.is_verified
                 },
-                'createdAt': comment.created_at.isoformat(),
+                'createdAt': comment.created_at,
                 'likeCount': comment.like_count
             })
 
@@ -402,3 +403,77 @@ def delete_post(post_id):
     except Exception as e:
         current_app.logger.error(f'Error delete post: {str(e)}')
         return jsonify({ 'error': 'Error delete post'}), 500
+    
+@community.route('/api/posts/<int:post_id>', methods=['PUT'])
+@jwt_required()
+def update_post(post_id):
+    try:
+        current_user_id = get_jwt_identity()
+        data = request.get_json()
+
+        post = Post.query.get_or_404(post_id)
+        if int(post.author_id) != int(current_user_id):
+            return jsonify({ 'error': 'You can only edit your own posts' }), 403
+        
+        if 'title' in data and data['title']:
+            post.title = data['title']
+        
+        if 'content' in data and data['content']:
+            raw_content = data['content']
+
+            html_content = markdown.markdown(raw_content)
+
+            allowed_tags = [
+                'p', 'br', 'strong', 'em', 'b', 'i', 'u', 
+                'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
+                'ul', 'ol', 'li', 'blockquote', 'code', 'pre', 
+                'hr', 'a', 'img', 'table', 'thead', 'tbody', 
+                'tr', 'th', 'td', 'span', 'div'
+            ]
+            
+            allowed_attrs = {
+                '*': ['class', 'id', 'style'],
+                'a': ['href', 'title', 'target', 'rel'],
+                'img': ['src', 'alt', 'title', 'width', 'height', 'class', 'style'],
+                'code': ['class'],
+                'pre': ['class']
+            }
+
+            safe_html = clean(
+                html_content,
+                tags=allowed_tags,
+                attributes=allowed_attrs,
+                protocols=['http', 'https', 'mailto', 'data'],
+                strip=False
+            )
+
+            post.content = raw_content
+            post.html_content = safe_html
+        
+        post.updated_at = datetime.now(timezone.utc)
+
+        db.session.commit()
+
+        author = Member.query.get(post.author_id)
+
+        return jsonify({
+            'id': post.id,
+            'title': post.title,
+            'content': post.content,
+            'htmlContent': post.html_content,
+            'author': {
+                'id': author.id,
+                'username': author.username,
+                'name': author.username
+            },
+            'createdAt': post.created_at,
+            'updatedAt': post.updated_at,
+            'commentsCount': post.comment_count,
+            'likesCount': post.like_count,
+            'views': post.view_count
+        }), 200
+    
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f'Error updating post: {str(e)}')
+        return jsonify({ 'error': 'Failed to update post' }), 500
