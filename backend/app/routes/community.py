@@ -114,31 +114,23 @@ def get_post(post_id):
             strip=False
         )
 
-        is_liked = False
-        is_liked_data = Like.query.filter_by(target_type='post', user_id=current_user_id, target_id=post_id).first()
-        if is_liked_data:
-            is_liked = True
-        print('Лайк есть: ', is_liked)
-
         return jsonify({
             'id': post.id,
             'title': post.title,
-            'content': post.content,
-            'htmlContent': post.html_content or safe_html,
+            'content': post.html_content,
+            'htmlContent': safe_html,
             'author': {
                 'id': author.id,
                 'username': author.username,
-                'isVerified': author.is_verified,
-                'isUser': True if int(author.id) == int(current_user_id) else False
+                'isVerified': True if int(author.id) == int(current_user_id) else False
             },
-            'isLiked': is_liked,
-            'createdAt': post.created_at,
-            'updatedAt': post.updated_at,
+            'createdAt': post.created_at.isoformat(),
+            'updatedAt': post.updated_at.isoformat(),
             'commentsCount': post.comment_count,
             'likesCount': post.like_count,
             'views': post.view_count
         }), 200
-    
+
     except Exception as e:
         current_app.logger.error(f'Error fetching post: {str(e)}')
         return jsonify({ 'error': 'Post not found' }), 404
@@ -154,7 +146,10 @@ def create_post():
             return jsonify({ 'error': 'Title and content are required' }), 400
         
         raw_content = data['content']
-        html_content = markdown.markdown(raw_content)
+        html_content = markdown.markdown(
+            raw_content, 
+            extensions=['tables', 'fenced_code', 'nl2br']
+        )
 
         allowed_tags = [
             'p', 'br', 'strong', 'em', 'b', 'i', 'u', 
@@ -421,7 +416,10 @@ def update_post(post_id):
         if 'content' in data and data['content']:
             raw_content = data['content']
 
-            html_content = markdown.markdown(raw_content)
+            html_content = markdown.markdown(
+                raw_content, 
+                extensions=['tables', 'fenced_code', 'nl2br']  # <-- ДОБАВЬТЕ ЭТО
+            )
 
             allowed_tags = [
                 'p', 'br', 'strong', 'em', 'b', 'i', 'u', 
