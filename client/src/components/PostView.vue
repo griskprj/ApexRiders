@@ -49,7 +49,7 @@ import MarkdownEditor from './MarkdownEditor.vue';
             </div>
 
             <!-- Действия для автора поста -->
-            <div class="author-actions" v-if="post.author.isUser === true">
+            <div class="author-actions" v-if="post.author.isVerified === true">
                 <button
                     class="btn btn-outline"
                     @click="deletePost(post)"
