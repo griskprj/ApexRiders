@@ -31,7 +31,7 @@ import MarkdownEditor from './MarkdownEditor.vue';
                     </button>
                 </div>
                 
-                <button class="btn btn-primary create-post-btn" @click="showCreateModal = true">
+                <button class="btn btn-primary create-post-btn" @click="openCreateModal">
                     <i class="fas fa-plus"></i>
                     Создать пост
                 </button>
@@ -174,13 +174,18 @@ import MarkdownEditor from './MarkdownEditor.vue';
         </div>
 
         <!-- Модальное окно создания поста -->
-        <div v-if="showCreateModal" class="modal-overlay" @click.self="showCreateModal = false">
+        <div v-if="showCreateModal" class="modal-overlay" @click.self="closeCreateModal">
             <div class="modal-content">
                 <div class="modal-header">
                     <h2>Создать новый пост</h2>
-                    <button class="modal-close" @click="showCreateModal = false">
+                    <button class="modal-close" @click="closeCreateModal">
                         <i class="fas fa-times"></i>
                     </button>
+                    <div v-if="hasUnsavedDraft" class="draft-info">
+                        <i class="fas fa-save"></i>
+                        <span>Черновик сохранен</span>
+                        <small>Автоматически сохраняется при изменении</small>
+                    </div>
                 </div>
                 
                 <div class="modal-body">
@@ -283,7 +288,11 @@ export default {
                 content: '',
                 tags: '',
                 imageUrl: ''
-            }
+            },
+
+            draftKey: 'post_create_draft_',
+            autoSaveTimer: null,
+            hasUnsavedDraft: false
         };
     },
     
@@ -305,14 +314,45 @@ export default {
         
         currentPage() {
             this.fetchPosts();
+        },
+
+        'newPost.title': {
+            handler() {
+                this.saveDraft()
+            }
+        },
+        'newPost.content': {
+            handler() {
+                this.saveDraft()
+            }
+        },
+        'newPost.tags': {
+            handler() {
+                this.saveDraft()
+            }
+        },
+        'newPost.imageUrl': {
+            handler() {
+                this.saveDraft()
+            }
         }
     },
     
     async mounted() {
+        window.addEventListener('beforeunload', this.handleBeforeUnload)
+
         await Promise.all([
             this.fetchPosts(),
             this.fetchCommunityStats()
         ]);
+    },
+
+    beforeUnmount() {
+        window.removeEventListener('beforeunload', this.handleBeforeUnload)
+
+        if (this.autoSaveTimer) {
+            clearTimeout(this.autoSaveTimer)
+        }
     },
     
     methods: {
@@ -424,8 +464,6 @@ export default {
                     imageUrl: String(this.newPost.imageUrl || '').trim()
                 }
                 
-                console.log('Sending to server:', postData)
-                
                 const response = await fetch('/api/posts', {
                     method: 'POST',
                     headers: {
@@ -440,11 +478,10 @@ export default {
                 }
 
                 const newPostData = await response.json();
+
+                this.clearDraft()
+                this.clearForm
                 
-                // Сбрасываем форму
-                this.resetForm()
-                
-                // Обновляем данные
                 await this.fetchPosts()
                 await this.fetchCommunityStats()
                 
@@ -467,7 +504,6 @@ export default {
                 imageUrl: ''
             }
             
-            // Принудительно обновляем редактор
             if (this.$refs.markdownEditor) {
                 this.$refs.markdownEditor.internalValue = ''
             }
@@ -497,8 +533,116 @@ export default {
             }
         },
 
+        openCreateModal() {
+            const hasDraft = this.loadDraft()
+
+            if (hasDraft) {
+                if (this.confirmLoadDraft()) {
+                    this.showCreateModal = true
+                    return
+                } else {
+                    this.clearForm()
+                }
+            } else {
+                this.clearForm()
+            }
+
+            this.showCreateModal = true
+
+            this.$nextTick(() => {
+                const titleInput = document.getElementById('postTitle')
+                if (titleInput) {
+                    titleInput.focus()
+                }
+            })
+        },
+
+        closeCreateModal() {
+            if (this.hasUnsavedDraft && (this.newPost.title || this.newPost.content)) {
+                const action = confirm('У вас есть несохраненный черновик. Сохранить его?\n\n"ОК" - сохранить черновик \n"Отмена" - удалить черновик')
+
+                if (!action) {
+                    this.clearDraft()
+                    this.clearForm()
+                }
+            }
+
+            this.showCreateModal = false
+        },
+
+        clearForm() {
+            this.newPost = {
+                title: '',
+                content: '',
+                tags: '',
+                imageUrl: ''
+            }
+            this.hasUnsavedDraft = false
+        },
+
         openPost(post) {
             this.$router.push(`/community/post/${post.id}`)
+        },
+
+        saveDraft() {
+            if (this.autoSaveTimer) {
+                clearTimeout(this.autoSaveTimer)
+            }
+            
+            this.autoSaveTimer = setTimeout(() => {
+                const draftData = {
+                    title: this.newPost.title,
+                    content: this.newPost.content,
+                    tags: this.newPost.tags,
+                    imageUrl: this.newPost.imageUrl,
+                    timestamp: new Date().toISOString()
+                }
+                
+                localStorage.setItem(this.draftKey, JSON.stringify(draftData))
+                this.hasUnsavedDraft = true
+                console.log('Черновик сохранен:', draftData)
+            }, 1000)
+        },
+
+        loadDraft() {
+            try {
+                const draft = localStorage.getItem(this.draftKey)
+                if (draft) {
+                    const parsed = JSON.parse(draft)
+                    this.newPost = {
+                        title: parsed.title || '',
+                        content: parsed.content || '',
+                        tags: parsed.tags || '',
+                        imageUrl: parsed.imageUrl || ''
+                    }
+                    console.log('Черновик загружен:', parsed)
+                    this.hasUnsavedDraft = true
+                    return true
+                }
+            } catch (e) {
+                console.error('Ошибка загрузки черновика:', e)
+            }
+            return false
+        },
+
+        clearDraft() {
+            localStorage.removeItem(this.draftKey)
+            this.hasUnsavedDraft = false
+        },
+
+        confirmLoadDraft() {
+            if (this.hasUnsavedDraft) {
+                return confirm('У вас есть сохраненный черновик. Загрузить его?')
+            }
+            return false
+        },
+
+        handleBeforeUnload(e) {
+            if (this.hasUnsavedDraft && (this.newPost.title || this.newPost.content)) {
+                e.preventDefault()
+                e.returnValue = 'У вас есть несохраненный черновик. Вы уверены, что хотите уйти?'
+                return e.returnValue
+            }
         }
     }
 };
@@ -1048,6 +1192,29 @@ export default {
 
 .modal-close:hover {
     color: var(--text);
+}
+
+.draft-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    background: rgba(0, 191, 255, 0.1);
+    border: 1px solid rgba(0, 191, 255, 0.2);
+    border-radius: 8px;
+    color: var(--accent);
+    font-size: 0.9rem;
+    margin-bottom: 15px;
+}
+
+.draft-info i {
+    color: var(--accent);
+}
+
+.draft-info small {
+    margin-left: auto;
+    opacity: 0.7;
+    font-size: 0.8rem;
 }
 
 .modal-body {

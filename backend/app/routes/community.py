@@ -117,15 +117,15 @@ def get_post(post_id):
         return jsonify({
             'id': post.id,
             'title': post.title,
-            'content': post.html_content,
+            'content': post.content,
             'htmlContent': safe_html,
             'author': {
                 'id': author.id,
                 'username': author.username,
                 'isVerified': True if int(author.id) == int(current_user_id) else False
             },
-            'createdAt': post.created_at.isoformat(),
-            'updatedAt': post.updated_at.isoformat(),
+            'createdAt': post.created_at,
+            'updatedAt': post.updated_at,
             'commentsCount': post.comment_count,
             'likesCount': post.like_count,
             'views': post.view_count
@@ -146,6 +146,7 @@ def create_post():
             return jsonify({ 'error': 'Title and content are required' }), 400
         
         raw_content = data['content']
+        print(raw_content)
         html_content = markdown.markdown(
             raw_content, 
             extensions=['tables', 'fenced_code', 'nl2br']

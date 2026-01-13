@@ -299,7 +299,7 @@ import MarkdownEditor from './MarkdownEditor.vue';
     </template>
 <script>
 import { formatDistanceToNow } from 'date-fns'
-import { da, ru, tr } from 'date-fns/locale'
+import { da, ru, th, tr } from 'date-fns/locale'
 export default {
     name: 'PostView',
     components: {
@@ -345,7 +345,10 @@ export default {
             editData: {
                 title: '',
                 content: ''
-            }
+            },
+
+            autoSaveTimer: null,
+            draftKey: 'post_draft_'
         };
     },
     
@@ -365,6 +368,15 @@ export default {
             handler() {
                 this.fetchPost()
             }
+        },
+
+        editData: {
+            deep: true,
+            handler(newVal) {
+                if (this.showEditModal) {
+                    this.saveDraft()
+                }
+            }
         }
     },
     
@@ -372,6 +384,14 @@ export default {
         if (this.postId) {
             await this.fetchPost();
         }
+    },
+
+    mounted() {
+        document.addEventListener('keydown', this.handleKeyDown)
+    },
+
+    beforeUnmount() {
+        document.removeEventListener('keydown', this.handleKeyDown)
     },
     
     methods: {
@@ -606,6 +626,7 @@ export default {
                 }
 
                 this.closeEditModal()
+                this.clearDraft()
                 alert('Пост обновлен успешно')
             } catch (error) {
                 console.error('Ошибка при обновлении поста: ', error)
@@ -618,39 +639,72 @@ export default {
         openEditModal() {
             console.log('Открываем модалку редактирования')
             
-            this.editData = {
-                title: this.post.title || '',
-                content: this.post.content || ''
+            this.loadDraft()
+            
+            if (!this.editData.title && !this.editData.content) {
+                this.editData = {
+                    title: this.post.title || '',
+                    content: this.post.content || ''
+                }
             }
             
             this.showEditModal = true
             
-            // Ждем пока компонент отрендерится
             this.$nextTick(() => {
-                // Принудительно устанавливаем значение в редактор
                 if (this.$refs.markdownEditorRef) {
-                    console.log('Устанавливаем значение в редактор:', this.editData.content)
-                    // Очищаем внутреннее состояние редактора
-                    this.$refs.markdownEditorRef.internalValue = ''
-                    // Даем Vue обновить DOM
-                    this.$nextTick(() => {
-                        // Теперь устанавливаем нужное значение
+                    setTimeout(() => {
                         this.$refs.markdownEditorRef.internalValue = this.editData.content
-                    })
+                        this.$refs.markdownEditorRef.focus()
+                    }, 50)
                 }
             })
         },
 
         closeEditModal() {
             this.showEditModal = false
-            this.editData = {
-                title: '',
-                content: ''
+        },
+
+        handleKeyDown(e) {
+            if (e.key === 'Escape' && this.showEditModal) {
+                this.saveDraft()
+                this.closeEditModal()
+            }
+        },
+
+        saveDraft() {
+            if (this.autoSaveTimer) {
+                clearTimeout(this.autoSaveTimer)
             }
 
-            if (this.$refs.markdownEditor) {
-                this.$refs.markdownEditor.internalValue = ''
+            this.autoSaveTimer = setTimeout(() => {
+                const draftKey = this.draftKey + this.postId
+                localStorage.setItem(draftKey, JSON.stringify({
+                    title: this.editData.title,
+                    content: this.editData.content,
+                    timestamp: new Date().toISOString()
+                }))
+            }, 1000)
+        },
+
+        loadDraft() {
+            const draftKey = this.draftKey + this.postId
+            const draft = localStorage.getItem(draftKey)
+            if (draft) {
+                try {
+                    const parsed = JSON.parse(draft)
+                    this.editData = {
+                        title: parsed.title || this.post.title || '',
+                        content: parsed.content || this.post.content || ''
+                    }
+                } catch (error) {
+                    console.error('Ошибка загрузки черновика', e)
+                }
             }
+        },
+
+        clearDraft() {
+            const draftKey = this.draftKey + this.postId
+            localStorage.removeItem(draftKey)
         },
         
         formatDate(dateString) {
