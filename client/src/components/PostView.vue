@@ -169,13 +169,13 @@ import MarkdownEditor from './MarkdownEditor.vue';
                             <div class="comment-text">{{ comment.content }}</div>
                             
                             <div class="comment-actions">
-                                <button class="comment-action">
+                                <button 
+                                    class="comment-action"
+                                    :class="{ 'liked': comment.isLiked }"
+                                    @click="toggleCommentLike(comment.id, comment)"
+                                >
                                     <i class="fas fa-heart"></i>
                                     <span>{{ comment.likeCount }}</span>
-                                </button>
-                                <button class="comment-action">
-                                    <i class="fas fa-reply"></i>
-                                    <span>Ответить</span>
                                 </button>
                             </div>
                         </div>
@@ -298,8 +298,6 @@ import MarkdownEditor from './MarkdownEditor.vue';
     </div>
     </template>
 <script>
-import { formatDistanceToNow } from 'date-fns'
-import { da, ru, th, tr } from 'date-fns/locale'
 export default {
     name: 'PostView',
     components: {
@@ -330,15 +328,18 @@ export default {
                 tags: [],
                 isLiked: false
             },
+
             comments: [],
-            relatedPosts: [],
             newComment: '',
-            loadingComments: true,
-            loadingRelated: true,
-            addingComment: false,
+            likedComments: new Set(),
             commentsPage: 1,
             commentsPerPage: 20,
             commentsTotal: 0,
+            addingComment: false,
+            loadingComments: true,
+
+            relatedPosts: [],
+            loadingRelated: true,
 
             showEditModal: false,
             updatingPost: false,
@@ -464,7 +465,12 @@ export default {
                 }
 
                 const data = await response.json();
-                this.comments = data.comment || [];
+
+                this.comments = (data.comment || []).map(commnet => ({
+                    ...commnet,
+                    isLiked: this.likedComments.has(commnet.id)
+                }));
+
                 this.commentsTotal = data.total || 0;
             } catch (error) {
                 console.error('Ошибка при загрузке комментариев:', error);
@@ -522,7 +528,12 @@ export default {
                 }
 
                 const newComment = await response.json();
-                this.comments.unshift(newComment);
+
+                this.comments.unshift({
+                    ...newComment,
+                    isLiked: false
+                });
+                
                 this.post.commentsCount++;
                 this.newComment = '';
                 
@@ -537,6 +548,40 @@ export default {
                 alert('Не удалось добавить комментарий');
             } finally {
                 this.addingComment = false;
+            }
+        },
+
+        async toggleCommentLike(commentId, comment) {
+            try {
+                const token = localStorage.getItem('authToken')
+                const response = await fetch(`/api/comment/${commentId}/like`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                })
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`)
+                }
+
+                const data = await response.json()
+
+                comment.likeCount = data.likesCount
+                
+                if (this.likedComments.has(commentId)) {
+                    this.likedComments.delete(commentId)
+                    comment.isLiked = false
+                } else {
+                    this.likedComments.add(commentId)
+                    comment.isLiked = true
+                }
+
+                this.comments = [...this.comments]
+            } catch (error) {
+                console.error('Ошибка при лайке комментария: ', error)
+                alert('Не удалось поставить лайк комментарию')
             }
         },
         
@@ -1151,7 +1196,16 @@ export default {
     transition: color 0.3s ease;
 }
 
-.comment-action:hover {
+.comment-action:hover,
+.comment-action.liked:hover {
+    color: var(--primary);
+}
+
+.comment-action.liked {
+    color: var(--primary);
+}
+
+.comment-action.liked i {
     color: var(--primary);
 }
 

@@ -100,6 +100,7 @@
         :key="mode.id"
         :class="{ active: editorMode === mode.id }"
         @click="setEditorMode(mode.id)"
+        type="button"
       >
         <i :class="mode.icon"></i>
         {{ mode.label }}
@@ -209,6 +210,7 @@ export default {
         this.splitView = true
       }
     },
+    
     
     togglePreview() {
       this.showPreview = !this.showPreview

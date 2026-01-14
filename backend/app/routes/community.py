@@ -329,6 +329,41 @@ def create_comment(post_id):
         current_app.logger.error(f'Error creating comment: {str(e)}')
         return jsonify({ 'error': 'Failed to create comment' }), 500
     
+@community.route('/api/comment/<int:comment_id>/like', methods=['POST'])
+@jwt_required()
+def like_comment(comment_id):
+    try:
+        current_user_id = get_jwt_identity()
+
+        existing_like = Like.query.filter_by(
+            user_id=current_user_id,
+            target_type='comment',
+            target_id=comment_id
+        ).first()
+
+        comment = Comment.query.get_or_404(comment_id)
+
+        if existing_like:
+            db.session.delete(existing_like)
+            comment.like_count = max(0, comment.like_count - 1)
+            db.session.commit()
+            return jsonify({ 'liked': False, 'likesCount': comment.like_count }), 200
+        else:
+            new_like = Like(
+                user_id=current_user_id,
+                target_type='comment',
+                target_id=comment_id
+            )
+            db.session.add(new_like)
+            comment.like_count += 1
+            db.session.commit()
+            return jsonify({ 'liked': True, 'likesCount': comment.like_count }), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f'Error toggling like: {str(e)}')
+        return jsonify({ 'error': 'Failed to toggle like in comment' }), 500
+    
 @community.route('/api/community/stats', methods=['GET'])
 @jwt_required()
 def get_community_stats():
