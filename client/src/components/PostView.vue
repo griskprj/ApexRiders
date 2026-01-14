@@ -100,11 +100,6 @@ import MarkdownEditor from './MarkdownEditor.vue';
                         <i class="fas fa-comment"></i>
                         <span>{{ post.commentsCount }}</span>
                     </button>
-                    
-                    <button class="action-btn share-btn">
-                        <i class="fas fa-share-alt"></i>
-                        <span>Поделиться</span>
-                    </button>
                 </div>
             </div>
             
