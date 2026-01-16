@@ -95,3 +95,88 @@ def get_current_user():
 @jwt_required()
 def logout_user():
     return jsonify({'message': 'Successfully logged out'}), 200
+
+@auth.route('/api/auth/profile', methods=['GET'])
+@jwt_required()
+def get_profile():
+    user_id = get_jwt_identity()
+    user = Member.query.get(user_id)
+
+    if not user:
+        return jsonify({ 'error': 'User not found' }), 404
+    
+    return jsonify({
+        'id': user.id,
+        'username': user.username,
+        'email': user.email,
+        'role': user.role,
+        'join_at': user.join_at.isoformat() if user.join_at else None,
+        'is_verified': user.is_verified,
+        'verification_data': user.verification_date.isoformat() if user.verification_date else None
+    })
+
+@auth.route('/api/auth/profile', methods=['PUT'])
+@jwt_required()
+def update_profile():
+    user_id = get_jwt_identity()
+    user = Member.query.get(user_id)
+
+    if not user:
+        return jsonify({ 'error': 'User not found' }), 404
+    
+    data = request.get_json()
+
+    if 'username' in data:
+        existing_user = Member.query.filter(
+            Member.username == data['username'],
+            Member.id != user_id
+        ).first()
+        if existing_user:
+            return jsonify({ 'error': 'Username already exists' }), 400
+        user.username = data['username']
+
+    if 'email' in data:
+        existing_user = Member.query.filter(
+            Member.email == data['email'],
+            Member.id != user_id
+        ).first()
+        if existing_user:
+            return jsonify({ 'error': 'Email already exists' }), 400
+        user.email = data['email']
+    
+    db.session.commit()
+
+    return jsonify({
+        'id': user.id,
+        'usename': user.username,
+        'email': user.email,
+        'role': user.role,
+        'join_at': user.join_at.isoformat() if user.join_at else None
+    })
+
+@auth.route('/api/auth/change-password', methods=['POST'])
+@jwt_required()
+def change_password():
+    user_id = get_jwt_identity()
+    user = Member.query.get(user_id)
+
+    if not user:
+        return jsonify({ 'error': 'User not found' }), 404
+    
+    data = request.get_json()
+    current_password = data.get('current_password')
+    new_password = data.get('new_password')
+
+    if not current_password or not new_password:
+        return jsonify({ 'error': 'Current and new password required' }), 400
+    
+    if not user.check_password(current_password):
+        return jsonify({ 'error': 'Current password is incorrect'}), 400
+    
+    if len(new_password) < 6:
+        return jsonify({ 'error': 'Password must be at least 6 characters'}), 400
+    
+    user.set_password(new_password)
+    db.session.commit()
+
+    return jsonify({ 'message': 'Password updated successfully' })

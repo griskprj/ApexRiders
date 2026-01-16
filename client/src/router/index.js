@@ -13,6 +13,7 @@ import CreateManual from '../components/manuals/CreateManual.vue'
 import ManualViewer from '../components/manuals/ManualViewer.vue'
 import EditManual from '../components/manuals/EditManual.vue'
 import PostView from '../components/PostView.vue'
+import Profile from '../components/Profile.vue'
 
 const routes = [
     {
@@ -93,6 +94,12 @@ const routes = [
         path: '/community/post/:id',
         name: 'PostView',
         component: PostView,
+        meta: { requiresAuth: true }
+    },
+    {
+        path: '/profile',
+        name: 'Profile',
+        component: Profile,
         meta: { requiresAuth: true }
     },
     {

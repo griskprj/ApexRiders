@@ -15,6 +15,7 @@
                 <router-link to="/courses" class="nav-link" v-if="user">Курсы</router-link>
                 <router-link to="/market" class="nav-link" v-if="user">Маркет</router-link>
                 <router-link to="/community" class="nav-link" v-if="user">Сообщество</router-link>
+                <router-link to="/profile" class="nav-link" v-if="user">Профиль</router-link>
             </div>
             
             <div class="auth-buttons" v-if="!isMobile && !user">
@@ -331,6 +332,45 @@ select option {
 .nav-links button:hover {
     background: rgba(255, 69, 0, 0.3);
     box-shadow: 0 0 15px rgba(255, 69, 0, 0.3);
+}
+
+/* Дополнительные стили для профиля */
+.profile-badge {
+    background: linear-gradient(135deg, var(--primary), var(--accent));
+    color: white;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    margin-top: 10px;
+}
+
+/* Стили для инпутов */
+input, textarea, select {
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 8px;
+    padding: 12px 15px;
+    color: var(--text);
+    font-size: 1rem;
+    transition: all 0.3s ease;
+}
+
+input:focus, textarea:focus, select:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 2px rgba(255, 69, 0, 0.2);
+}
+
+/* Улучшенные стили для кнопок */
+.btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.btn:disabled:hover {
+    transform: none;
+    box-shadow: none;
 }
 
 /* ===== MARKDOWN стили ===== */
