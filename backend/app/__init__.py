@@ -47,7 +47,7 @@ def create_app():
         }
     })
 
-    from app.routes import auth, motorcycles, statist, manuals, courses, product, community
+    from app.routes import auth, motorcycles, statist, manuals, courses, product, community, garage
     app.register_blueprint(auth.auth)
     app.register_blueprint(motorcycles.motorcycle)
     app.register_blueprint(statist.statistic)
@@ -55,6 +55,7 @@ def create_app():
     app.register_blueprint(product.product)
     app.register_blueprint(courses.courses)
     app.register_blueprint(community.community)
+    app.register_blueprint(garage.garage)
 
     with app.app_context():
         db.create_all()

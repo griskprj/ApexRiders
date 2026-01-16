@@ -50,9 +50,76 @@ class Motorcycle(db.Model):
     color = db.Column(db.String(50))
     license_plate = db.Column(db.String(20))
     user_id = db.Column(db.Integer, db.ForeignKey('members.id'), nullable=False)  
-    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))  
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+
+    current_mileage = db.Column(db.Integer, default=0)
+    image_url = db.Column(db.String(500))
+    vin = db.Column(db.String(50))
+    insurance_expiry = db.Column(db.Date)
+    registration_expiry = db.Column(db.Date)
     
     member = db.relationship('Member', backref=db.backref('motorcycles', lazy=True))
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'brand': self.brand,
+            'model': self.model,
+            'year': self.year,
+            'engine_volume': self.engine_volume,
+            'color': self.color,
+            'license_plate': self.license_plate,
+            'current_mileage': self.current_mileage,
+            'image_url': self.image_url,
+            'vin': self.vin,
+            'insurance_expiry': self.insurance_expiry.isoformat() if self.insurance_expiry else None,
+            'registration_expiry': self.registration_expiry.isoformat() if self.registration_expiry else None,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'maintenance_stats': self.get_maintenance_stats()
+        }
+    
+    def get_maintenance_stats(self):
+        tasks = self.maintenance_tasks
+        completed = len([t for t in tasks if t.status == 'completed'])
+        pending = len([t for t in tasks if t.status == 'pending'])
+        overdue = len([t for t in tasks if t.check_overdue()])
+
+        return {
+            'total_tasks': len(tasks),
+            'completed': completed,
+            'pending': pending,
+            'overdue': overdue,
+            'completion_rate': round((completed / len(tasks) * 100) if tasks else 0)
+        }
+
+class MotorcycleNote(db.Model):
+    __tablename__ = 'motorcycle_notes'
+
+    id = db.Column(db.Integer, primary_key=True)
+    motorcycle_id = db.Column(db.Integer, db.ForeignKey('motorcycles.id'), nullable=False)
+    title = db.Column(db.String(200), nullable=False)
+    content = db.Column(db.Text)
+    category = db.Column(db.String(50)) # maintenance, repair, modification, general
+    tags = db.Column(db.JSON, default=list)
+    is_pinned = db.Column(db.Boolean, default=False)
+
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+    
+    motorcycle = db.relationship('Motorcycle', backref=db.backref('notes', lazy=True))
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'motorcycle_id': self.motorcycle_id,
+            'title': self.title,
+            'content': self.content,
+            'category': self.category,
+            'tags': self.tags or [],
+            'is_pinned': self.is_pinned,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None
+        }
 
 class Course(db.Model):
     __tablename__ = 'courses'  
@@ -206,6 +273,70 @@ class Like(db.Model):
     __table_args__ = (
         db.UniqueConstraint('user_id', 'target_type', 'target_id', name='unique_like'),
     )
+
+class MotorcycleMaintenance(db.Model):
+    __tablename__ = 'motorcycle_maintenance'
+
+    id = db.Column(db.Integer, primary_key=True)
+    motorcycle_id = db.Column(db.Integer, db.ForeignKey('motorcycles.id'), nullable=False)
+
+    title = db.Column(db.Text)
+    description = db.Column(db.Text)
+    maintenance_type = db.Column(db.String(50)) # regular, repair, custom
+
+    shedule_type = db.Column(db.String(20)) # mileage, time, date
+    interval_value = db.Column(db.Integer)
+    interval_unit = db.Column(db.String(20)) # km, months, days
+    last_maintenance_date = db.Column(db.Date)
+    last_maintenance_mileage = db.Column(db.Integer)
+    next_maintenance_date = db.Column(db.Date)
+    next_maintenance_mileage = db.Column(db.Integer)
+
+    status = db.Column(db.String(20), default='penging') # pending, completed, overdue
+    is_recurring = db.Column(db.Boolean, default=True)
+    priority = db.Column(db.String(20), default='medium') # low, medium, high
+
+    cost = db.Column(db.Float)
+    parts_used = db.Column(db.JSON, default=list)
+    notes = db.Column(db.Text)
+
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    completed_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+    
+    motorcycle = db.relationship('Motorcycle', backref=db.backref('maintenance_tasks', lazy=True))
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'motorcycle_id': self.motorcycle_id,
+            'title': self.title,
+            'description': self.description,
+            'maintenance_type': self.maintenance_type,
+            'schedule_type': self.schedule_type,
+            'interval_value': self.interval_value,
+            'interval_unit': self.interval_unit,
+            'last_maintenance_date': self.last_maintenance_date if self.last_maintenance_date else None,
+            'last_maintenance_mileage': self.last_maintenance_mileage,
+            'next_maintenance_date': self.next_maintenance_date if self.next_maintenance_date else None,
+            'next_maintenance_mileage': self.next_maintenance_mileage,
+            'status': self.status,
+            'is_recurring': self.is_recurring,
+            'priority': self.priority,
+            'cost': self.cost,
+            'parts_used': self.parts_used or [],
+            'notes': self.notes,
+            'created_at': self.created_at if self.created_at else None,
+            'completed_at': self.completed_at if self.completed_at else None,
+            'is_overdue': self.check_overdue()
+        }
+    
+    def check_overdue(self):
+        if self.status == 'completed':
+            return False
+        if self.next_maintenance_date and datetime.now(timezone.utc).date() > self.next_maintenance_date:
+            return True
+        return False
 
 class MaintenanceManual(db.Model):
     __tablename__ = 'manuals'
