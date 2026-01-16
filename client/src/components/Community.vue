@@ -64,8 +64,8 @@ import MarkdownEditor from './MarkdownEditor.vue';
                         @click="openPost(post)"
                     >
                         <!-- Изображение поста -->
-                        <div class="post-image" v-if="post.imageUrl">
-                            <img :src="post.imageUrl" :alt="post.title">
+                        <div class="post-image">
+                            <img src="/DefaultPostPhoto.png" :alt="post.title">
                             <div class="post-category">
                                 <i :class="post.categoryIcon"></i>
                                 {{ post.category }}

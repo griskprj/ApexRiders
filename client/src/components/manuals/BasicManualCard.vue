@@ -4,7 +4,7 @@
             <i class="fas fa-fire"></i> {{ manual.difficulty }}
         </div>
         <div class="manual-image">
-            <img src="/DefaultListingPhoto.png" alt="Yamaha R6">
+            <img src="/DefaultManualPhoto.png" alt="Yamaha R6">
         </div>
         <div class="manual-content">
             <div class="manual-category">{{ manual.category || manual.moto_type }}</div>
