@@ -69,7 +69,7 @@
     <footer class="footer">
         <div class="footer-content">
             <div class="footer-column">
-                <h4>MotoHub</h4>
+                <h4>ApexRiders</h4>
                 <p>Сообщество мотоциклистов, созданное для обмена знаниями, опытом и запчастями.</p>
                 <div style="display: flex; gap: 15px; margin-top: 20px;">
                     <a href="#"><i class="fab fa-vk"></i></a>
@@ -103,7 +103,7 @@
         </div>
         
         <div class="footer-bottom">
-            <p>&copy; 2025 ApexRiders. Все права защищены.</p>
+            <p>&copy; 2026 ApexRiders. Все права защищены.</p>
         </div>
     </footer>
 </template>

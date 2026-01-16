@@ -290,7 +290,7 @@
                                 type="text"
                                 id="licensePlate"
                                 v-model="motorcycleForm.license_plate"
-                                placeholder="A123BC 777"
+                                placeholder="0000КТ777"
                             >
                         </div>
                     </div>
