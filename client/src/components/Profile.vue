@@ -123,6 +123,9 @@
                                         <i class="fas fa-trash"></i>
                                     </button>
                                 </div>
+                                <button class="btn btn-primary" @click="goToGarage(moto.id)">
+                                    <i class="fas fa-search"></i> Гараж
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -316,6 +319,9 @@
 import { ref, onMounted, reactive } from 'vue'
 import axios from 'axios'
 import { authService } from '../utils/checkAuth'
+import { useRouter } from 'vue-router'
+
+const router = useRouter()
 
 const user = ref({})
 const motorcycles = ref([])
@@ -521,6 +527,10 @@ const closeMotorcycleModal = () => {
             motorcycleForm[key] = ''
         }
     })
+}
+
+const goToGarage = (id) => {
+    router.push(`/garage/${id}`)
 }
 
 onMounted(() => {

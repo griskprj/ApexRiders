@@ -86,17 +86,27 @@ def update_mileage(moto_id):
 def add_maintenance():
     data = request.get_json()
     current_user_id = get_jwt_identity()
-
+    
     moto_id = data.get('motorcycle_id')
     moto = Motorcycle.query.filter_by(id=moto_id, user_id=current_user_id).first()
-
+    
     if not moto:
         return jsonify({ 'error': 'Motorcycle not found' }), 404
     
     try:
         next_date = None
         next_mileage = None
+        last_maintenance_date = None
 
+        last_date_str = data.get('last_maintenance_date')
+        if last_date_str:
+            try:
+                last_maintenance_date = datetime.fromisoformat(last_date_str.replace('Z', '+00:00')).date
+            except ValueError:
+                last_maintenance_date = datetime.strptime(last_date_str, '%Y-%m-%d').date()
+        else:
+            last_maintenance_date = date.today()
+        
         if data.get('schedule_type') == 'mileage':
             interval = data.get('interval_value', 0)
             last_mileage = data.get('last_maintenance_mileage', moto.current_mileage)
@@ -109,7 +119,12 @@ def add_maintenance():
                 last_date = datetime.fromisoformat(last_date.replace('Z', '+00:00')).date()
             else:
                 last_date = date.today()
-
+            
+            if unit == 'months':
+                next_date = last_maintenance_date + timedelta(days=interval * 30)
+            elif unit == 'days':
+                next_date = last_maintenance_date + timedelta(days=interval)
+        
         new_task = MotorcycleMaintenance(
             motorcycle_id=moto_id,
             title=data.get('title'),
@@ -118,7 +133,7 @@ def add_maintenance():
             schedule_type=data.get('schedule_type'),
             interval_value=data.get('interval_value'),
             interval_unit=data.get('interval_unit'),
-            last_maintenance_date=data.get('last_maintenance_date'),
+            last_maintenance_date=last_maintenance_date,
             last_maintenance_mileage=data.get('last_maintenance_mileage'),
             next_maintenance_date=next_date,
             next_maintenance_mileage=next_mileage,
@@ -126,18 +141,19 @@ def add_maintenance():
             is_recurring=data.get('is_recurring', True),
             notes=data.get('notes')
         )
-
+        
         db.session.add(new_task)
         db.session.commit()
-
+        
         return jsonify({
             'task': new_task.to_dict(),
             'message': 'Maintenance task created successfully'
         }), 201
-    
+        
     except Exception as e:
         db.session.rollback()
-        return jsonify({ 'error': f'Error creating maintenance task: {str(e)}'}), 500
+        print(e)
+        return jsonify({ 'error': f'Error creating maintenance task: {str(e)}' }), 500
     
 @garage.route('/api/garage/maintenance/<int:task_id>', methods=['PUT'])
 @jwt_required()
@@ -215,11 +231,11 @@ def delete_maintenance(task_id):
     
 @garage.route('/api/garage/notes', methods=['POST'])
 @jwt_required()
-def add_not():
+def add_note():
     data = request.get_json()
     current_user_id = get_jwt_identity()
 
-    moto_id = data.get('motorcycle.id')
+    moto_id = data.get('motorcycle_id')
     moto = Motorcycle.query.filter_by(id=moto_id, user_id=current_user_id).first()
 
     if not moto:
@@ -281,7 +297,7 @@ def update_note(note_id):
     moto = Motorcycle.query.filter_by(
         id=note.motorcycle_id,
         user_id=current_user_id
-    ).fist()
+    ).first()
 
     if not moto: 
         return jsonify({ 'error': 'Access denied' }), 403

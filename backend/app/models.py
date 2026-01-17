@@ -284,7 +284,7 @@ class MotorcycleMaintenance(db.Model):
     description = db.Column(db.Text)
     maintenance_type = db.Column(db.String(50)) # regular, repair, custom
 
-    shedule_type = db.Column(db.String(20)) # mileage, time, date
+    schedule_type = db.Column(db.String(20)) # mileage, time, date
     interval_value = db.Column(db.Integer)
     interval_unit = db.Column(db.String(20)) # km, months, days
     last_maintenance_date = db.Column(db.Date)

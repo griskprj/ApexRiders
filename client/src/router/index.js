@@ -104,7 +104,7 @@ const routes = [
         meta: { requiresAuth: true }
     },
     {
-        path: '/garage',
+        path: '/garage/:id',
         name: 'Garage',
         component: Garage,
         meta: { requiresAuth: true }

@@ -177,6 +177,8 @@ onUnmounted(() => {
     --danger-rgb: 255, 71, 87;
     --light: #ffffff;
     --gray: #a0a0c0;
+    --success: #9DF29B;
+    --success-rgb: 157, 242, 155
 }
 
 #app {
