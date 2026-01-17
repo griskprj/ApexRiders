@@ -293,7 +293,24 @@
                                 type="text"
                                 id="licensePlate"
                                 v-model="motorcycleForm.license_plate"
-                                placeholder="0000КТ777"
+                            >
+                        </div>
+
+                        <div class="form-group">
+                            <label for="licensePlate">VIN-номер</label>
+                            <input
+                                type="text"
+                                id="vin"
+                                v-model="motorcycleForm.vin"
+                            >
+                        </div>
+
+                        <div class="form-group">
+                            <label for="licensePlate">Страховака до</label>
+                            <input
+                                type="date"
+                                id="insurance_expiry"
+                                v-model="motorcycleForm.insurance_expiry"
                             >
                         </div>
                     </div>
@@ -339,7 +356,9 @@ const motorcycleForm = reactive({
     model: '',
     engine_volume: null,
     color: '',
-    license_plate: ''
+    license_plate: '',
+    vin: '',
+    insurance_expiry: ''
 })
 
 const editForm = reactive({

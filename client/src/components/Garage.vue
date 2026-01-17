@@ -199,7 +199,7 @@
                 <div class="card-header">
                     <h2><i class="fas fa-calendar-alt"></i> {{ showAllTasks ? 'Все' : 'Ближайшие'}} задачи ТО</h2>
                     <button class="btn btn-small btn-outline" @click="showAllTasks = !showAllTasks">
-                        {{ showAllTasks ? 'Скрыть': 'Показать все' }}
+                        {{ showAllTasks ? 'Показать ближайшие': 'Показать все' }}
                     </button>
                 </div>
                 <div class="card-body">
@@ -1217,7 +1217,6 @@ export default {
 
 .motorcycle-card:hover,
 .stats-card:hover,
-.tasks-card:hover,
 .notes-card:hover {
     border-color: var(--primary);
     transform: translateY(-5px);

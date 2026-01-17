@@ -16,6 +16,14 @@ def add_moto():
         return jsonify({ 'error': 'Brand and model are required' }), 400
 
     try:
+        insurance_expiry_str = data.get('insurance_expiry')
+        insurance_expiry = None
+        if insurance_expiry_str:
+            try:
+                insurance_expiry = datetime.fromisoformat(insurance_expiry_str.replace('Z', '+00:00')).date()
+            except ValueError:
+                insurance_expiry = datetime.strptime(insurance_expiry_str, '%Y-%m-%d').date()
+
         new_moto = Motorcycle(
             brand=data.get('brand'),
             model=data.get('model'),
@@ -23,6 +31,8 @@ def add_moto():
             engine_volume=data.get('engine_volume'),
             color=data.get('color'),
             license_plate=data.get('license_plate'),
+            vin=data.get('vin'),
+            insurance_expiry=insurance_expiry,
             user_id=current_user_id
         )
 
@@ -43,6 +53,7 @@ def add_moto():
         })
     except Exception as e:
         db.session.rollback()
+        print(e)
         return jsonify({'error': f'Errro in create moto: {str(e)}'}), 500
     
 @motorcycle.route('/api/motorcycle', methods=['GET'])
