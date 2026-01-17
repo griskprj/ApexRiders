@@ -41,7 +41,7 @@ def create_app():
     migrate(app, db, render_as_batch=True)
     CORS(app, resources={
         r"/api/*": {
-            "origins": ["https://yourdomot.ru", "http://yourdomot.ru", "http://server_ip"],
+            "origins": ["https://yourdomot.ru", "http://yourdomot.ru", "http://80.78.242.175"],
             "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
             "allow_headers": ["Authorization", "Content-Type"]
         }
