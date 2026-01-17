@@ -14,6 +14,7 @@ import ManualViewer from '../components/manuals/ManualViewer.vue'
 import EditManual from '../components/manuals/EditManual.vue'
 import PostView from '../components/PostView.vue'
 import Profile from '../components/Profile.vue'
+import Garage from '../components/Garage.vue'
 
 const routes = [
     {
@@ -100,6 +101,12 @@ const routes = [
         path: '/profile',
         name: 'Profile',
         component: Profile,
+        meta: { requiresAuth: true }
+    },
+    {
+        path: '/garage',
+        name: 'Garage',
+        component: Garage,
         meta: { requiresAuth: true }
     },
     {

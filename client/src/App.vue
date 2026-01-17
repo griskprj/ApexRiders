@@ -168,6 +168,15 @@ onUnmounted(() => {
     --text: #ffffff;
     --text-secondary: rgba(255, 255, 255, 0.7);
     --accent: #00bfff;
+
+    --primary-rgb: 74, 108, 247;
+    --accent-rgb: 255, 107, 107;
+    --warning: #ffa500;
+    --warning-rgb: 255, 165, 0;
+    --danger: #ff4757;
+    --danger-rgb: 255, 71, 87;
+    --light: #ffffff;
+    --gray: #a0a0c0;
 }
 
 #app {
