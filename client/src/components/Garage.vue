@@ -46,7 +46,7 @@
 
         <div class="add-maintenance-section">
             <button class="btn btn-primary btn-large" @click="showAddMaintenanceModal = true">
-                <i class="fas fa-plus-circle"></i> Добавить запись ТО
+                <i class="fas fa-plus-circle"></i> Добавить задачу ТО
             </button>
         </div>
 
@@ -170,7 +170,7 @@
                                     <div class="history-title">{{ record.title }}</div>
                                     <div class="history-date">
                                         <i class="far fa-calendar"></i> 
-                                        {{ formatDate(record.completed_at || record.last_maintenance_date) }}
+                                        {{ formatDate(record.last_maintenance_date) }}
                                     </div>
                                 </div>
                                 <div class="history-details">
@@ -240,6 +240,14 @@
                                 </div>
                             </div>
                         </div>
+                    </div>
+                    <div class="empty-state" v-if="showAllTasks && allTaskMaintenance.length === 0">
+                        <i class="fas fa-wrench"></i>
+                        <p>Задач еще нет</p>
+                    </div>
+                    <div class="empty-state" v-else-if="!showAllTasks && upcomingMaintenance.length === 0">
+                        <i class="fas fa-clock"></i>
+                        <p>Предстоящих задач нет</p>
                     </div>
                 </div>
             </div>
@@ -713,7 +721,8 @@ export default {
             const expiryDate = new Date(this.motorcycle.insurance_expiry)
             const today = new Date()
             const daysUntil = Math.ceil((expiryDate - today) / (1000 * 60 * 60 * 24))
-            return daysUntil <= 30 && daysUntil > 0
+            console.log(daysUntil)
+            return daysUntil <= 30
         },
         
         isRegistrationExpiring() {
@@ -1270,7 +1279,7 @@ export default {
 }
 
 .text-warning {
-    color: var(--warning);
+    color: var(--danger);
     font-weight: 600;
 }
 
@@ -1897,8 +1906,8 @@ select.form-input {
 }
 
 .history-icon {
-    width: 36px;
-    height: 36px;
+    min-width: 36px;
+    min-height: 36px;
     border-radius: 8px;
     background: linear-gradient(135deg, #6f42c1 0%, #6610f2 100%);
     display: flex;
