@@ -44,6 +44,12 @@
             </div>
         </div>
 
+        <div class="add-maintenance-section">
+            <button class="btn btn-primary btn-large" @click="showAddMaintenanceModal = true">
+                <i class="fas fa-plus-circle"></i> Добавить запись ТО
+            </button>
+        </div>
+
         <!-- Основной контент -->
         <div class="garage-content">
             <!-- Карточка мотоцикла -->
@@ -118,10 +124,80 @@
                 </div>
             </div>
 
-            <!-- Ближайшие задачи ТО -->
-            <div class="tasks-card" v-if="upcomingMaintenance.length > 0">
+            <!-- Последние заметки -->
+            <div class="notes-card" v-if="recentNotes.length > 0">
                 <div class="card-header">
-                    <h2><i class="fas fa-calendar-alt"></i> Ближайшие задачи ТО</h2>
+                    <h2><i class="fas fa-sticky-note"></i> Последние заметки</h2>
+                </div>
+                <div class="card-body">
+                    <div class="notes-list">
+                        <div v-for="note in recentNotes.slice(0, 3)" :key="note.id" class="note-item">
+                            <div class="note-header">
+                                <div class="note-title">
+                                    <i class="fas fa-file-alt"></i> {{ note.title }}
+                                </div>
+                                <div class="note-date">
+                                    <i class="far fa-clock"></i> {{ formatDate(note.updated_at) }}
+                                </div>
+                            </div>
+                            <div class="note-content">{{ note.content.substring(0, 100) }}...</div>
+                            <div class="note-tags" v-if="note.tags && note.tags.length > 0">
+                                <span v-for="tag in note.tags.slice(0, 2)" :key="tag" class="tag">
+                                    #{{ tag }}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- История обслуживания -->
+            <div class="history-card">
+                <div class="card-header">
+                    <h2><i class="fas fa-history"></i> История обслуживания</h2>
+                    <button class="btn btn-small btn-outline" @click="showAddHistoryModal = true">
+                        <i class="fas fa-plus"></i> Добавить запись
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div v-if="maintenanceHistory.length > 0" class="history-list">
+                        <div v-for="record in maintenanceHistory.slice(0, 3)" :key="record.id" class="history-item">
+                            <div class="history-icon">
+                                <i class="fas fa-wrench"></i>
+                            </div>
+                            <div class="history-content">
+                                <div class="history-header">
+                                    <div class="history-title">{{ record.title }}</div>
+                                    <div class="history-date">
+                                        <i class="far fa-calendar"></i> 
+                                        {{ formatDate(record.completed_at || record.last_maintenance_date) }}
+                                    </div>
+                                </div>
+                                <div class="history-details">
+                                    <span v-if="record.description" class="history-description">
+                                        {{ record.description }}
+                                    </span>
+                                    <div v-if="record.cost" class="history-cost">
+                                        <i class="fas fa-ruble-sign"></i> {{ record.cost }} руб.
+                                    </div>
+                                    <div v-if="record.parts_used" class="history-parts">
+                                        <i class="fas fa-cog"></i> {{ record.parts_used }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div v-else class="empty-state">
+                        <i class="fas fa-history"></i>
+                        <p>История обслуживания пуста</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Ближайшие задачи ТО -->
+            <div class="tasks-card">
+                <div class="card-header">
+                    <h2><i class="fas fa-calendar-alt"></i> {{ showAllTasks ? 'Все' : 'Ближайшие'}} задачи ТО</h2>
                     <button class="btn btn-small btn-outline" @click="showAllTasks = !showAllTasks">
                         {{ showAllTasks ? 'Скрыть': 'Показать все' }}
                     </button>
@@ -166,82 +242,6 @@
                         </div>
                     </div>
                 </div>
-            </div>
-
-            <!-- Последние заметки -->
-            <div class="notes-card" v-if="recentNotes.length > 0">
-                <div class="card-header">
-                    <h2><i class="fas fa-sticky-note"></i> Последние заметки</h2>
-                </div>
-                <div class="card-body">
-                    <div class="notes-list">
-                        <div v-for="note in recentNotes.slice(0, 3)" :key="note.id" class="note-item">
-                            <div class="note-header">
-                                <div class="note-title">
-                                    <i class="fas fa-file-alt"></i> {{ note.title }}
-                                </div>
-                                <div class="note-date">
-                                    <i class="far fa-clock"></i> {{ formatDate(note.updated_at) }}
-                                </div>
-                            </div>
-                            <div class="note-content">{{ note.content.substring(0, 100) }}...</div>
-                            <div class="note-tags" v-if="note.tags && note.tags.length > 0">
-                                <span v-for="tag in note.tags.slice(0, 2)" :key="tag" class="tag">
-                                    #{{ tag }}
-                                </span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- История обслуживания -->
-            <div class="history-card">
-                <div class="card-header">
-                    <h2><i class="fas fa-history"></i> История обслуживания</h2>
-                    <button class="btn btn-small btn-outline" @click="showAddHistoryModal = true">
-                        <i class="fas fa-plus"></i> Добавить запись
-                    </button>
-                </div>
-                <div class="card-body">
-                    <div v-if="maintenanceHistory.length > 0" class="history-list">
-                        <div v-for="record in maintenanceHistory.slice(0, 5)" :key="record.id" class="history-item">
-                            <div class="history-icon">
-                                <i class="fas fa-wrench"></i>
-                            </div>
-                            <div class="history-content">
-                                <div class="history-header">
-                                    <div class="history-title">{{ record.title }}</div>
-                                    <div class="history-date">
-                                        <i class="far fa-calendar"></i> 
-                                        {{ formatDate(record.completed_at || record.last_maintenance_date) }}
-                                    </div>
-                                </div>
-                                <div class="history-details">
-                                    <span v-if="record.description" class="history-description">
-                                        {{ record.description }}
-                                    </span>
-                                    <div v-if="record.cost" class="history-cost">
-                                        <i class="fas fa-ruble-sign"></i> {{ record.cost }} руб.
-                                    </div>
-                                    <div v-if="record.parts_used" class="history-parts">
-                                        <i class="fas fa-cog"></i> {{ record.parts_used }}
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div v-else class="empty-state">
-                        <i class="fas fa-history"></i>
-                        <p>История обслуживания пуста</p>
-                    </div>
-                </div>
-            </div>
-
-            <div class="add-maintenance-section">
-                <button class="btn btn-primary btn-large" @click="showAddMaintenanceModal = true">
-                    <i class="fas fa-plus-circle"></i> Добавить запись ТО
-                </button>
             </div>
 
             <!-- Модальное окно добавления ТО -->
@@ -648,6 +648,7 @@ export default {
             },
             maintenanceStats: {},
             upcomingMaintenance: [],
+            allTaskMaintenance: [],
             maintenanceHistory: [],
             selectedTask: null,
             recentNotes: [],
@@ -764,7 +765,8 @@ export default {
                         return (aDate || new Date(9999, 11, 31)) - (bDate || new Date(9999, 11, 31))
                     })
 
-    
+                this.allTaskMaintenance = data.all_tasks || []
+                
                 this.maintenanceStats = data.stats || {}
                 this.recentNotes = data.recent_notes || []
                 
@@ -983,7 +985,7 @@ export default {
         isTaskOverdue(task) {
             if (!task.next_maintenance_date) return false
             const taksDate = new Date(task.next_maintenance_date)
-            return taksDate < newDate() && task.status === 'pending'
+            return taksDate < new Date() && task.status === 'pending'
         },
 
         // Текст приоритета
@@ -1185,9 +1187,9 @@ export default {
 /* Основной контент */
 .garage-content {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    grid-template-columns: repeat(2, 1fr);  
     gap: 25px;
-    margin-top: 20px;
+    margin-top: 30px;
 }
 
 /* Карточки */
@@ -1689,7 +1691,6 @@ export default {
 }
 
 .add-maintenance-section {
-    margin-top: 30px;
     text-align: center;
 }
 
@@ -1871,7 +1872,6 @@ select.form-input {
     border-radius: 12px;
     overflow: hidden;
     border: 1px solid rgba(255, 255, 255, 0.1);
-    margin-top: 25px;
 }
 
 .history-list {

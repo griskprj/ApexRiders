@@ -34,6 +34,7 @@ def get_motorcycle_detail(moto_id):
         'maintenance_tasks': [task.to_dict() for task in maintenance_tasks if task.status == 'pending'],
         'notes': [note.to_dict() for note in notes],
         'stats': stats,
+        'all_tasks': [task.to_dict() for task in maintenance_tasks if task.status != 'completed'],
         'upcoming_maintenance': [task.to_dict() for task in upcoming_tasks],
         'recent_notes': [note.to_dict() for note in notes[:5]]
     })
