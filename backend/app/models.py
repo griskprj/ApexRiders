@@ -297,7 +297,7 @@ class MotorcycleMaintenance(db.Model):
     priority = db.Column(db.String(20), default='medium') # low, medium, high
 
     cost = db.Column(db.Float)
-    parts_used = db.Column(db.JSON, default=list)
+    parts_used = db.Column(db.Text)
     notes = db.Column(db.Text)
 
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))

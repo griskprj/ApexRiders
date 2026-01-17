@@ -2,6 +2,7 @@ from flask import Blueprint, request, jsonify
 from app import db
 from app.models import Member, Motorcycle
 from flask_jwt_extended import jwt_required, get_jwt_identity
+from datetime import datetime, date
 
 motorcycle = Blueprint('motorcycle', __name__)
 
@@ -59,7 +60,9 @@ def my_motos():
         'year': moto.year,
         'engine_volume': moto.engine_volume,
         'color': moto.color,
-        'license_plate': moto.license_plate
+        'license_plate': moto.license_plate,
+        'vin': moto.vin,
+        'insurance_expiry': moto.insurance_expiry
     } for moto in motorcycles])
 
     return jsonify(moto_data)
@@ -75,6 +78,12 @@ def update_moto(moto_id):
     if not moto:
         return jsonify({ 'error': 'Motorcycle not found' }), 404
     
+    insurance_expiry_str = data.get('insurance_expiry', moto.insurance_expiry)
+    try:
+        insurance_expiry = datetime.fromisoformat(insurance_expiry_str.replace('Z', '+00.00')).date()
+    except ValueError:
+        insurance_expiry = datetime.strptime(insurance_expiry_str, '%Y-%m-%d').date()
+
     try:
         moto.brand = data.get('brand', moto.brand)
         moto.model = data.get('model', moto.model)
@@ -82,6 +91,8 @@ def update_moto(moto_id):
         moto.engine_volume = data.get('engine_volume', moto.engine_volume)
         moto.color = data.get('color', moto.color)
         moto.license_plate = data.get('license_plate', moto.license_plate)
+        moto.vin = data.get('vin', moto.vin)
+        moto.insurance_expiry = insurance_expiry
 
         db.session.commit()
 
@@ -96,6 +107,7 @@ def update_moto(moto_id):
         }), 200
     except Exception as e:
         db.session.rollback()
+        print(e)
         return jsonify({ 'error': f'Error updating motorcycle: {str(e)}' }), 500
     
 @motorcycle.route('/api/motorcycle/<int:moto_id>', methods=['DELETE'])
