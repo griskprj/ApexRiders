@@ -24,7 +24,7 @@ def expired_token_loader(jwt_header, jwt_payload):
 
 def create_app():
     app = Flask(__name__)
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://apexuser:8sE>HVx#~#*p;UM#*p;UM0D3LZ@localhost/apexriders'
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     app.config['JWT_SECRET_KEY'] = 'secretKeyChangeToProduct'
     app.config['JWT_ACCESS_TOKEN_EXPIRES'] = datetime.timedelta(hours=24)
@@ -41,7 +41,7 @@ def create_app():
     migrate(app, db, render_as_batch=True)
     CORS(app, resources={
         r"/api/*": {
-            "origins": ["*"],
+            "origins": ["https://yourdomot.ru", "http://yourdomot.ru", "http://80.78.242.175"],
             "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
             "allow_headers": ["Authorization", "Content-Type"]
         }
