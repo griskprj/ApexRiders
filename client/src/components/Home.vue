@@ -64,48 +64,6 @@
             </div>
         </div>
     </section>
-
-    <!-- Футер -->
-    <footer class="footer">
-        <div class="footer-content">
-            <div class="footer-column">
-                <h4>ApexRiders</h4>
-                <p>Сообщество мотоциклистов, созданное для обмена знаниями, опытом и запчастями.</p>
-                <div style="display: flex; gap: 15px; margin-top: 20px;">
-                    <a href="#"><i class="fab fa-vk"></i></a>
-                    <a href="#"><i class="fab fa-telegram"></i></a>
-                    <a href="#"><i class="fab fa-youtube"></i></a>
-                </div>
-            </div>
-            
-            <div class="footer-column">
-                <h4>Разделы</h4>
-                <a href="#manuals">Мануалы</a>
-                <a href="#courses">Курсы</a>
-                <a href="#training">Схемы тренировок</a>
-                <a href="#market">Маркет</a>
-                <a href="#community">Сообщество</a>
-            </div>
-            
-            <div class="footer-column">
-                <h4>Помощь</h4>
-                <a href="#">О проекте</a>
-                <a href="#">Контакты</a>
-                <a href="#">Правила</a>
-                <a href="#">Поддержка</a>
-            </div>
-            
-            <div class="footer-column">
-                <h4>Контакты</h4>
-                <p>Email: info@apexriders.ru</p>
-                <p>Телефон: +7 (XXX) XXX-XX-XX</p>
-            </div>
-        </div>
-        
-        <div class="footer-bottom">
-            <p>&copy; 2026 ApexRiders. Все права защищены.</p>
-        </div>
-    </footer>
 </template>
 
 <script>

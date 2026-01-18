@@ -52,7 +52,46 @@
         <main class="main-content">
             <router-view @user-updated="handleUserUpdate"></router-view>
         </main>
+
     </div>
+    <!-- Футер -->
+    <footer class="footer">
+        <div class="footer-content">
+            <div class="footer-column">
+                <h4>ApexRiders</h4>
+                <p>Сообщество мотоциклистов, созданное для обмена знаниями, опытом и запчастями.</p>
+                <div style="display: flex; gap: 15px; margin-top: 20px;">
+                </div>
+            </div>
+            
+            <div class="footer-column">
+                <h4>Разделы</h4>
+                <a href="#manuals">Мануалы</a>
+                <a href="#courses">Курсы</a>
+                <a href="#training">Схемы тренировок</a>
+                <a href="#market">Маркет</a>
+                <a href="#community">Сообщество</a>
+            </div>
+            
+            <div class="footer-column">
+                <h4>Помощь</h4>
+                <a href="#">О проекте</a>
+                <a href="#">Контакты</a>
+                <a href="#">Правила</a>
+                <a href="#">Поддержка</a>
+            </div>
+            
+            <div class="footer-column">
+                <h4>Контакты</h4>
+                <p>Email: apexriders@yandex.ru</p>
+                <p>Телефон: +7 (988) 405-91-11</p>
+            </div>
+        </div>
+        
+        <div class="footer-bottom">
+            <p>&copy; 2026 ApexRiders. Все права защищены.</p>
+        </div>
+    </footer>
 </template>
 
 <script setup>
@@ -348,6 +387,48 @@ select option {
     box-shadow: 0 0 15px rgba(255, 69, 0, 0.3);
 }
 
+/* ===== ПОДВАЛ ===== */
+.footer {
+    background: rgba(0, 0, 0, 0.3);
+    padding: 60px 5% 30px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    margin-top: 100px;
+}
+
+.footer-content {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 40px;
+    margin-bottom: 40px;
+}
+
+.footer-column h4 {
+    font-size: 1.2rem;
+    margin-bottom: 20px;
+    color: var(--text);
+    font-weight: 600;
+}
+
+.footer-column a {
+    display: block;
+    color: var(--text-secondary);
+    text-decoration: none;
+    margin-bottom: 12px;
+    transition: color 0.3s ease;
+}
+
+.footer-column a:hover {
+    color: var(--primary);
+}
+
+.footer-bottom {
+    text-align: center;
+    padding-top: 30px;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
 /* Дополнительные стили для профиля */
 .profile-badge {
     background: linear-gradient(135deg, var(--primary), var(--accent));
@@ -477,6 +558,12 @@ input:focus, textarea:focus, select:focus {
         flex-direction: column;
         gap: 15px;
         margin-top: 30px;
+    }
+}
+
+@media (max-width: 480px) {
+    .footer-content {
+        grid-template-columns: 1fr;
     }
 }
 </style>

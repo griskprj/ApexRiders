@@ -122,10 +122,10 @@
                                     <button class="btn-icon btn-danger" @click="deleteMotorcycle(moto.id)">
                                         <i class="fas fa-trash"></i>
                                     </button>
+                                    <button class="btn btn-primary" @click="goToGarage(moto.id)">
+                                        <i class="fas fa-search"></i> Гараж
+                                    </button>
                                 </div>
-                                <button class="btn btn-primary" @click="goToGarage(moto.id)">
-                                    <i class="fas fa-search"></i> Гараж
-                                </button>
                             </div>
                         </div>
                     </div>
@@ -828,6 +828,7 @@ onMounted(() => {
 
 .moto-actions {
     display: flex;
+    align-items: center;
     gap: 10px;
 }
 
