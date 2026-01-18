@@ -252,7 +252,8 @@ def complete_maintenance(task_id):
         if 'cost' in data:
             task.cost = data['cost']
         if 'part_user' in data:
-            task.part_used = data['part_used']
+            print(data['parts_used'])
+            task.parts_used = data['parts_used']    
         if 'notes' in data:
             task.notes = data['notes']
 
@@ -285,7 +286,7 @@ def complete_maintenance(task_id):
             db.session.commit()
 
             return jsonify({
-                'task': task.to_dic(),
+                'task': task.to_dict(),
                 'message': 'Task marked as completed'
             }), 200
     

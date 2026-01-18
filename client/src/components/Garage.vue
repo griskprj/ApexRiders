@@ -483,11 +483,11 @@
         </div>
 
         <!-- Модальное окно отметки выполнения -->
-        <div v-if="showCompleteModal" class="modal-overlay">
+        <div v-if="showCompleteModalVar" class="modal-overlay">
             <div class="modal">
                 <div class="modal-header">
                     <h3><i class="fas fa-check-circle"></i> Отметить выполнение</h3>
-                    <button class="close-btn" @click="showCompleteModal = false">&times;</button>
+                    <button class="close-btn" @click="showCompleteModalVar = false">&times;</button>
                 </div>
                 <div class="modal-body">
                     <div class="form-group">
@@ -532,7 +532,7 @@
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button class="btn btn-secondary" @click="showCompleteModal = false">Отмена</button>
+                    <button class="btn btn-secondary" @click="showCompleteModalVar = false">Отмена</button>
                     <button class="btn btn-success" @click="completeTask">
                         <i class="fas fa-check"></i> Отметить выполненным
                     </button>
@@ -667,7 +667,7 @@ export default {
             showMileageModal: false,
             showEditModal: false,
             showAddMaintenanceModal: false,
-            showCompleteModal: false,
+            showCompleteModalVar: false,
             showAddHistoryModal: false,
             
             // Формы
@@ -904,9 +904,9 @@ export default {
                     { headers: { 'Authorization': `Bearer ${token}` } }
                 )
 
-                this.showCompleteModal = false
+                this.showCompleteModalVar = false
                 await this.fetchMotorcycleData()
-                await loadMaintenanceHistory()
+                await this.loadMaintenanceHistory()
 
                 this.showNotification('Задача отмечена выполненой', 'success')
             } catch (error) {
@@ -1041,7 +1041,7 @@ export default {
 
         // Показать модалку добавления задачи
         showCompleteModal(task) {
-            this.selectedTask = task,
+            this.selectedTask = task
             this.completionData = {
                 cost: '',
                 completed_date: new Date().toISOString().split('T')[0],
@@ -1049,7 +1049,7 @@ export default {
                 notes: '',
                 create_next: true
             }
-            this.showCompleteModal = true
+            this.showCompleteModalVar = true
         },
         
         // Форматирование даты
