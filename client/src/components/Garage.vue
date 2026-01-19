@@ -669,6 +669,7 @@ export default {
             showAddMaintenanceModal: false,
             showCompleteModalVar: false,
             showAddHistoryModal: false,
+            isEditingTask: false,
             
             // Формы
             newMileage: null,
@@ -766,16 +767,32 @@ export default {
                 const data = response.data
                 this.motorcycle = data.motorcycle
 
-                this.upcomingMaintenance = (data.upcoming_maintenance || [])
+                this.upcomingMaintenance = (data.maintenance_task || [])
                     .filter(task => task.stats === 'pending')
                     .sort((a, b) => {
                         const aDate = a.next_maintenance_date ? new Date(a.next_maintenance_date) : null
                         const bDate = b.next_maintenance_date ? new Date(b.next_maintenance_date) : null
-                        return (aDate || new Date(9999, 11, 31)) - (bDate || new Date(9999, 11, 31))
+
+                        const aOverdue = this.isTaskOverdue(a)
+                        const bOverdue = this.isTaskOverdue(b)
+
+                        if (aOverdue && !bOverdue) return -1
+                        if (!aOverdue && bOverdue) return 1
+
+                        if (aDate && bDate) return aDate - bDate
+                        if (aDate) return -1
+                        if (bDate) return 1
+
+                        if (a.next_maintenance_mileage && b.next_maintenance_mileage) {
+                            return a.next_maintenance_mileage - b.next_maintenance_mileage
+                        }
+                        
+                        return 0
+
                     })
+                    .slice(0, 5)
 
                 this.allTaskMaintenance = data.all_tasks || []
-                
                 this.maintenanceStats = data.stats || {}
                 this.recentNotes = data.recent_notes || []
                 
@@ -875,14 +892,30 @@ export default {
                     this.newMaintenance.last_maintenance_mileage = this.motorcycle.current_mileage || 0
                 }
 
-                const response = await axios.post(
-                    '/api/garage/maintenance',
-                    this.newMaintenance,
-                    { headers: { 'Authorization': `Bearer ${token}` } }
-                )
+                if (!this.newMaintenance.last_maintenance_date) {
+                    this.newMaintenance.last_maintenance_date = new Date().toISOString().split('T')[0]
+                }
+                
+                let response
+                if (this.isEditingTask && this.selectedTask) {
+                    response = await axios.put(
+                        `/api/garage/maintenance/${this.selectedTask.id}`,
+                        this.newMaintenance,
+                        { headers: { 'Authorization': `Bearer ${token}` } }
+                    )
+                } else {
+                    response = await axios.post(
+                        '/api/garage/maintenance',
+                        this.newMaintenance,
+                        { headers: { 'Authorization': `Bearer ${token}` } }
+                    )
+                }
+                
 
                 this.resetMaintenanceForm()
                 this.showAddMaintenanceModal = false
+                this.isEditingTask = false
+                this.selectedTask = null
 
                 await this.fetchMotorcycleData()
 
@@ -898,9 +931,16 @@ export default {
             try {
                 const token = localStorage.getItem('authToken')
 
+                const completionData = {
+                    const: this.completionData.cost,
+                    parts_used: this.completionData.parts_used,
+                    notes: this.completionData.notes,
+                    create_next: this.completionData.create_next
+                }
+
                 const response = await axios.post(
                     `/api/garage/maintenance/${this.selectedTask.id}/complete`,
-                    this.completionData,
+                    completionData,
                     { headers: { 'Authorization': `Bearer ${token}` } }
                 )
 
@@ -915,8 +955,26 @@ export default {
             }
         },
 
+        editTask(task) {
+            this.selectedTask = task
+
+            this.newMaintenance = {
+                title: task.title,
+                description: task.description,
+                schedule_type: task.schedule_type,
+                interval_value: task.interval_value,
+                interval_unit: task.interval_unit,
+                priority: task.priority,
+                is_recurring: task.is_recurring,
+                notes: task.notes,
+                motorcycle_id: this.motorcycle.id
+            }
+            this.showAddMaintenanceModal = true
+            this.isEditingTask = true
+        },
+
         // Удалить задачу
-        async deleteTask() {
+        async deleteTask(task) {
             if (confirm(`Удалить задачу "${task.title}"?`)) {
                 try {
                     const token = localStorage.getItem('authToken')
@@ -992,9 +1050,25 @@ export default {
 
         // Проверка просроченности задачи
         isTaskOverdue(task) {
-            if (!task.next_maintenance_date) return false
-            const taksDate = new Date(task.next_maintenance_date)
-            return taksDate < new Date() && task.status === 'pending'
+            if (task.status === 'completed') return false
+    
+            if (task.next_maintenance_date) {
+                const taskDate = new Date(task.next_maintenance_date)
+                const today = new Date()
+                today.setHours(0, 0, 0, 0)
+                
+                if (taskDate < today) {
+                    return true
+                }
+            }
+            
+            if (task.next_maintenance_mileage && this.motorcycle.current_mileage) {
+                if (this.motorcycle.current_mileage >= task.next_maintenance_mileage) {
+                    return true
+                }
+            }
+            
+            return false
         },
 
         // Текст приоритета
@@ -1995,6 +2069,58 @@ select.form-input {
 
 .card-header .btn-small {
     margin-left: auto;
+}
+
+.task-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 8px;
+    gap: 10px;
+}
+
+.task-priority {
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.8em;
+    font-weight: 600;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.task-priority.low {
+    background: rgba(0, 200, 83, 0.1);
+    color: #00c853;
+    border: 1px solid rgba(0, 200, 83, 0.3);
+}
+
+.task-priority.medium {
+    background: rgba(255, 193, 7, 0.1);
+    color: #ffc107;
+    border: 1px solid rgba(255, 193, 7, 0.3);
+}
+
+.task-priority.high {
+    background: rgba(244, 67, 54, 0.1);
+    color: #f44336;
+    border: 1px solid rgba(244, 67, 54, 0.3);
+}
+
+.task-item.overdue {
+    border-left: 4px solid #f44336;
+    background: rgba(244, 67, 54, 0.05);
+}
+
+.task-item.overdue:hover {
+    background: rgba(244, 67, 54, 0.1);
+    border-color: #f44336;
+}
+
+.task-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 12px;
+    flex-wrap: wrap;
 }
 
 /* Адаптивность */

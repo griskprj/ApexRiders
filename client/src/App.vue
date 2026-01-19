@@ -226,6 +226,11 @@ onUnmounted(() => {
     --success-rgb: 157, 242, 155;
     --very-danger: #911721;
     --very-danger-rgb: 145, 23, 33;
+
+    --text: #ffffff;
+    --text-secondary: #a0a0a0;
+    --bg-primary: #0a0a0f;
+    --bg-secondary: #14141e;
 }
 
 #app {

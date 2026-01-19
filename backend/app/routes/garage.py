@@ -66,7 +66,9 @@ def update_mileage(moto_id):
 
         updated_tasks = []
         for task in tasks:
-            if new_mileage >= task.next_maintenance_mileage:
+            if (task.next_maintenance_mileage and
+                new_mileage >= task.next_maintenance_mileage):
+
                 task.status = 'overdue'
                 updated_tasks.append(task)
 
@@ -201,6 +203,58 @@ def update_maintenance(task_id):
         db.session.rollback()
         return jsonify({ 'error': f'Error updating task: {str(e)}'}), 500
     
+@garage.route('/api/garage/maintenance/<int:task_id>', methods=['PUT'])
+@jwt_required()
+def update_maintenance_task(task_id):
+    data = request.get_json()
+    current_user_id = get_jwt_identity()
+
+    task = MotorcycleMaintenance.query.get(task_id)
+    if not task:
+        return jsonify({ 'error': 'Task not found' }), 404
+    
+    moto = Motorcycle.query.filter_by(
+        id=task.motorcycle_id,
+        user_id=current_user_id
+    ).first()
+    if not moto:
+        return jsonify({ 'error': 'Access denied' }), 403
+    
+    try:
+        if 'title' in data:
+            task.title = data['title']
+        if 'description' in data:
+            task.description = data['description']
+        if 'priority' in data:
+            task.priority = data['priority']
+        
+        if 'schedule_type' in data:
+            task.schedule_type = data['schedule_type']
+        if 'interval_value' in data:
+            task.interval_value = data['interval_value']
+        if 'interval_unit' in data:
+            task.interval_unit = data['interval_unit']
+
+        if task.schedule_type == 'mileage' and task.interval_value:
+            task.next_maintenance_mileage = task.last_maintenance_mileage + task.interval_value
+        elif task.schedule_type == 'time' and task.interval_value:
+            if task.interval_value == 'months':
+                days = task.interval_value * 30
+            else:
+                days = task.interval_value
+            task.next_maintenance_date = (task.last_maintenance_date or datetime.now().date()) + timedelta(days=days)
+        
+        db.session.commit()
+
+        return jsonify({
+            'task': task.to_dict(),
+            'message': 'Task updated successfully'
+        }), 200
+    
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({ 'error': f'Error updating task: {str(e)}' }), 500
+    
 @garage.route('/api/garage/maintenance/<int:task_id>', methods=['DELETE'])
 @jwt_required()
 def delete_maintenance(task_id):
@@ -250,14 +304,16 @@ def complete_maintenance(task_id):
         task.completed_at = datetime.now()
 
         if 'cost' in data:
-            task.cost = data['cost']
+            task.cost = float(data['cost']) if data['cost'] else None
         if 'part_user' in data:
-            print(data['parts_used'])
             task.parts_used = data['parts_used']    
         if 'notes' in data:
             task.notes = data['notes']
 
-        if task.is_recurring:
+        task.last_maintenance_mileage = moto.current_mileage
+        task.last_maintenance_date = datetime.now().date()
+
+        if task.is_recurring and data.get('create_next', True):
             new_task = MotorcycleMaintenance(
                 motorcycle_id=task.motorcycle_id,
                 title=task.title,
@@ -277,18 +333,20 @@ def complete_maintenance(task_id):
             if task.schedule_type == 'mileage':
                 new_task.next_maintenance_mileage = moto.current_mileage + task.interval_value
             elif task.schedule_type == 'time':
+                next_date = datetime.now().date()
                 if task.interval_value == 'months':
-                    next_date = datetime.now().date() + timedelta(days=task.interval_value * 30)
-                else:
-                    next_date = datetime.now().date + timedelta(days=task.interval_value)
+                    next_date = next_date + timedelta(days=task.interval_value * 30)
+                elif task.interval_unit == 'days':
+                    next_date = next_date + timedelta(days=task.interval_value)
                 new_task.next_maintenance_date = next_date
 
-            db.session.commit()
+            db.session.add(new_task)
+        db.session.commit()
 
-            return jsonify({
-                'task': task.to_dict(),
-                'message': 'Task marked as completed'
-            }), 200
+        return jsonify({
+            'task': task.to_dict(),
+            'message': 'Task marked as completed'
+        }), 200
     
     except Exception as e:
         db.session.rollback()

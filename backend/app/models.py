@@ -292,7 +292,7 @@ class MotorcycleMaintenance(db.Model):
     next_maintenance_date = db.Column(db.Date)
     next_maintenance_mileage = db.Column(db.Integer)
 
-    status = db.Column(db.String(20), default='penging') # pending, completed, overdue
+    status = db.Column(db.String(20), default='pending') # pending, completed, overdue
     is_recurring = db.Column(db.Boolean, default=True)
     priority = db.Column(db.String(20), default='medium') # low, medium, high
 
@@ -328,14 +328,24 @@ class MotorcycleMaintenance(db.Model):
             'notes': self.notes,
             'created_at': self.created_at if self.created_at else None,
             'completed_at': self.completed_at if self.completed_at else None,
+            'status': self.status,
             'is_overdue': self.check_overdue()
         }
     
     def check_overdue(self):
         if self.status == 'completed':
             return False
-        if self.next_maintenance_date and datetime.now(timezone.utc).date() > self.next_maintenance_date:
+        
+        now = datetime.now(timezone.utc).date()
+        
+        if self.next_maintenance_date and self.next_maintenance_date < now:
             return True
+        
+        if (self.motorcycle and 
+            self.next_maintenance_mileage and 
+            self.motorcycle.current_mileage >= self.next_maintenance_mileage):
+            return True
+            
         return False
 
 class MaintenanceManual(db.Model):
