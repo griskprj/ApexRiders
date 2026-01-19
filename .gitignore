@@ -5,6 +5,7 @@ instance/*
 .env
 .env.development
 .env.production
+deploy.sh
 
 ### Flask.Python Stack ###
 __pycache__/
