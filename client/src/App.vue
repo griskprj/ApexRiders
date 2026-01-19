@@ -63,14 +63,20 @@
                 <div style="display: flex; gap: 15px; margin-top: 20px;">
                 </div>
             </div>
-            
-            <div class="footer-column">
+
+            <div class="footer-column" v-if="user">
                 <h4>Разделы</h4>
-                <a href="#manuals">Мануалы</a>
-                <a href="#courses">Курсы</a>
-                <a href="#training">Схемы тренировок</a>
-                <a href="#market">Маркет</a>
-                <a href="#community">Сообщество</a>
+                <router-link to="/manuals" @click="closeMobileMenu">Мануалы</router-link>
+                <router-link to="/courses" @click="closeMobileMenu">Курсы</router-link>
+                <router-link to="/market" @click="closeMobileMenu">Маркет</router-link>
+                <router-link to="/community" @click="closeMobileMenu">Сообщество</router-link>
+            </div>
+            <div class="footer-column" v-else>
+                <h4>Разделы</h4>
+                <a href="#">Мануалы</a>
+                <a href="#">Курсы</a>
+                <a href="#">Маркет</a>
+                <a href="#">Сообщество</a>
             </div>
             
             <div class="footer-column">
