@@ -15,6 +15,25 @@
         <!-- Заголовок и фильтры -->
         <ManualsHeader @search="handleSearch" />
 
+        <!-- Боковая панель -->
+        <div v-if="manuals.length > 0" class="manuals-sidebar">
+            <!-- Категории -->
+            <div class="sidebar-card">
+                <ManualsCategory 
+                    :manuals="manuals",
+                    :getCategoryCount="getCategoryCount"
+                    :activeFilter="activeFilter"
+                    @filter-change="handleFilterChange"
+                />
+            </div>
+
+            <!-- Недавно просмотренные -->
+            <RecentManuals 
+                :userManuals="userManuals"
+                :formatTime="formatTime"
+            />
+        </div>
+
         <!-- Основной контент -->
         <div class="manuals-content" :class="{ 'no-content': manuals.length === 0 }">
             <!-- Сетка мануалов -->
@@ -78,25 +97,6 @@
                         Вперед <i class="fas fa-chevron-right"></i>
                     </button>
                 </div>
-            </div>
-
-            <!-- Боковая панель -->
-            <div v-if="manuals.length > 0" class="manuals-sidebar">
-                <!-- Категории -->
-                <div class="sidebar-card">
-                    <ManualsCategory 
-                        :manuals="manuals",
-                        :getCategoryCount="getCategoryCount"
-                        :activeFilter="activeFilter"
-                        @filter-change="handleFilterChange"
-                    />
-                </div>
-
-                <!-- Недавно просмотренные -->
-                <RecentManuals 
-                    :userManuals="userManuals"
-                    :formatTime="formatTime"
-                />
             </div>
         </div>
     </section>

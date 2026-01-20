@@ -80,6 +80,7 @@
         text-decoration: none;
         transition: all 0.3s ease;
         color: var(--text);
+        font-size: 16px;
     }
 
     .category-item:hover {

@@ -81,7 +81,7 @@
             
             <div class="footer-column">
                 <h4>Помощь</h4>
-                <a href="#">О проекте</a>
+                <router-link to="/about" @click="closeMobileMenu">О проекте</router-link>
                 <a href="#">Контакты</a>
                 <a href="#">Правила</a>
                 <a href="#">Поддержка</a>

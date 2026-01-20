@@ -18,7 +18,7 @@
             </div>
         </div>
         <div class="community-actions">
-            <a href="/community/new" class="btn btn-outline">
+            <a href="/community" class="btn btn-outline">
                 <i class="fas fa-plus"></i> Новая тема
             </a>
             <a href="/community" class="btn btn-primary">

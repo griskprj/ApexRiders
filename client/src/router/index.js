@@ -15,6 +15,7 @@ import EditManual from '../components/manuals/EditManual.vue'
 import PostView from '../components/PostView.vue'
 import Profile from '../components/Profile.vue'
 import Garage from '../components/Garage.vue'
+import AboutPage from '../components/AboutPage.vue'
 
 const routes = [
     {
@@ -109,6 +110,17 @@ const routes = [
         component: Garage,
         meta: { requiresAuth: true }
     },
+
+    {
+        path: '/about',
+        name: 'AboutPage',
+        component: AboutPage,
+        meta: { 
+            requiresAuth: false,
+            title: 'О проекте'
+         }
+    },
+
     {
         path: '/:pathMatch(.*)*',
         name: 'NotFound',
