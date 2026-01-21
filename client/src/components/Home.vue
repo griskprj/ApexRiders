@@ -44,7 +44,7 @@
                     </div>
                     <div class="feature-detail-item">
                         <i class="fas fa-search"></i>
-                        <span>Поиск по марке, модели, году</span>
+                        <span>Поиск по марке, модели, названию</span>
                     </div>
                 </div>
                 
@@ -56,6 +56,7 @@
                 <div class="feature-icon">
                     <i class="fas fa-graduation-cap"></i>
                 </div>
+                <span class="badge">В разработке</span>
                 <h3>Курсы вождения</h3>
                 <p>Видеоуроки и текстовые материалы для водителей любого уровня. От базовых навыков до продвинутых техник управления мотоциклом.</p>
                 
@@ -74,7 +75,7 @@
                     </div>
                     <div class="feature-detail-item">
                         <i class="fas fa-road"></i>
-                        <span>Уроки для разных типов дорог</span>
+                        <span>Для райдеров любого уровня</span>
                     </div>
                 </div>
                 
@@ -86,6 +87,7 @@
                 <div class="feature-icon">
                     <i class="fas fa-route"></i>
                 </div>
+                <span class="badge">В разработке</span>
                 <h3>Схемы для мотоджимхан</h3>
                 <p>Готовые схемы и траектории для тренировок и соревнований. Настраиваемые маршруты для отработки конкретных навыков.</p>
                 
@@ -130,7 +132,7 @@
                     </div>
                     <div class="feature-detail-item">
                         <i class="fas fa-comments"></i>
-                        <span>Встроенный чат с продавцом</span>
+                        <span>Широкий выбор категории товара</span>
                     </div>
                     <div class="feature-detail-item">
                         <i class="fas fa-star"></i>
@@ -159,9 +161,9 @@
                     <p>Наша система мануалов создана профессионалами для профессионалов. Каждый мануал проходит модерацию и проверку на точность.</p>
                     <ul class="feature-benefits">
                         <li><i class="fas fa-check"></i> <strong>Только проверенные авторы</strong> — Все руководства создаются верифицированными экспертами, отобранными администрацией</li>
-                        <li><i class="fas fa-check"></i> <strong>Интерактивное прохождение</strong> — Отмечайте пройденные шаги, сохраняйте прогресс, добавляйте заметки</li>
-                        <li><i class="fas fa-check"></i> <strong>Мультимедийный контент</strong> — Фото, видео, 3D-модели и схемы для наглядности</li>
-                        <li><i class="fas fa-check"></i> <strong>Система комментариев</strong> — Задавайте вопросы и получайте ответы от авторов и сообщества</li>
+                        <li><i class="fas fa-check"></i> <strong>Интерактивное прохождение</strong> — Отмечайте пройденные шаги, сохраняйте прогресс</li>
+                        <li><i class="fas fa-check"></i> <strong>Мультимедийный контент</strong> — Фото, видео и схемы для наглядности</li>
+                        <li><i class="fas fa-check"></i> <strong>Система рейтингов</strong> — Сначала отображаются мануалы с выском рейтингом</li>
                     </ul>
                 </div>
             </div>
@@ -178,7 +180,7 @@
                         <li><i class="fas fa-check"></i> <strong>Поэтапное обучение</strong> — Курсы разбиты на модули от простого к сложному</li>
                         <li><i class="fas fa-check"></i> <strong>Теория и практика</strong> — Видеоуроки, текстовые материалы и практические задания</li>
                         <li><i class="fas fa-check"></i> <strong>Личный кабинет ученика</strong> — Отслеживайте прогресс, сохраняйте любимые уроки</li>
-                        <li><i class="fas fa-check"></i> <strong>Скоро в обновлении</strong> — В разработке: тесты, симулятор вождения, live-вебинары</li>
+                        <li><i class="fas fa-check"></i> <strong>Скоро в обновлении</strong> — В разработке: тесты, live-вебинары, органиязация живых встреч</li>
                     </ul>
                 </div>
             </div>
@@ -193,7 +195,7 @@
                     <p>Находите нужные запчасти, мотоциклы и экипировку с удобной системой поиска и фильтрации.</p>
                     <ul class="feature-benefits">
                         <li><i class="fas fa-check"></i> <strong>Расширенные фильтры</strong> — Ищите по цене, городу, состоянию, бренду и характеристикам</li>
-                        <li><i class="fas fa-check"></i> <strong>Безопасные сделки</strong> — Система гарантий, безопасные платежи, история транзакций</li>
+                        <li><i class="fas fa-check"></i> <strong>Безопасные сделки</strong> — Вы не покупаете товар, а только связываетесь с продавцом</li>
                         <li><i class="fas fa-check"></i> <strong>Уведомления</strong> — Получайте оповещения о новых предложениях по вашим запросам</li>
                         <li><i class="fas fa-check"></i> <strong>Избранное</strong> — Сохраняйте понравившиеся товары для сравнения</li>
                     </ul>
@@ -341,6 +343,19 @@ export default {
     font-size: 1.5rem;
     margin-bottom: 15px;
     font-weight: 600;
+}
+
+.badge {
+    background: linear-gradient(135deg, var(--warning), #ff9900);
+    color: var(--dark);
+    padding: 5px 12px;
+    margin-bottom: 10px;
+    border-radius: 20px;
+    width: 120px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    box-shadow: 0 4px 12px rgba(255, 165, 0, 0.3);
 }
 
 .feature-card p {
