@@ -142,7 +142,6 @@ export default {
                 console.error('Ошибка при получении данных дашборда:', error)
                 
                 if (error.response && error.response.status === 401) {
-                    console.log('Token expired')
                     authService.clearAuth()
                 }
                 
@@ -169,8 +168,6 @@ export default {
                     const user = await authService.checkAuth(true)
                     if (user) {
                         await fetchDashboardStats()
-                    } else {
-                        console.log('User not authenticated')
                     }
                 }
             } catch (error) {

@@ -36,26 +36,13 @@
             limiterManuals: Array
         },
 
-        created() {
-            console.log('BasicManualCard props:', this.limiterManuals)
-            if (this.limiterManuals && this.limiterManuals.length > 0) {
-                console.log('First manual object:', this.limiterManuals[0])
-                console.log('First manual id:', this.limiterManuals[0].id)
-            }
-        },
-
         methods: {
             read(manual) {
-                console.log('read() called with manual:', manual)
-                console.log('manual.id:', manual.id)
-                
                 if (!manual || !manual.id) {
                     console.error('Invalid manual object:', manual)
                     alert('Не удалось открыть мануал: ID не найден')
                     return
                 }
-                
-                console.log('Navigating to manual with ID:', manual.id)
                 
                 this.$router.push({ 
                     name: 'ManualViewer', 

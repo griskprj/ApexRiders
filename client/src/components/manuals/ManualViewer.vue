@@ -238,12 +238,9 @@ export default {
 
         const manualId = computed(() => {
             const id = route.params.id
-            console.log('Manual ID from route: ', id)
             return id
         })
         
-        console.log(user_verified.value)
-
         const completedSteps = computed(() => {
             return steps.value.filter(step => step.completed).length
         })
@@ -276,7 +273,6 @@ export default {
                         expanded: false
                     }))
                     user_verified.value = response.data.user_verified
-                    console.log(user_verified.value)
 
                     await loadUserProgress()
                 }

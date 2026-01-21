@@ -430,7 +430,6 @@ export default {
                     this.fetchRelatedPosts()
                 ])
 
-                console.log(this.post.author.isVerified)
             } catch (error) {
                 console.error('Ошибка при загрузке поста:', error);
                 alert('Не удалось загрузить пост');
@@ -677,8 +676,6 @@ export default {
         },
         
         openEditModal() {
-            console.log('Открываем модалку редактирования')
-            
             this.loadDraft()
             
             if (!this.editData.title && !this.editData.content) {

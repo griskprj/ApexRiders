@@ -722,7 +722,6 @@ export default {
             const expiryDate = new Date(this.motorcycle.insurance_expiry)
             const today = new Date()
             const daysUntil = Math.ceil((expiryDate - today) / (1000 * 60 * 60 * 24))
-            console.log(daysUntil)
             return daysUntil <= 30
         },
         

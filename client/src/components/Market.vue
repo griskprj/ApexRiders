@@ -362,12 +362,7 @@ export default {
             }
         },
 
-        showDetails(item) {
-            console.log('Детали объявления:', item);
-        },
-        
         handleImageError(event) {
-            console.log('Image load error: ', event.target.src)
             event.target.src = '/DefaultListingPhoto.png'
             event.target.onerror = null
         },

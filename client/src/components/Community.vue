@@ -527,7 +527,6 @@ export default {
                 const data = await response.json();
                 post.likesCount = data.likesCount;
                 
-                console.log(data.liked ? 'Лайк добавлен' : 'Лайк удален');
             } catch (error) {
                 console.error('Ошибка при лайке:', error);
             }
@@ -600,7 +599,6 @@ export default {
                 
                 localStorage.setItem(this.draftKey, JSON.stringify(draftData))
                 this.hasUnsavedDraft = true
-                console.log('Черновик сохранен:', draftData)
             }, 1000)
         },
 
@@ -615,7 +613,6 @@ export default {
                         tags: parsed.tags || '',
                         imageUrl: parsed.imageUrl || ''
                     }
-                    console.log('Черновик загружен:', parsed)
                     this.hasUnsavedDraft = true
                     return true
                 }

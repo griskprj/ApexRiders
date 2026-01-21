@@ -182,7 +182,6 @@ export default {
   
   watch: {
     value(newVal) {
-        console.log('MarkdownEditor: value prop changed to:', newVal)
         const newValStr = String(newVal || '')
     if (newValStr !== this.internalValue) {
         this.internalValue = newValStr
@@ -190,7 +189,6 @@ export default {
     },
         
     internalValue(newVal) {
-        console.log('MarkdownEditor: internalValue changed to:', newVal)
         this.$emit('update:model-value', newVal)
         this.$emit('change', newVal)
     }
@@ -322,7 +320,6 @@ export default {
   
   mounted() {
     this.internalValue = String(this.value || '')
-    console.log('MarkdownEditor mounted with value:', this.internalValue)
   }
 }
 </script>
