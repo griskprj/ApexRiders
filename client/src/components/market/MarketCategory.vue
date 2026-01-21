@@ -78,6 +78,7 @@
                 <option value="ekb">Екатеринбург</option>
                 <option value="kazan">Казань</option>
                 <option value="novosibirsk">Новосибирск</option>
+                <option value="sochi">Сочи</option>
             </select>
         </div>
         

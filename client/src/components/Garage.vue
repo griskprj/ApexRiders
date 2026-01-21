@@ -221,7 +221,7 @@
                                 </div>
                                 <div class="task-details">
                                     <span v-if="task.next_maintenance_date" class="task-date">
-                                        <i class="far fa-calendar"></i> {{ formatDate(task.next_maintenance_date) }}
+                                        <i class="far fa-calendar"></i> {{ formatDateForDisplay(task.next_maintenance_date) }}
                                     </span>
                                     <span v-if="task.next_maintenance_mileage" class="task-mileage">
                                         <i class="fas fa-tachometer-alt"></i> {{ task.next_maintenance_mileage }} км
@@ -725,14 +725,6 @@ export default {
             return daysUntil <= 30
         },
         
-        isRegistrationExpiring() {
-            if (!this.motorcycle.registration_expiry) return false
-            const expiryDate = new Date(this.motorcycle.registration_expiry)
-            const today = new Date()
-            const daysUntil = Math.ceil((expiryDate - today) / (1000 * 60 * 60 * 24))
-            return daysUntil <= 30 && daysUntil > 0
-        },
-
         isMaintenanceFormValid() {
             return this.newMaintenance.title &&
                     this.newMaintenance.schedule_type &&
@@ -766,28 +758,32 @@ export default {
                 const data = response.data
                 this.motorcycle = data.motorcycle
 
-                this.upcomingMaintenance = (data.maintenance_task || [])
-                    .filter(task => task.stats === 'pending')
+                 this.upcomingMaintenance = (data.maintenance_tasks || [])
                     .sort((a, b) => {
                         const aDate = a.next_maintenance_date ? new Date(a.next_maintenance_date) : null
                         const bDate = b.next_maintenance_date ? new Date(b.next_maintenance_date) : null
+                        
+                        if (aDate && isNaN(aDate.getTime())) aDate = null
+                        if (bDate && isNaN(bDate.getTime())) bDate = null
 
+                        // Сначала сортируем просроченные задачи
                         const aOverdue = this.isTaskOverdue(a)
                         const bOverdue = this.isTaskOverdue(b)
-
+                        
                         if (aOverdue && !bOverdue) return -1
                         if (!aOverdue && bOverdue) return 1
-
+                        
+                        // Затем по дате
                         if (aDate && bDate) return aDate - bDate
                         if (aDate) return -1
                         if (bDate) return 1
-
+                        
+                        // Затем по пробегу
                         if (a.next_maintenance_mileage && b.next_maintenance_mileage) {
                             return a.next_maintenance_mileage - b.next_maintenance_mileage
                         }
                         
                         return 0
-
                     })
                     .slice(0, 5)
 
@@ -957,9 +953,19 @@ export default {
         editTask(task) {
             this.selectedTask = task
 
+            let lastMaintenanceDate = ''
+            if (task.last_maintenance_date) {
+                const date = new Date(task.last_maintenance_date)
+                if (!isNaN(date.getMinutes())) {
+                    lastMaintenanceDate = date.toISOString().split('T')[0]
+                }
+            }
+
             this.newMaintenance = {
                 title: task.title,
                 description: task.description,
+                last_maintenance_mileage: task.last_maintenance_mileage,
+                last_maintenance_date: lastMaintenanceDate,
                 schedule_type: task.schedule_type,
                 interval_value: task.interval_value,
                 interval_unit: task.interval_unit,
@@ -968,6 +974,7 @@ export default {
                 notes: task.notes,
                 motorcycle_id: this.motorcycle.id
             }
+            console.log(task.last_maintenance_date)
             this.showAddMaintenanceModal = true
             this.isEditingTask = true
         },
@@ -1003,7 +1010,14 @@ export default {
                     { headers: { 'Authorization': `Bearer ${token}` } }
                 )
 
-                this.maintenanceHistory = response.data.history || []
+                 this.maintenanceHistory = (response.data.history || []).map(record => {
+                    if (record.last_maintenance_date) {
+                        const date = new Date(record.last_maintenance_date)
+                        if (!isNaN(date.getTime())) {
+                        }
+                    }
+                    return record
+                })
             } catch (error) {
                 console.error('Ошибка загрузки истории: ', error)
             }
@@ -1135,6 +1149,20 @@ export default {
             return date.toLocaleDateString('ru-RU', {
                 year: 'numeric',
                 month: 'long',
+                day: 'numeric'
+            })
+        },
+
+        formatDateForDisplay(dateString) {
+            if (!dateString) return 'Не указано'
+            
+            const date = new Date(dateString)
+            if (isNaN(date.getTime())) return 'Не указано'
+            
+            // Для отображения в интерфейсе
+            return date.toLocaleDateString('ru-RU', {
+                year: 'numeric',
+                month: 'short',
                 day: 'numeric'
             })
         },

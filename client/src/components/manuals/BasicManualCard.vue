@@ -45,7 +45,7 @@
                 }
                 
                 this.$router.push({ 
-                    name: 'ManualViewer', 
+                    name: 'ManualViewer',
                     params: { id: manual.id.toString() } 
                 }).catch(err => {
                     console.error('Navigation error:', err)
