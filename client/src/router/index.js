@@ -18,6 +18,7 @@ import Garage from '../components/Garage.vue'
 import AboutPage from '../components/AboutPage.vue'
 import PrivacyPolicy from '../components/PrivacyPolicy.vue'
 import CommunityRules from '../components/CommunityRules.vue'
+import Contacts from '../components/Contacts.vue'
 
 const routes = [
     {
@@ -137,6 +138,14 @@ const routes = [
         component: CommunityRules,
         meta: {
             title: 'Правила сообщества'
+        }
+    },
+    {
+        path: '/contacts',
+        name: 'Contacts',
+        component: Contacts,
+        meta: {
+            title: 'Контакты'
         }
     },
 

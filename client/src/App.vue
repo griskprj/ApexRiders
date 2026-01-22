@@ -68,7 +68,7 @@
             <div class="footer-column">
                 <h4>Правовые документы</h4>
                 <router-link to="/privacy-policy" @click="closeMobileMenu">Политика конфеденциальности и обработки персональных данных</router-link>
-                <a href="#">Правила</a>
+                <router-link to="/community-rules" @click="closeMobileMenu">Правила</router-link>
             </div>
 
             <div class="footer-column" v-if="user">
@@ -90,7 +90,7 @@
                 <h4>Помощь</h4>
                 <router-link to="/about" @click="closeMobileMenu">О проекте</router-link>
                 <a href="#">Контакты</a>
-                <a href="#">Правила</a>
+                <router-link to="/community-rules" @click="closeMobileMenu">Правила</router-link>
                 <a href="#">Поддержка</a>
             </div>
             
