@@ -184,6 +184,14 @@
                                         <i class="fas fa-cog"></i> {{ record.parts_used }}
                                     </div>
                                 </div>
+                                <div class="history-actions">
+                                    <button class="btn btn-small btn-outline" @click="editHistoryRecord(record)">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="btn btn-small btn-outline" @click="deleteHistoryRecord(record)">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -545,8 +553,8 @@
             <div class="modal">
                 <input v-model="historyForm.status" value="completed" type="hidden">
                 <div class="modal-header">
-                    <h3><i class="fas fa-history"></i> Добавить запись в историю</h3>
-                    <button class="close-btn" @click="showAddHistoryModal = false">&times;</button>
+                    <h3><i class="fas fa-history"></i>{{ isEditingHistory ? 'Редактировать запись' : 'Добавить запись в историю' }}</h3>
+                    <button class="close-btn" @click="closeHistoryModal">&times;</button>
                 </div>
                 <div class="modal-body">
                     <div class="form-group">
@@ -659,6 +667,7 @@ export default {
             allTaskMaintenance: [],
             maintenanceHistory: [],
             selectedTask: null,
+            selectedHistoryRecord: null,
             recentNotes: [],
 
             showAllTasks: false,
@@ -670,6 +679,7 @@ export default {
             showCompleteModalVar: false,
             showAddHistoryModal: false,
             isEditingTask: false,
+            isEditingHistory: false,
             
             // Формы
             newMileage: null,
@@ -712,6 +722,32 @@ export default {
                 parts_used: '',
                 notes: '',
                 create_next: true
+            },
+            editHistoryForm: {
+                id: null,
+                title: '',
+                description: '',
+                completed_date: new Date().toISOString().split('T')[0],
+                mileage: null,
+                cost: '',
+                maintenance_type: 'regular',
+                parts_used: '',
+                notes: '',
+                motorcycle_id: null,
+                status: 'completed'
+            }
+        }
+    },
+
+    watch: {
+        showAddHistoryModal(newVal) {
+            if (newVal) {
+                if (this.isEditingHistory) {
+                    this.historyForm = { ...this.editHistoryForm}
+                } else {
+                    this.resetHistoryForm()
+                    this.historyForm.motorcycle_id = this.motorcycle.id
+                }
             }
         }
     },
@@ -961,6 +997,8 @@ export default {
                 }
             }
 
+            if (!this.isHistoryRecord) {
+            }
             this.newMaintenance = {
                 title: task.title,
                 description: task.description,
@@ -974,9 +1012,42 @@ export default {
                 notes: task.notes,
                 motorcycle_id: this.motorcycle.id
             }
-            console.log(task.last_maintenance_date)
             this.showAddMaintenanceModal = true
             this.isEditingTask = true
+        },
+
+        editHistoryRecord(record) {
+            this.selectedHistoryRecord = record
+            this.isEditingHistory = true
+
+            let completedDate = ''
+            if (record.completed_at) {
+                const date = new Date(record.completed_at)
+                if (!isNaN(date.getTime)) {
+                    completedDate = date.toISOString().split('T')[0]
+                }
+            } else if (record.last_maintenance_date) {
+                const date = new Date(record.last_maintenance_date)
+                if (!isNaN(date.geTime())) {
+                    completedDate = date.toISOString().split('T')[0]
+                }
+            }
+
+            this.editHistoryForm = {
+                id: record.id,
+                title: record.title || '',
+                description: record.description || '',
+                completed_date: record.completedDate || new Date().toISOString().split('T')[0],
+                mileage: record.last_maintenance_mileage || this.motorcycle.current_mileage || 0,
+                cost: record.cost || '',
+                maintenance_type: record.maintenance_type || 'regular',
+                parts_used: record.parts_used || '',
+                notes: record.notes || '',
+                motorcycle_id: this.motorcycle.id,
+                status: 'completed'
+            }
+
+            this.showAddHistoryModal = true
         },
 
         // Удалить задачу
@@ -1045,19 +1116,52 @@ export default {
                     is_recurring: false
                 }
 
-                const response = await axios.post(
-                    '/api/garage/maintenance',
-                    historyData,
-                    { headers: { 'Authorization': `Bearer ${token}` } }
-                )
+                let response
+                if (this.isEditingHistory && this.editHistoryForm.id) {
+                    response = await axios.put(
+                        `/api/garage/maintenance/${this.editHistoryForm.id}`,
+                        historyData,
+                        { headers: { 'Authorization': `Bearer ${token}` } }
+                    )
+                } else {
+                    response = await axios.post(
+                        '/api/garage/maintenance',
+                        historyData,
+                        { headers: { 'Authorization': `Bearer ${token}` } }
+                    )
+                }
 
                 this.showAddHistoryModal = false
                 this.resetHistoryForm()
                 await this.loadMaintenanceHistory()
 
-                this.showNotification('Запись добавлена в историю', 'success')
+                this.showNotification(this.isEditingHistory ? 'Запись обновлена' : 'Запись добавлена в историю', 'success')
+            
+                this.isEditingHistory = false
+                this.selectedHistoryRecord = null
             } catch (error) {
                 console.error('Ошибка добавления записи в историю ', error)
+                this.showNotification('Ошибка при сохранении записи', 'error')
+            }
+        },
+
+        // Удалить запись
+        async deleteHistoryRecord(record) {
+            if (confirm(`Удалить запись "${record.title}" из истории?`)) {
+                try {
+                    const token = localStorage.getItem('authToken')
+
+                    await axios.delete(
+                        `/api/garage/maintenance/${record.id}`,
+                        { headers: { 'Authorization': `Bearer ${token}` } }
+                    )
+
+                    await this.loadMaintenanceHistory()
+                    this.showNotification('Запись удалена из истории', 'success')
+                } catch (error) {
+                    console.error('Ошибка удаления записи истории: ', error)
+                    this.showNotification('Ошибка при удалении записи')
+                }
             }
         },
 
@@ -1113,16 +1217,20 @@ export default {
 
         // Сброс формы истории
         resetHistoryForm() {
-            this.historyForm = {
-                title: '',
-                description: '',
-                completed_date: new Date().toISOString().split('T')[0],
-                mileage: null,
-                cost: '',
-                maintenance_type: 'regular',
-                parts_used: '',
-                notes: '',
-                motorcycle_id: null
+            if (this.isEditingHistory && this.selectedHistoryRecord) {
+                this.historyForm = { ...this.editHistoryForm }
+            } else {
+                this.historyForm = {
+                    title: '',
+                    description: '',
+                    completed_date: new Date().toISOString().split('T')[0],
+                    mileage: null,
+                    cost: '',
+                    maintenance_type: 'regular',
+                    parts_used: '',
+                    notes: '',
+                    motorcycle_id: null
+                }
             }
         },
 
@@ -1137,6 +1245,14 @@ export default {
                 create_next: true
             }
             this.showCompleteModalVar = true
+        },
+
+        // Закрыть модалку истории
+        closeHistoryModal() {
+            this.showAddHistoryModal = false
+            this.isEditingHistory = false
+            this.selectedHistoryRecord = null
+            this.resetHistoryForm()
         },
         
         // Форматирование даты
@@ -2066,6 +2182,12 @@ select.form-input {
     display: flex;
     align-items: center;
     gap: 5px;
+    margin-bottom: 10px;
+}
+
+.history-actions {
+    display: flex;
+    gap: 8px;
 }
 
 /* Состояние пустого списка */

@@ -181,52 +181,30 @@ def update_maintenance(task_id):
             task.description = data['description']
         if 'status' in data:
             task.status = data['status']
-            if data['status'] == 'completed':
+            if data['status'] == 'completed' and not task.completed_at:
                 task.completed_at = datetime.now()
         if 'cost' in data:
-            task.cost = data['cost']
+            try:
+                task.cost = float(data['cost']) if data['cost'] else None
+            except (ValueError, TypeError):
+                task.cost = None
         if 'parts_used' in data:
             task.parts_used = data['parts_used']
         if 'notes' in data:
             task.notes = data['notes']
         if 'priority' in data:
             task.priority = data['priority']
-
-        db.session.commit()
-
-        return jsonify({
-            'task': task.to_dict(),
-            'message': 'Task updated successfully'
-        }), 200
-    
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({ 'error': f'Error updating task: {str(e)}'}), 500
-    
-@garage.route('/api/garage/maintenance/<int:task_id>', methods=['PUT'])
-@jwt_required()
-def update_maintenance_task(task_id):
-    data = request.get_json()
-    current_user_id = get_jwt_identity()
-
-    task = MotorcycleMaintenance.query.get(task_id)
-    if not task:
-        return jsonify({ 'error': 'Task not found' }), 404
-    
-    moto = Motorcycle.query.filter_by(
-        id=task.motorcycle_id,
-        user_id=current_user_id
-    ).first()
-    if not moto:
-        return jsonify({ 'error': 'Access denied' }), 403
-    
-    try:
-        if 'title' in data:
-            task.title = data['title']
-        if 'description' in data:
-            task.description = data['description']
-        if 'priority' in data:
-            task.priority = data['priority']
+        
+        if 'maintenance_type' in data:
+            task.maintenance_type = data['maintenance_type']
+        if 'last_maintenance_date' in data:
+            try:
+                if data['last_maintenance_date']:
+                    task.last_maintenance_date = datetime.strptime(data['last_maintenance_date'], '%Y-%m-%d').date()
+            except (ValueError, TypeError):
+                pass
+        if 'last_maintenance_mileage' in data:
+            task.last_maintenance_mileage = data['last_maintenance_mileage']
         
         if 'schedule_type' in data:
             task.schedule_type = data['schedule_type']
@@ -234,17 +212,19 @@ def update_maintenance_task(task_id):
             task.interval_value = data['interval_value']
         if 'interval_unit' in data:
             task.interval_unit = data['interval_unit']
-
-        if task.schedule_type == 'mileage' and task.interval_value:
+        
+        if task.schedule_type == 'mileage' and task.interval_value and task.last_maintenance_mileage:
             task.next_maintenance_mileage = task.last_maintenance_mileage + task.interval_value
-        elif task.schedule_type == 'time' and task.interval_value:
-            if task.interval_value == 'months':
+        elif task.schedule_type == 'time' and task.interval_value and task.last_maintenance_date:
+            if task.interval_unit == 'months':
                 days = task.interval_value * 30
             else:
                 days = task.interval_value
-            task.next_maintenance_date = (task.last_maintenance_date or datetime.now().date()) + timedelta(days=days)
-        
+            task.next_maintenance_date = task.last_maintenance_date + timedelta(days=days)
+
         db.session.commit()
+        
+        print(f'После коммита: parts_used = {task.parts_used}, cost = {task.cost}')
 
         return jsonify({
             'task': task.to_dict(),
@@ -253,7 +233,8 @@ def update_maintenance_task(task_id):
     
     except Exception as e:
         db.session.rollback()
-        return jsonify({ 'error': f'Error updating task: {str(e)}' }), 500
+        print(f"Error updating task {task_id}: {str(e)}")
+        return jsonify({ 'error': f'Error updating task: {str(e)}'}), 500
     
 @garage.route('/api/garage/maintenance/<int:task_id>', methods=['DELETE'])
 @jwt_required()

@@ -16,6 +16,8 @@ import PostView from '../components/PostView.vue'
 import Profile from '../components/Profile.vue'
 import Garage from '../components/Garage.vue'
 import AboutPage from '../components/AboutPage.vue'
+import PrivacyPolicy from '../components/PrivacyPolicy.vue'
+import CommunityRules from '../components/CommunityRules.vue'
 
 const routes = [
     {
@@ -119,6 +121,23 @@ const routes = [
             requiresAuth: false,
             title: 'О проекте'
          }
+    },
+
+    {
+        path: '/privacy-policy',
+        name: 'PrivacyPolicy',
+        component: PrivacyPolicy,
+        meta: {
+            title: 'Политика конфиденциальности'
+        }
+    },
+    {
+        path: '/community-rules',
+        name: 'CommunityRules',
+        component: CommunityRules,
+        meta: {
+            title: 'Правила сообщества'
+        }
     },
 
     {

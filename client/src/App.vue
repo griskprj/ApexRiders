@@ -65,6 +65,12 @@
                 </div>
             </div>
 
+            <div class="footer-column">
+                <h4>Правовые документы</h4>
+                <router-link to="/privacy-policy" @click="closeMobileMenu">Политика конфеденциальности и обработки персональных данных</router-link>
+                <a href="#">Правила</a>
+            </div>
+
             <div class="footer-column" v-if="user">
                 <h4>Разделы</h4>
                 <router-link to="/manuals" @click="closeMobileMenu">Мануалы</router-link>
@@ -209,29 +215,33 @@ onUnmounted(() => {
     --primary: #ff4500;
     --primary-light: rgba(255, 69, 0, 0.15);
     --primary-dark: rgba(255, 69, 0, 0.7);
+    --primary-rgb: 74, 108, 247;
+    
+    --bg-primary: #0a0a0f;
+    --bg-secondary: #14141e;
+
     --dark: #0a0a0f;
     --dark-light: rgba(255, 255, 255, 0.08);
+    
+    --light: #ffffff;
+    --gray: #a0a0c0;
+    
     --text: #ffffff;
     --text-secondary: rgba(255, 255, 255, 0.7);
+    
     --accent: #00bfff;
-
-    --primary-rgb: 74, 108, 247;
     --accent-rgb: 255, 107, 107;
+
+    --success: #9DF29B;
+    --success-rgb: 157, 242, 155;
     --warning: #ffa500;
     --warning-rgb: 255, 165, 0;
     --danger: #ff4757;
     --danger-rgb: 255, 71, 87;
-    --light: #ffffff;
-    --gray: #a0a0c0;
-    --success: #9DF29B;
-    --success-rgb: 157, 242, 155;
     --very-danger: #911721;
     --very-danger-rgb: 145, 23, 33;
+    
 
-    --text: #ffffff;
-    --text-secondary: #a0a0a0;
-    --bg-primary: #0a0a0f;
-    --bg-secondary: #14141e;
 }
 
 #app {

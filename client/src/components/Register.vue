@@ -41,6 +41,32 @@
                     >
                 </div>
 
+                <div class="form-group checkbox-group">
+                    <label class="checkbox-label">
+                        <input 
+                          type="checkbox" 
+                          v-model="form.agreeToPolicy"
+                          required
+                          class="checkbox-input"
+                        >
+                        <span class="checkbox-custom"></span>
+                        <span class="checkbox-text">
+                            Я соглашаюсь с 
+                            <router-link 
+                              to="/privacy-policy" 
+                              target="_blank"
+                              class="policy-link"
+                              @click.stop
+                            >
+                              Политикой обработки персональных данных
+                            </router-link>
+                        </span>
+                    </label>
+                    <div v-if="!form.agreeToPolicy && policyError" class="checkbox-error">
+                        Для регистрации необходимо принять политику обработки персональных данных
+                    </div>
+                </div>
+
                 <div v-if="error" class="error-message">
                     {{ error }}
                 </div>
@@ -77,6 +103,13 @@ const error = ref('')
 
 const handleRegister = async () => {
     error.value = ''
+
+    if (!form.agreeToPolicy) {
+        policyError.value = true
+        error.value = 'Для регистрации необходимо принять политику обработки персональных данных'
+        return
+    }
+
     loading.value = true
     
     try {
@@ -230,6 +263,114 @@ body::before {
 
 .form-input::placeholder {
     color: rgba(255, 255, 255, 0.4);
+}
+
+/* Стили для чекбоксов */
+.checkbox-group {
+    margin-bottom: 20px;
+}
+
+.checkbox-group.optional {
+    margin-bottom: 15px;
+    opacity: 0.8;
+}
+
+.checkbox-label {
+    display: flex;
+    align-items: flex-start;
+    cursor: pointer;
+    user-select: none;
+    gap: 12px;
+}
+
+.checkbox-input {
+    position: absolute;
+    opacity: 0;
+    cursor: pointer;
+    height: 0;
+    width: 0;
+}
+
+.checkbox-custom {
+    position: relative;
+    flex-shrink: 0;
+    width: 20px;
+    height: 20px;
+    background: rgba(255, 255, 255, 0.07);
+    border: 1.5px solid rgba(255, 255, 255, 0.3);
+    border-radius: 4px;
+    transition: all 0.3s ease;
+    margin-top: 2px;
+}
+
+.checkbox-label:hover .checkbox-custom {
+    border-color: rgba(255, 69, 0, 0.6);
+    background: rgba(255, 69, 0, 0.05);
+}
+
+.checkbox-input:checked + .checkbox-custom {
+    background: var(--primary);
+    border-color: var(--primary);
+}
+
+.checkbox-input:checked + .checkbox-custom::after {
+    content: '';
+    position: absolute;
+    left: 6px;
+    top: 2px;
+    width: 6px;
+    height: 10px;
+    border: solid white;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+}
+
+.checkbox-text {
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 14px;
+    line-height: 1.5;
+    flex: 1;
+}
+
+.checkbox-error {
+    color: var(--danger);
+    font-size: 13px;
+    margin-top: 8px;
+    padding-left: 32px;
+    background: rgba(255, 71, 87, 0.1);
+    padding: 8px 12px;
+    border-radius: 6px;
+    border-left: 3px solid var(--danger);
+}
+
+/* Ссылка на политику */
+.policy-link {
+    color: var(--primary);
+    text-decoration: none;
+    transition: all 0.3s ease;
+    position: relative;
+    font-weight: 500;
+}
+
+.policy-link::after {
+    content: '';
+    position: absolute;
+    bottom: -1px;
+    left: 0;
+    width: 100%;
+    height: 1px;
+    background: var(--primary);
+    opacity: 0.5;
+    transition: opacity 0.3s ease;
+}
+
+.policy-link:hover {
+    color: white;
+    text-shadow: 0 0 8px rgba(255, 69, 0, 0.5);
+}
+
+.policy-link:hover::after {
+    opacity: 0.8;
 }
 
 .btn-login {
