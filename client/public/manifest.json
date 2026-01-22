@@ -1,0 +1,33 @@
+{
+  "name": "ApexRiders",
+  "short_name": "ApexRiders",
+  "description": "Сообщество мотоциклистов",
+  "start_url": "/",
+  "display": "standalone",
+  "theme_color": "#ff4500",
+  "background_color": "#0a0a0f",
+  "orientation": "portrait",
+  "scope": "/",
+  "lang": "ru-RU",
+  
+  "icons": [
+    {
+      "src": "/Logo192.jpeg",
+      "sizes": "192x192",
+      "type": "image/jpeg",
+      "purpose": "any"
+    },
+    {
+      "src": "/Logo512.jpeg",
+      "sizes": "512x512",
+      "type": "image/jpeg",
+      "purpose": "any"
+    },
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

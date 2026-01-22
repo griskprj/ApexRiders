@@ -5,7 +5,7 @@
         
         <div class="rules-header">
             <h1><i class="fas fa-book"></i> Правила сообщества ApexRiders</h1>
-            <p class="rules-subtitle">Дата вступления в силу: март 2026 года</p>
+            <p class="rules-subtitle">Дата вступления в силу: январь 2026 года</p>
         </div>
         
         <div class="rules-content">
