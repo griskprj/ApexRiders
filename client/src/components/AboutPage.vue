@@ -106,8 +106,8 @@
                 <div class="history-content">
                     <div class="history-timeline">
                         <div class="timeline-item">
+                            <div class="timeline-year">2 года назад</div>
                             <div class="timeline-content">
-                                <div class="timeline-year">2 года назад</div>
                                 <h3>Начало пути</h3>
                                 <p>Проект родился как скромное приложение для учёта ТО и хранения мануалов.</p>
                             </div>
