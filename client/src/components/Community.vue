@@ -177,10 +177,12 @@ import MarkdownEditor from './MarkdownEditor.vue';
         <div v-if="showCreateModal" class="modal-overlay" @click.self="closeCreateModal">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h2>Создать новый пост</h2>
-                    <button class="modal-close" @click="closeCreateModal">
-                        <i class="fas fa-times"></i>
-                    </button>
+                    <div>
+                        <h2>Создать новый пост</h2>
+                        <button class="modal-close" @click="closeCreateModal">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
                     <div v-if="hasUnsavedDraft" class="draft-info">
                         <i class="fas fa-save"></i>
                         <span>Черновик сохранен</span>
@@ -1161,6 +1163,7 @@ export default {
     max-width: 600px;
     max-height: 90vh;
     overflow-y: auto;
+    overflow-x: hidden;
     border: 1px solid rgba(255, 255, 255, 0.1);
     box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
 }
@@ -1355,6 +1358,10 @@ export default {
     
     .modal-content {
         margin: 20px;
+    }
+
+    .modal-header {
+        flex-direction: column;
     }
 }
 
