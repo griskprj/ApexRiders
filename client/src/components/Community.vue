@@ -182,6 +182,15 @@ import MarkdownEditor from './MarkdownEditor.vue';
                         <button class="modal-close" @click="closeCreateModal">
                             <i class="fas fa-times"></i>
                         </button>
+                        <button 
+                            type="button" 
+                            class="btn btn-outline"
+                            @click="clearDraftAndForm"
+                            v-if="hasUnsavedDraft"
+                        >
+                            <i class="fas fa-trash"></i>
+                            Удалить черновик
+                        </button>
                     </div>
                     <div v-if="hasUnsavedDraft" class="draft-info">
                         <i class="fas fa-save"></i>
@@ -206,6 +215,8 @@ import MarkdownEditor from './MarkdownEditor.vue';
                         <div class="form-group">
                             <label for="postContent">Содержание (Markdown)</label>
                             <MarkdownEditor
+                                v-if="showCreateModal"
+                                :key="markdownEditorKey"
                                 v-model="newPost.content"
                                 :rows="8"
                                 placeholder="Напишите ваш пост используя Markdown..."
@@ -335,7 +346,8 @@ export default {
                 imageUrl: ''
             },
 
-            draftKey: 'post_create_draft_',
+            draftKey: 'post_draft',
+            currentUserId: null,
             autoSaveTimer: null,
             hasUnsavedDraft: false,
 
@@ -343,7 +355,9 @@ export default {
             uploadingImage: false,
             uploadProgress: 0,
 
-            oldImageToDelete: null
+            oldImageToDelete: null,
+
+            markdownEditorKey: 0
         };
     },
     
@@ -371,29 +385,37 @@ export default {
             this.fetchPosts();
         },
 
-        'newPost.title': {
-            handler() {
-                this.saveDraft()
+        'newPost.title'(newTitle) {
+            if (newTitle || this.newPost.content || this.newPost.imageUrl) {
+                this.saveDraft();
+            } else if (!newTitle && !this.newPost.content && !this.newPost.imageUrl) {
+                this.hasUnsavedDraft = false;
             }
         },
-        'newPost.content': {
-            handler() {
-                this.saveDraft()
+        'newPost.content'(newContent) {
+            if (this.newPost.title || newContent || this.newPost.imageUrl) {
+                this.saveDraft();
+            } else if (!this.newPost.title && !newContent && !this.newPost.imageUrl) {
+                this.hasUnsavedDraft = false;
             }
         },
-        'newPost.tags': {
-            handler() {
-                this.saveDraft()
+        'newPost.tags'(newTags) {
+            if (this.newPost.title || this.newPost.content || this.newPost.imageUrl) {
+                this.saveDraft();
             }
         },
-        'newPost.imageUrl': {
-            handler() {
-                this.saveDraft()
+        'newPost.imageUrl'(newUrl) {
+            if (this.newPost.title || this.newPost.content || newUrl) {
+                this.saveDraft();
+            } else if (!this.newPost.title && !this.newPost.content && !newUrl) {
+                this.hasUnsavedDraft = false;
             }
         }
     },
     
     async mounted() {
+        this.getCurrentUserId()
+
         window.addEventListener('beforeunload', this.handleBeforeUnload)
 
         await Promise.all([
@@ -554,17 +576,15 @@ export default {
                 }
 
                 const newPostData = await response.json()
-
                 this.clearDraft()
                 this.clearForm()
-                
+
                 await this.fetchPosts()
                 await this.fetchCommunityStats()
                 
                 this.showCreateModal = false
                 
                 alert('Пост успешно создан!')
-                
             } catch (error) {
                 console.error('Ошибка при создании поста:', error)
                 alert(`Не удалось создать пост: ${error.message}`)
@@ -631,6 +651,20 @@ export default {
                 this.imagePreview = null;
             } finally {
                 this.uploadingImage = false;
+            }
+        },
+
+        getCurrentUserId() {
+            try {
+                const token = localStorage.getItem('authToken')
+                if (token) {
+                    const payload = JSON.parse(atob(token.split('.')[1]))
+                    this.currentUserId = payload.sub || payload.identity
+                    this.draftKey = `post_draft_${this.currentUserId}`
+                }
+            } catch (error) {
+                console.error('Ошибка при получении ID пользователя: ', error)
+                this.currentUserId = null
             }
         },
 
@@ -704,46 +738,52 @@ export default {
         },
 
         openCreateModal() {
-            const hasDraft = this.loadDraft()
-
+            this.getCurrentUserId();
+    
+            const hasDraft = this.loadDraft();
+            this.showCreateModal = true;
+            
             if (hasDraft) {
-                if (this.confirmLoadDraft()) {
-                    this.showCreateModal = true
-                    return
-                } else {
-                    this.clearForm()
-                }
+                setTimeout(() => {
+                    this.$nextTick(() => {
+                        const titleInput = document.getElementById('postTitle');
+                        if (titleInput) {
+                            titleInput.focus();
+                        }
+                        
+                        if (confirm('У вас есть сохраненный черновик. Загрузить его?')) {
+                            console.log('Черновик загружен');
+                        } else {
+                            this.clearForm();
+                        }
+                    });
+                }, 100);
             } else {
-                this.clearForm()
+                this.clearForm();
             }
-
-            this.showCreateModal = true
-
+            
+            
             this.$nextTick(() => {
-                const titleInput = document.getElementById('postTitle')
+                const titleInput = document.getElementById('postTitle');
                 if (titleInput) {
-                    titleInput.focus()
+                    titleInput.focus();
                 }
-            })
+            });
         },
 
         closeCreateModal() {
-            if (this.hasUnsavedDraft && (this.newPost.title || this.newPost.content)) {
-                const action = confirm('У вас есть несохраненный черновик. Сохранить его?\n\n"ОК" - сохранить черновик \n"Отмена" - удалить черновик')
-
-                if (!action) {
-                    this.clearDraft()
-                    this.clearForm()
+            if (this.hasUnsavedDraft && (this.newPost.title || this.newPost.content || this.newPost.imageUrl)) {
+                const shouldSave = confirm('Сохранить черновик?');
+                
+                if (shouldSave) {
+                    this.saveDraft();
+                } else {
+                    this.clearDraft();
+                    this.clearForm();
                 }
             }
-
-            this.showCreateModal = false
-        },
-        
-        resetFileInput() {
-            if (this.$refs.fileInput) {
-                this.$refs.fileInput.value = ''
-            }
+            
+            this.showCreateModal = false;
         },
 
         clearForm() {
@@ -760,6 +800,16 @@ export default {
             if (this.$refs.fileInput) {
                 this.$refs.fileInput.value = ''
             }
+
+            this.clearDraft()
+        },
+
+        clearDraftAndForm() {
+            if (confirm('Удалить черновик и очистить форму?')) {
+                this.clearDraft();
+                this.clearForm();
+                this.showCreateModal = false;
+            }
         },
 
         openPost(post) {
@@ -767,42 +817,84 @@ export default {
         },
 
         saveDraft() {
+            if (!this.currentUserId) {
+                console.warn('ID пользователя не определен, черновик не сохранен')
+                return
+            }
+
             if (this.autoSaveTimer) {
                 clearTimeout(this.autoSaveTimer)
             }
             
             this.autoSaveTimer = setTimeout(() => {
-                const draftData = {
-                    title: this.newPost.title,
-                    content: this.newPost.content,
-                    tags: this.newPost.tags,
-                    imageUrl: this.newPost.imageUrl,
-                    timestamp: new Date().toISOString()
+                if (this.newPost.title || this.newPost.content || this.newPost.imageUrl) {
+                    const draftData = {
+                        title: this.newPost.title,
+                        content: this.newPost.content,
+                        tags: this.newPost.tags,
+                        imageUrl: this.newPost.imageUrl,
+                        imagePreview: this.imagePreview,
+                        timestamp: new Date().toISOString()
+                    }
+
+                    try {
+                        localStorage.setItem(this.draftKey, JSON.stringify(draftData))
+                        this.hasUnsavedDraft = true
+                        console.log('Черновик сохранен: ', draftData)
+                    } catch (e) {
+                        console.error('Ошибка сохранения черновика: ', e)
+                    }
                 }
-                
-                localStorage.setItem(this.draftKey, JSON.stringify(draftData))
-                this.hasUnsavedDraft = true
-            }, 1000)
+            }, 1500)
         },
 
         loadDraft() {
+            if (!this.currentUserId) {
+                this.getCurrentUserId();
+            }
+            
             try {
-                const draft = localStorage.getItem(this.draftKey)
+                const draft = localStorage.getItem(this.draftKey);
                 if (draft) {
-                    const parsed = JSON.parse(draft)
+                    const parsed = JSON.parse(draft);
+                    
+                    const draftTime = new Date(parsed.timestamp);
+                    const now = new Date();
+                    const hoursDiff = (now - draftTime) / (1000 * 60 * 60);
+                    
+                    if (hoursDiff > 24) {
+                        console.log('Черновик устарел (>24 часов), удаляем');
+                        this.clearDraft();
+                        return false;
+                    }
+                    
                     this.newPost = {
                         title: parsed.title || '',
                         content: parsed.content || '',
                         tags: parsed.tags || '',
                         imageUrl: parsed.imageUrl || ''
+                    };
+                    
+                    if (parsed.imagePreview) {
+                        this.imagePreview = parsed.imagePreview;
                     }
-                    this.hasUnsavedDraft = true
-                    return true
+                    
+                    this.hasUnsavedDraft = true;
+
+                    this.markdownEditorKey += 1
+
+                    this.$nextTick(() => {
+                        console.log('Черновик полностью загружен и отображен');
+                    });
+                    
+                    console.log('Черновик загружен:', parsed);
+                    return true;
                 }
             } catch (e) {
-                console.error('Ошибка загрузки черновика:', e)
+                console.error('Ошибка загрузки черновика:', e);
+                this.clearDraft();
             }
-            return false
+            return false;
         },
 
         clearDraft() {

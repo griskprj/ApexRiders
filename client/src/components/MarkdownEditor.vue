@@ -1,4 +1,5 @@
 <template>
+  <!-- Тот же шаблон, который у вас уже есть -->
   <div class="markdown-editor">
     <!-- Мобильная версия тулбара (свайп меню) -->
     <div class="mobile-toolbar-overlay" v-if="showMobileToolbar" @click="showMobileToolbar = false">
@@ -213,356 +214,308 @@
 </template>
 
 <script>
-import { marked } from 'marked'
-import DOMPurify from 'dompurify'
+import { marked } from 'marked';
+import DOMPurify from 'dompurify';
 
 export default {
   name: 'MarkdownEditor',
   
   props: {
-    value: {
+    modelValue: {
       type: String,
       default: ''
     },
     placeholder: {
       type: String,
-      default: 'Напишите ваш пост используя Markdown...'
+      default: 'Начните вводить текст...'
     },
     rows: {
       type: Number,
       default: 10
-    },
-    autoPreview: {
-      type: Boolean,
-      default: false
     }
   },
   
+  emits: ['update:modelValue'],
+  
   data() {
     return {
-      internalValue: this.value || '',
-      showPreview: this.autoPreview,
+      internalValue: this.modelValue,
+      showPreview: false,
       splitView: false,
       editorMode: 'edit',
-      editorModes: [
-        { id: 'edit', label: 'Редактор', icon: 'fas fa-edit' },
-        { id: 'preview', label: 'Просмотр', icon: 'fas fa-eye' },
-        { id: 'split', label: 'Раздельно', icon: 'fas fa-columns' }
-      ],
-      isMobile: false,
       showMobileToolbar: false,
-      isKeyboardVisible: false,
       showContextMenu: false,
-      windowWidth: window.innerWidth
-    }
+      isMobile: false,
+      mobileRows: this.rows,
+      mobileFontSize: '16px',
+      
+      editorModes: [
+        { id: 'edit', label: 'Редактирование', icon: 'fas fa-edit' },
+        { id: 'split', label: 'Раздельно', icon: 'fas fa-columns' },
+        { id: 'preview', label: 'Просмотр', icon: 'fas fa-eye' }
+      ]
+    };
   },
   
   computed: {
     renderedHtml() {
-      if (!this.internalValue || !this.internalValue.trim()) {
-        return '<p class="empty-preview">Текст пока не написан...</p>'
+      if (!this.internalValue.trim()) {
+        return '<div class="empty-preview">Текст будет отображен здесь...</div>';
       }
-      
-      marked.setOptions({
-        breaks: true,
-        gfm: true,
-        highlight: function(code, lang) {
-          if (typeof window.hljs === 'undefined') {
-            return code
-          }
-          const hljs = window.hljs
-          if (lang && hljs.getLanguage(lang)) {
-            return hljs.highlight(code, { language: lang }).value
-          }
-          return hljs.highlightAuto(code).value
-        }
-      })
       
       try {
-        const html = marked(this.internalValue)
-        return DOMPurify.sanitize(html)
+        const html = marked(this.internalValue, {
+          breaks: true,
+          gfm: true
+        });
+        
+        return DOMPurify.sanitize(html);
       } catch (error) {
-        console.error('Error rendering markdown:', error)
-        return '<p class="error">Ошибка при обработке Markdown</p>'
+        console.error('Ошибка рендеринга Markdown:', error);
+        return '<div class="error-preview">Ошибка форматирования текста</div>';
       }
-    },
-    
-    mobileRows() {
-      return this.isMobile ? Math.max(8, this.rows) : this.rows
-    },
-    
-    mobileFontSize() {
-      return this.isMobile ? '16px' : '14px'
     }
   },
   
   watch: {
-    value(newVal) {
-        const newValStr = String(newVal || '')
-    if (newValStr !== this.internalValue) {
-        this.internalValue = newValStr
-    }
+    modelValue(newVal) {
+      if (newVal !== this.internalValue) {
+        this.internalValue = newVal;
+      }
     },
-        
+    
     internalValue(newVal) {
-        this.$emit('update:model-value', newVal)
-        this.$emit('change', newVal)
-    },
-    
-    windowWidth(newWidth) {
-      this.isMobile = newWidth <= 768
-    }
-  },
-  
-  methods: {
-    setEditorMode(mode) {
-      this.editorMode = mode
-      if (mode === 'edit') {
-        this.showPreview = false
-        this.splitView = false
-      } else if (mode === 'preview') {
-        this.showPreview = true
-        this.splitView = false
-      } else if (mode === 'split') {
-        this.showPreview = false
-        this.splitView = true
-      }
-    },
-    
-    togglePreview() {
-      this.showPreview = !this.showPreview
-      if (this.showPreview) {
-        this.editorMode = 'preview'
-      } else {
-        this.editorMode = 'edit'
-      }
-    },
-    
-    handleTab(event) {
-      const textarea = event.target
-      const start = textarea.selectionStart
-      const end = textarea.selectionEnd
-      
-      const spaces = '  '
-
-      const newValue = this.internalValue.substring(0, start) + spaces + this.internalValue.substring(end)
-      
-      this.internalValue = newValue
-      
-      this.$nextTick(() => {
-        textarea.selectionStart = textarea.selectionEnd = start + spaces.length
-      })
-    },
-    
-    formatText(type) {
-      const textarea = this.$refs.textarea
-      if (!textarea) return
-      
-      const start = textarea.selectionStart
-      const end = textarea.selectionEnd
-      const selectedText = this.internalValue.substring(start, end)
-      
-      let formattedText = ''
-      let newCursorPos = start
-      
-      switch(type) {
-        case 'bold':
-          formattedText = `**${selectedText}**`
-          newCursorPos = start + 2
-          break
-        case 'italic':
-          formattedText = `*${selectedText}*`
-          newCursorPos = start + 1
-          break
-        case 'header':
-          formattedText = `# ${selectedText}`
-          newCursorPos = start + 2
-          break
-        case 'link':
-          formattedText = `[${selectedText || 'текст ссылки'}](https://example.com)`
-          newCursorPos = start + 1
-          break
-        case 'image':
-          formattedText = `![${selectedText || 'alt текст'}](${selectedText || 'https://example.com/image.jpg'})`
-          newCursorPos = start + 2
-          break
-        case 'list-ul':
-          formattedText = selectedText ? `- ${selectedText.replace(/\n/g, '\n- ')}` : '- '
-          break
-        case 'list-ol':
-          formattedText = selectedText ? `1. ${selectedText.replace(/\n/g, '\n1. ')}` : '1. '
-          break
-        case 'code':
-          if (selectedText.includes('\n')) {
-            formattedText = '```\n' + selectedText + '\n```'
-            newCursorPos = start + 4
-          } else {
-            formattedText = `\`${selectedText}\``
-            newCursorPos = start + 1
-          }
-          break
-        case 'quote':
-          formattedText = selectedText ? `> ${selectedText.replace(/\n/g, '\n> ')}` : '> '
-          break
-      }
-      
-      this.internalValue = this.internalValue.substring(0, start) + formattedText + this.internalValue.substring(end)
-      
-      this.$nextTick(() => {
-        textarea.focus()
-        if (selectedText) {
-          textarea.selectionStart = newCursorPos
-          textarea.selectionEnd = newCursorPos + selectedText.length
-        } else {
-          textarea.selectionStart = textarea.selectionEnd = newCursorPos
-        }
-      })
-      
-      // Скрываем мобильное меню после выбора
-      if (this.isMobile) {
-        this.showMobileToolbar = false
-      }
-    },
-    
-    insertImage(url, alt = '') {
-      const textarea = this.$refs.textarea
-      const start = textarea.selectionStart
-      const markdownImage = `![${alt}](${url})`
-      
-      this.internalValue = this.internalValue.substring(0, start) + markdownImage + this.internalValue.substring(start)
-      
-      this.$nextTick(() => {
-        textarea.focus()
-        textarea.selectionStart = textarea.selectionEnd = start + markdownImage.length
-      })
-    },
-    
-    focus() {
-      this.$refs.textarea?.focus()
-    },
-    
-    // Новые методы для мобильной оптимизации
-    checkMobile() {
-      this.isMobile = window.innerWidth <= 768
-    },
-    
-    onTextareaFocus() {
-      this.isKeyboardVisible = true
-    },
-    
-    onTextareaBlur() {
-      this.isKeyboardVisible = false
-    },
-    
-    toggleKeyboard() {
-      if (this.isKeyboardVisible) {
-        this.$refs.textarea.blur()
-      } else {
-        this.$refs.textarea.focus()
-      }
-    },
-    
-    insertAtCursor(text) {
-      const textarea = this.$refs.textarea
-      if (!textarea) return
-      
-      textarea.focus()
-      const start = textarea.selectionStart
-      const end = textarea.selectionEnd
-      
-      this.internalValue = this.internalValue.substring(0, start) + text + this.internalValue.substring(end)
-      
-      this.$nextTick(() => {
-        textarea.selectionStart = textarea.selectionEnd = start + text.length
-      })
-    },
-    
-    focusTextarea() {
-      this.$refs.textarea?.focus()
-    },
-    
-    copySelectedText() {
-      const textarea = this.$refs.textarea
-      if (!textarea) return
-      
-      const selectedText = textarea.value.substring(textarea.selectionStart, textarea.selectionEnd)
-      if (selectedText) {
-        navigator.clipboard.writeText(selectedText)
-        this.showContextMenu = false
-      }
-    },
-    
-    cutSelectedText() {
-      const textarea = this.$refs.textarea
-      if (!textarea) return
-      
-      const start = textarea.selectionStart
-      const end = textarea.selectionEnd
-      const selectedText = textarea.value.substring(start, end)
-      
-      if (selectedText) {
-        navigator.clipboard.writeText(selectedText)
-        this.internalValue = this.internalValue.substring(0, start) + this.internalValue.substring(end)
-        this.showContextMenu = false
-      }
-    },
-    
-    pasteText() {
-      const textarea = this.$refs.textarea
-      if (!textarea) return
-      
-      navigator.clipboard.readText().then(text => {
-        const start = textarea.selectionStart
-        this.internalValue = this.internalValue.substring(0, start) + text + this.internalValue.substring(start)
-        this.showContextMenu = false
-      })
-    },
-    
-    selectAllText() {
-      const textarea = this.$refs.textarea
-      if (!textarea) return
-      
-      textarea.select()
-      this.showContextMenu = false
+      this.$emit('update:modelValue', newVal);
     }
   },
   
   mounted() {
-    this.internalValue = String(this.value || '')
-    this.checkMobile()
+    this.checkMobile();
+    window.addEventListener('resize', this.checkMobile);
     
-    window.addEventListener('resize', () => {
-      this.windowWidth = window.innerWidth
-      this.checkMobile()
-    })
-    
-    // Обработка долгого нажатия для контекстного меню на мобильных
-    if ('ontouchstart' in window) {
-      const textarea = this.$refs.textarea
-      if (textarea) {
-        let pressTimer
-        
-        textarea.addEventListener('touchstart', (e) => {
-          pressTimer = setTimeout(() => {
-            this.showContextMenu = true
-          }, 500) // 500ms для долгого нажатия
-        })
-        
-        textarea.addEventListener('touchend', () => {
-          clearTimeout(pressTimer)
-        })
-        
-        textarea.addEventListener('touchmove', () => {
-          clearTimeout(pressTimer)
-        })
-      }
-    }
+    // Настройка marked
+    marked.setOptions({
+      breaks: true,
+      gfm: true,
+      headerIds: false
+    });
   },
   
   beforeUnmount() {
-    window.removeEventListener('resize', this.checkMobile)
+    window.removeEventListener('resize', this.checkMobile);
+  },
+  
+  methods: {
+    updateContent() {
+      this.$emit('update:modelValue', this.internalValue);
+    },
+    
+    formatText(type) {
+      const textarea = this.$refs.textarea;
+      if (!textarea) return;
+      
+      const start = textarea.selectionStart;
+      const end = textarea.selectionEnd;
+      const selectedText = this.internalValue.substring(start, end);
+      
+      let formattedText = '';
+      let cursorOffset = 0;
+      
+      switch(type) {
+        case 'bold':
+          formattedText = `**${selectedText}**`;
+          cursorOffset = 2;
+          break;
+        case 'italic':
+          formattedText = `*${selectedText}*`;
+          cursorOffset = 1;
+          break;
+        case 'header':
+          formattedText = `# ${selectedText}`;
+          cursorOffset = 2;
+          break;
+        case 'link':
+          formattedText = `[${selectedText}](https://example.com)`;
+          cursorOffset = selectedText.length + 3;
+          break;
+        case 'image':
+          formattedText = `![${selectedText}](https://example.com/image.jpg)`;
+          cursorOffset = selectedText.length + 4;
+          break;
+        case 'list-ul':
+          formattedText = selectedText.split('\n').map(line => `- ${line}`).join('\n');
+          break;
+        case 'list-ol':
+          formattedText = selectedText.split('\n').map((line, i) => `${i + 1}. ${line}`).join('\n');
+          break;
+        case 'code':
+          formattedText = selectedText.includes('\n') 
+            ? `\`\`\`\n${selectedText}\n\`\`\`` 
+            : `\`${selectedText}\``;
+          cursorOffset = selectedText.includes('\n') ? 4 : 1;
+          break;
+        case 'quote':
+          formattedText = selectedText.split('\n').map(line => `> ${line}`).join('\n');
+          break;
+      }
+      
+      const newValue = this.internalValue.substring(0, start) + 
+                       formattedText + 
+                       this.internalValue.substring(end);
+      
+      this.internalValue = newValue;
+      
+      // Восстанавливаем позицию курсора
+      this.$nextTick(() => {
+        textarea.focus();
+        const newCursorPos = start + (selectedText ? formattedText.length : cursorOffset);
+        textarea.setSelectionRange(newCursorPos, newCursorPos);
+      });
+      
+      this.showMobileToolbar = false;
+    },
+    
+    handleTab(event) {
+      event.preventDefault();
+      const textarea = this.$refs.textarea;
+      const start = textarea.selectionStart;
+      const end = textarea.selectionEnd;
+      
+      const newValue = this.internalValue.substring(0, start) + 
+                       '    ' + 
+                       this.internalValue.substring(end);
+      
+      this.internalValue = newValue;
+      
+      this.$nextTick(() => {
+        textarea.focus();
+        const newCursorPos = start + 4;
+        textarea.setSelectionRange(newCursorPos, newCursorPos);
+      });
+    },
+    
+    togglePreview() {
+      this.showPreview = !this.showPreview;
+    },
+    
+    setEditorMode(mode) {
+      this.editorMode = mode;
+      
+      switch(mode) {
+        case 'edit':
+          this.showPreview = false;
+          this.splitView = false;
+          break;
+        case 'split':
+          this.showPreview = false;
+          this.splitView = true;
+          break;
+        case 'preview':
+          this.showPreview = true;
+          this.splitView = false;
+          break;
+      }
+    },
+    
+    checkMobile() {
+      this.isMobile = window.innerWidth <= 768;
+      this.mobileRows = this.isMobile ? 6 : this.rows;
+      this.mobileFontSize = this.isMobile ? '16px' : '14px';
+    },
+    
+    toggleKeyboard() {
+      const textarea = this.$refs.textarea;
+      textarea.blur();
+    },
+    
+    onTextareaFocus() {
+      if (this.isMobile) {
+        setTimeout(() => {
+          this.showContextMenu = true;
+        }, 300);
+      }
+    },
+    
+    onTextareaBlur() {
+      if (this.isMobile) {
+        setTimeout(() => {
+          this.showContextMenu = false;
+        }, 200);
+      }
+    },
+    
+    copySelectedText() {
+      const textarea = this.$refs.textarea;
+      const selectedText = this.internalValue.substring(
+        textarea.selectionStart,
+        textarea.selectionEnd
+      );
+      
+      if (selectedText) {
+        navigator.clipboard.writeText(selectedText)
+          .then(() => {
+            console.log('Текст скопирован');
+          })
+          .catch(err => {
+            console.error('Ошибка копирования:', err);
+          });
+      }
+    },
+    
+    cutSelectedText() {
+      const textarea = this.$refs.textarea;
+      const start = textarea.selectionStart;
+      const end = textarea.selectionEnd;
+      const selectedText = this.internalValue.substring(start, end);
+      
+      if (selectedText) {
+        navigator.clipboard.writeText(selectedText)
+          .then(() => {
+            const newValue = this.internalValue.substring(0, start) + 
+                           this.internalValue.substring(end);
+            this.internalValue = newValue;
+            
+            this.$nextTick(() => {
+              textarea.focus();
+              textarea.setSelectionRange(start, start);
+            });
+          })
+          .catch(err => {
+            console.error('Ошибка вырезания:', err);
+          });
+      }
+    },
+    
+    async pasteText() {
+      try {
+        const text = await navigator.clipboard.readText();
+        const textarea = this.$refs.textarea;
+        const start = textarea.selectionStart;
+        const end = textarea.selectionEnd;
+        
+        const newValue = this.internalValue.substring(0, start) + 
+                         text + 
+                         this.internalValue.substring(end);
+        
+        this.internalValue = newValue;
+        
+        this.$nextTick(() => {
+          textarea.focus();
+          const newCursorPos = start + text.length;
+          textarea.setSelectionRange(newCursorPos, newCursorPos);
+        });
+      } catch (err) {
+        console.error('Ошибка вставки:', err);
+      }
+    },
+    
+    selectAllText() {
+      const textarea = this.$refs.textarea;
+      textarea.focus();
+      textarea.setSelectionRange(0, this.internalValue.length);
+    }
   }
-}
+};
 </script>
 
 <style scoped>

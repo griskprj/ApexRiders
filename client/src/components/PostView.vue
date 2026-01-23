@@ -269,6 +269,64 @@ import MarkdownEditor from './MarkdownEditor.vue';
                             placeholder="Содержание поста..."
                         />
                     </div>
+
+                    <div class="form-group">
+                        <label for="postImage">Изображение</label>
+                        
+                        <div class="image-upload-container">
+                            <div v-if="imagePreview" class="image-preview">
+                                <img :src="imagePreview" alt="Preview" />
+                                <button type="button" class="remove-image" @click="removeImage">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                                <button type="button" class="replace-image" @click="showUploadOptions">
+                                    <i class="fas fa-exchange-alt"></i>
+                                    Заменить изображение
+                                </button>
+                            </div>
+                            <!-- Кнопки загрузки -->
+                            <div class="upload-options" :class="{ 'hidden': imagePreview }">
+                                <input
+                                    type="file"
+                                    id="fileInput"
+                                    ref="fileInput"
+                                    @change="handleFileUpload"
+                                    accept="image/*"
+                                    style="display: none"
+                                />
+                                
+                                <div class="upload-buttons">
+                                    <button 
+                                        type="button" 
+                                        class="btn btn-outline upload-btn"
+                                        @click="$refs.fileInput.click()"
+                                    >
+                                        <i class="fas fa-upload"></i>
+                                        Загрузить с устройства
+                                    </button>
+                                    
+                                    <div class="upload-or">
+                                        <span>или</span>
+                                    </div>
+                                    
+                                    <div class="url-upload">
+                                        <input
+                                            type="text"
+                                            v-model="editData.imageUrl"
+                                            placeholder="Вставьте URL изображения"
+                                            @blur="updateImagePreview"
+                                            @keyup.enter="updateImagePreview"
+                                        />
+                                    </div>
+                                </div>
+                                
+                                <div class="upload-hints">
+                                    <small>Поддерживаемые форматы: JPG, PNG, GIF, WebP</small>
+                                    <small>Максимальный размер: 5MB</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                     
                     <div class="form-actions">
                         <button 
@@ -340,8 +398,11 @@ export default {
             updatingPost: false,
             editData: {
                 title: '',
-                content: ''
+                content: '',
+                imageUrl: '',
+                imageFile: null
             },
+            imagePreview: null,
 
             autoSaveTimer: null,
             draftKey: 'post_draft_'
@@ -636,16 +697,23 @@ export default {
 
             try {
                 const token = localStorage.getItem('authToken')
+
+                const formData = new FormData()
+                formData.append('title', this.editData.title)
+                formData.append('content', this.editData.content)
+
+                if (this.editData.imageFile) {
+                    formData.append('image', this.editData.imageFile)
+                } else if (this.editData.imageUrl) {
+                    formData.append('imageUrl', this.editData.imageUrl)
+                }
+
                 const response = await fetch(`/api/posts/${this.postId}`, {
                     method: 'PUT',
                     headers: {
                         'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({
-                        title: this.editData.title,
-                        content: this.editData.content
-                    })
+                    body: formData
                 })
 
                 if (!response.ok) {
@@ -659,6 +727,7 @@ export default {
                 this.post.content = updatedPost.content
                 this.post.htmlContent = updatedPost.htmlContent
                 this.post.updatedAt = updatedPost.updatedAt
+                this.post.imageUrl = updatedPost.imageUrl
 
                 if (updatedPost.htmlContent) {
                     this.post.htmlContent = updatedPost.htmlContent
@@ -678,11 +747,23 @@ export default {
         openEditModal() {
             this.loadDraft()
             
-            if (!this.editData.title && !this.editData.content) {
+            const draftKey = this.draftKey + this.postId
+            const draft = localStorage.getItem(draftKey)
+            
+            if (!draft) {
                 this.editData = {
                     title: this.post.title || '',
-                    content: this.post.content || ''
+                    content: this.post.content || '',
+                    imageUrl: this.post.imageUrl || '',
+                    imageFile: null
                 }
+            }
+            
+            if (this.editData.imageUrl) {
+                this.imagePreview = this.editData.imageUrl
+            } else if (this.post.imageUrl) {
+                this.imagePreview = this.post.imageUrl
+                this.editData.imageUrl = this.post.imageUrl
             }
             
             this.showEditModal = true
@@ -699,6 +780,64 @@ export default {
 
         closeEditModal() {
             this.showEditModal = false
+            this.imagePreview = null
+        },
+
+        handleFileUpload(event) {
+            const file = event.target.files[0]
+            if (file) {
+                if (file.size > 5 * 1024 * 1024) {
+                    alert('Размер файла превышает 5MB')
+                    return
+                }
+
+                const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/bmp']
+                if (!allowedTypes.includes(file.type)) {
+                    alert('Недопустимый формат файла. Разрешены: JPG, PNG, GIF, WEBP, BMP')
+                    return
+                }
+
+                this.editData.imageFile = file
+                this.editData.imageUrl = ''
+
+                const reader = new FileReader()
+                reader.onload = (e) => {
+                    this.imagePreview = e.target.result
+                }
+                reader.readAsDataURL(file)
+            }
+        },
+
+        updateImagePreview() {
+            if (this.editData.imageUrl) {
+                try {
+                    new URL(this.editData.imageUrl)
+                    this.imagePreview = this.editData.imageUrl
+                    this.editData.imageFile = null
+                } catch (error) {
+                    alert('Введите корректный URL изображения')
+                    this.editData.imageUrl = ''
+                }
+            }
+        },
+
+        removeImage() {
+            this.editData.imageUrl = ''
+            this.editData.imageFile = null
+            this.imagePreview = null
+
+            if (this.$refs.fileInput) {
+                this.$refs.fileInput.value = ''
+            }
+        },
+
+        showUploadOptions() {
+            this.imagePreview = null
+            this.editData.imageUrl = ''
+            this.editData.imageFile = null
+            if (this.$refs.fileInput) {
+                this.$refs.fileInput.value = ''
+            }
         },
 
         handleKeyDown(e) {
@@ -718,6 +857,7 @@ export default {
                 localStorage.setItem(draftKey, JSON.stringify({
                     title: this.editData.title,
                     content: this.editData.content,
+                    imageUrl: this.editData.imageUrl,
                     timestamp: new Date().toISOString()
                 }))
             }, 1000)
@@ -731,10 +871,35 @@ export default {
                     const parsed = JSON.parse(draft)
                     this.editData = {
                         title: parsed.title || this.post.title || '',
-                        content: parsed.content || this.post.content || ''
+                        content: parsed.content || this.post.content || '',
+                        imageUrl: parsed.imageUrl || this.post.imageUrl || '',
+                        imageFile: null
+                    }
+                    
+                    if (this.editData.imageUrl) {
+                        this.imagePreview = this.editData.imageUrl
                     }
                 } catch (error) {
-                    console.error('Ошибка загрузки черновика', e)
+                    console.error('Ошибка загрузки черновика', error)
+                    this.editData = {
+                        title: this.post.title || '',
+                        content: this.post.content || '',
+                        imageUrl: this.post.imageUrl || '',
+                        imageFile: null
+                    }
+                    if (this.post.imageUrl) {
+                        this.imagePreview = this.post.imageUrl
+                    }
+                }
+            } else {
+                this.editData = {
+                    title: this.post.title || '',
+                    content: this.post.content || '',
+                    imageUrl: this.post.imageUrl || '',
+                    imageFile: null
+                }
+                if (this.post.imageUrl) {
+                    this.imagePreview = this.post.imageUrl
                 }
             }
         },
@@ -932,6 +1097,182 @@ export default {
     width: 100%;
     height: 100%;
     object-fit: cover;
+}
+
+.image-preview {
+    margin-top: 15px;
+}
+
+.image-preview img {
+    width: 100%;
+    max-height: 200px;
+    object-fit: cover;
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.image-upload-container {
+    border: 2px dashed rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    padding: 20px;
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.image-preview {
+    position: relative;
+    margin-bottom: 20px;
+}
+
+.image-preview img {
+    width: 100%;
+    max-height: 300px;
+    object-fit: contain;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.remove-image {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.7);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: white;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+}
+
+.remove-image:hover {
+    background: var(--primary);
+    transform: scale(1.1);
+}
+
+.replace-image {
+    position: absolute;
+    bottom: 10px;
+    right: 10px;
+    background: rgba(0, 0, 0, 0.7);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: white;
+    padding: 8px 15px;
+    border-radius: 5px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.9rem;
+    transition: all 0.3s ease;
+}
+
+.replace-image:hover {
+    background: var(--primary);
+    transform: translateY(-2px);
+}
+
+.upload-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    align-items: center;
+}
+
+.upload-btn {
+    padding: 12px 25px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 0.95rem;
+}
+
+.upload-or {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+.upload-or::before,
+.upload-or::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.upload-or span {
+    padding: 0 15px;
+}
+
+.url-upload {
+    width: 100%;
+}
+
+.url-upload input {
+    width: 100%;
+    padding: 12px 15px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    color: var(--text);
+    font-size: 0.95rem;
+}
+
+.upload-hints {
+    margin-top: 15px;
+    text-align: center;
+    color: var(--text-secondary);
+    font-size: 0.8rem;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.uploading-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    z-index: 10;
+}
+
+.uploading-spinner {
+    width: 40px;
+    height: 40px;
+    border: 3px solid rgba(255, 255, 255, 0.1);
+    border-top: 3px solid var(--primary);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+/* Адаптивность */
+@media (max-width: 768px) {
+    .upload-buttons {
+        gap: 10px;
+    }
+    
+    .upload-btn {
+        width: 100%;
+        justify-content: center;
+        padding: 10px 15px;
+    }
+    
+    .upload-or span {
+        padding: 0 10px;
+        font-size: 0.8rem;
+    }
 }
 
 /* ===== СОДЕРЖАНИЕ ПОСТА ===== */
