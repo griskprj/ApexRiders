@@ -216,6 +216,28 @@
                             </div>
                         </form>
                     </div>
+                    <div class="section-card danger-zone">
+                        <div class="section-header">
+                            <h3><i class="fas fa-exclamation-triangle"></i> Опасная зона</h3>
+                        </div>
+                        
+                        <div class="danger-actions">
+                            <p class="warning-text">
+                                <i class="fas fa-exclamation-circle"></i>
+                                Удаление аккаунта необратимо. Все ваши данные будут удалены.
+                            </p>
+                            
+                            <button 
+                                class="btn btn-danger" 
+                                @click="showDeleteAccountModal = true"
+                                :disabled="isDeletingAccount"
+                            >
+                                <i class="fas fa-trash-alt"></i>
+                                <span v-if="isDeletingAccount">Удаление...</span>
+                                <span v-else>Удалить аккаунт</span>
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -329,6 +351,68 @@
                 </form>
             </div>
         </div>
+        <div v-if="showDeleteAccountModal" class="modal-overlay" @click.self="showDeleteAccountModal = false">
+            <div class="modal-content delete-account-modal">
+                <div class="modal-header">
+                    <h3><i class="fas fa-exclamation-triangle"></i> Удаление аккаунта</h3>
+                    <button class="modal-close" @click="showDeleteAccountModal = false">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                
+                <div class="modal-body">
+                    <div class="warning-icon">
+                        <i class="fas fa-exclamation-circle"></i>
+                    </div>
+                    
+                    <h4>Вы уверены, что хотите удалить свой аккаунт?</h4>
+                    
+                    <div class="warning-list">
+                        <p><i class="fas fa-times-circle"></i> Все ваши посты будут удалены</p>
+                        <p><i class="fas fa-times-circle"></i> Все ваши мотоциклы будут удалены</p>
+                        <p><i class="fas fa-times-circle"></i> Все ваши комментарии и лайки будут удалены</p>
+                        <p><i class="fas fa-times-circle"></i> Ваша статистика будет сброшена</p>
+                        <p><i class="fas fa-times-circle"></i> Это действие нельзя отменить</p>
+                    </div>
+                    
+                    <div class="confirmation-input">
+                        <label for="confirmText">
+                            Для подтверждения введите: <strong>УДАЛИТЬ АККАУНТ</strong>
+                        </label>
+                        <input
+                            type="text"
+                            id="confirmText"
+                            v-model="deleteConfirmationText"
+                            placeholder="УДАЛИТЬ АККАУНТ"
+                        >
+                    </div>
+                </div>
+                
+                <div class="modal-actions">
+                    <button 
+                        type="button" 
+                        class="btn btn-outline" 
+                        @click="showDeleteAccountModal = false"
+                        :disabled="isDeletingAccount"
+                    >
+                        Отмена
+                    </button>
+                    <button 
+                        type="button" 
+                        class="btn btn-danger" 
+                        @click="deleteAccount"
+                        :disabled="isDeletingAccount || deleteConfirmationText !== 'УДАЛИТЬ АККАУНТ'"
+                    >
+                        <span v-if="isDeletingAccount">
+                            <i class="fas fa-spinner fa-spin"></i> Удаление...
+                        </span>
+                        <span v-else>
+                            <i class="fas fa-trash-alt"></i> Да, удалить аккаунт
+                        </span>
+                    </button>
+                </div>
+            </div>
+        </div>
     </div>
 </template>
 
@@ -350,6 +434,10 @@ const editingMotorcycle = ref(null)
 const isSavingMotorcycle = ref(false)
 const isUpdating = ref(false)
 const isChangingPassword = ref(false)
+
+const showDeleteAccountModal = ref(false)
+const isDeletingAccount = ref(false)
+const deleteConfirmationText = ref('')
 
 const motorcycleForm = reactive({
     brand: '',
@@ -472,6 +560,42 @@ const changePassword = async () => {
     } finally {
         isChangingPassword.value = false
     }
+}
+
+const deleteAccount = async () => {
+    if (deleteConfirmationText.value !== 'УДАЛИТЬ АККАУНТ') {
+        alert('Пожалуйста, правильно введите текст подтверждения')
+        return
+    }
+    
+    if (!confirm('Вы уверены? Это действие нельзя отменить!')) {
+        return
+    }
+    
+    try {
+        isDeletingAccount.value = true
+        
+        const token = authService.getToken()
+        await axios.delete('/api/auth/delete-account', {
+            headers: { 'Authorization': `Bearer ${token}` }
+        })
+        
+        authService.clearAuth()
+        
+        alert('Ваш аккаунт был успешно удален. Вы будете перенаправлены на главную страницу.')
+        
+        router.push('/')
+        
+    } catch (error) {
+        console.error('Ошибка при удалении аккаунта:', error)
+        alert(error.response?.data?.error || 'Ошибка при удалении аккаунта')
+        isDeletingAccount.value = false
+    }
+}
+
+const closeDeleteModal = () => {
+    showDeleteAccountModal.value = false
+    deleteConfirmationText.value = ''
 }
 
 const editMotorcycle = (moto) => {
@@ -967,6 +1091,159 @@ onMounted(() => {
     gap: 15px;
     padding-top: 20px;
     border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.danger-zone {
+    border-color: #ff4444;
+    background: rgba(255, 68, 68, 0.05);
+}
+
+.danger-zone .section-header h3 {
+    color: #ff4444;
+}
+
+.danger-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.warning-text {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: #ff9800;
+    background: rgba(255, 152, 0, 0.1);
+    padding: 15px;
+    border-radius: 10px;
+    border: 1px solid rgba(255, 152, 0, 0.3);
+}
+
+.warning-text i {
+    color: #ff9800;
+}
+
+.btn-danger {
+    background: #ff4444;
+    border-color: #ff4444;
+    color: white;
+}
+
+.btn-danger:hover:not(:disabled) {
+    background: #ff0000;
+    border-color: #ff0000;
+}
+
+.btn-danger:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* Стили для модального окна удаления аккаунта */
+.delete-account-modal {
+    max-width: 500px;
+}
+
+.modal-body {
+    padding: 25px;
+}
+
+.delete-account-modal .modal-actions {
+    justify-content: center;
+    padding: 20px;
+}
+
+.warning-icon {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.warning-icon i {
+    font-size: 60px;
+    color: #ff4444;
+}
+
+.modal-body h4 {
+    text-align: center;
+    color: var(--text);
+    margin-bottom: 25px;
+    font-size: 1.3rem;
+}
+
+.warning-list {
+    background: rgba(255, 68, 68, 0.05);
+    border: 1px solid rgba(255, 68, 68, 0.2);
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 25px;
+}
+
+.warning-list p {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+    color: var(--text);
+}
+
+.warning-list p:last-child {
+    margin-bottom: 0;
+}
+
+.warning-list i {
+    color: #ff4444;
+    min-width: 20px;
+}
+
+.confirmation-input {
+    margin-top: 20px;
+}
+
+.confirmation-input label {
+    display: block;
+    margin-bottom: 10px;
+    color: var(--text);
+    font-size: 0.95rem;
+}
+
+.confirmation-input input {
+    width: 100%;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 68, 68, 0.3);
+    border-radius: 8px;
+    padding: 12px 15px;
+    color: var(--text);
+    font-size: 1rem;
+    transition: all 0.3s ease;
+}
+
+.confirmation-input input:focus {
+    outline: none;
+    border-color: #ff4444;
+    box-shadow: 0 0 0 2px rgba(255, 68, 68, 0.2);
+}
+
+.confirmation-input strong {
+    color: #ff4444;
+}
+
+/* Адаптивность */
+@media (max-width: 480px) {
+    .delete-account-modal {
+        margin: 10px;
+    }
+    
+    .modal-body {
+        padding: 15px;
+    }
+    
+    .warning-icon i {
+        font-size: 50px;
+    }
+    
+    .modal-body h4 {
+        font-size: 1.1rem;
+    }
 }
 
 /* Загрузка */

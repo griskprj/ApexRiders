@@ -119,75 +119,6 @@ const isScrolled = ref(false)
 const user = ref(null)
 const isLoading = ref(false)
 
-// ========== Mail.ru Pixel функции ==========
-const trackMailRuPageView = (url = null, referrer = null) => {
-  // Отключаем на localhost
-  if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-    console.log(`[Mail.ru Pixel Dev] PageView: ${url || window.location.pathname}`)
-    return
-  }
-  
-  const params = { id: "3736665", type: "pageView" }
-  
-  if (url) params.url = url
-  if (referrer) params.referrer = referrer
-  
-  if (window._tmr) {
-    // Если счетчик уже загружен
-    window._tmr.push(params)
-  } else {
-    // Безопасный вариант - создаем или используем массив
-    window._tmr = window._tmr || []
-    window._tmr.push(params)
-  }
-}
-
-const trackMailRuGoal = (goalName, goalValue = null) => {
-  if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-    console.log(`[Mail.ru Pixel Dev] Goal: ${goalName}`, goalValue ? `Value: ${goalValue}` : '')
-    return
-  }
-  
-  const params = { id: "3736665", type: "reachGoal", goal: goalName }
-  
-  if (goalValue !== null) params.value = goalValue
-  
-  if (window._tmr) {
-    window._tmr.push(params)
-  } else {
-    window._tmr = window._tmr || []
-    window._tmr.push(params)
-  }
-}
-
-// ========== VK Pixel функции ==========
-const trackVKEvent = (eventName, eventParams = {}) => {
-  if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-    console.log(`[VK Pixel Dev] ${eventName}:`, eventParams)
-    return
-  }
-  
-  if (window.VK && window.VK.Retargeting) {
-    window.VK.Retargeting.Event(eventName, eventParams)
-  }
-}
-
-// ========== Общая функция для отслеживания страниц ==========
-const trackPageView = (route) => {
-  const url = route.path
-  const referrer = document.referrer
-  
-  // Mail.ru - просмотр страницы
-  trackMailRuPageView(url, referrer)
-  
-  // VK - просмотр контента
-  trackVKEvent('ViewContent', {
-    page_path: url,
-    page_title: route.meta?.title || document.title,
-    referrer: referrer
-  })
-}
-
 // ========== Основные функции ==========
 const loadUser = async () => {
   isLoading.value = true
@@ -213,37 +144,14 @@ const loadUser = async () => {
   }
 }
 
-// Отслеживание изменений маршрута
 watch(
   () => router.currentRoute.value,
   (to, from) => {
-    // Для Mail.ru передаем URL и referrer
-    trackPageView(to)
-    
-    // Дополнительные цели Mail.ru в зависимости от страницы
-    switch (to.path) {
-      case '/dashboard':
-        trackMailRuGoal('dashboard_view')
-        break
-      case '/manuals':
-        trackMailRuGoal('manuals_view')
-        break
-      case '/courses':
-        trackMailRuGoal('courses_view')
-        break
-      case '/market':
-        trackMailRuGoal('market_view')
-        break
-      case '/community':
-        trackMailRuGoal('community_view')
-        break
-    }
-    
     if (to.meta.requiresAuth && !user.value) {
       loadUser()
     }
   },
-  { immediate: true } // Отслеживаем сразу при монтировании
+  { immediate: true }
 )
 
 const handleUserUpdate = (userData) => {
@@ -253,31 +161,11 @@ const handleUserUpdate = (userData) => {
       userObj._timestamp = Date.now()
       authService.saveUser(userObj)
       user.value = userObj
-
-      // VK события
-      trackVKEvent(userData.isNewUser ? 'CompleteRegistration' : 'Login', {
-        user_id: userObj.id || userObj.email,
-        email: userObj.email
-      })
-      
-      // Mail.ru цели
-      if (userData.isNewUser) {
-        trackMailRuGoal('registration_complete', 0)
-        trackMailRuGoal('user_registered')
-      } else {
-        trackMailRuGoal('login_success')
-      }
     }
   }
 }
 
 const logout = async () => {
-  // VK событие
-  trackVKEvent('Logout')
-  
-  // Mail.ru цель
-  trackMailRuGoal('user_logout')
-  
   await authService.logout()
   user.value = null
   isMobileMenuOpen.value = false
@@ -291,11 +179,6 @@ const checkMobile = () => {
 const toggleMobileMenu = () => {
   isMobileMenuOpen.value = !isMobileMenuOpen.value
   document.body.style.overflow = isMobileMenuOpen.value ? 'hidden' : 'auto'
-  
-  // Mail.ru цель при открытии мобильного меню
-  if (isMobileMenuOpen.value) {
-    trackMailRuGoal('mobile_menu_open')
-  }
 }
 
 const closeMobileMenu = () => {
@@ -306,12 +189,6 @@ const closeMobileMenu = () => {
 const handleScroll = () => {
   isScrolled.value = window.scrollY > 50
 }
-
-// Экспортируем функции для использования в других компонентах
-defineExpose({
-  trackMailRuGoal,
-  trackVKEvent
-})
 
 onMounted(() => {
   // Первоначальная инициализация

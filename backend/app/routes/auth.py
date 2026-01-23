@@ -1,6 +1,7 @@
-from flask import Blueprint, request, jsonify
+import os
+from flask import Blueprint, request, jsonify, current_app
 from app import db
-from app.models import Member
+from app.models import Member, Post, Motorcycle, Like, Comment, MotorcycleMaintenance, MotorcycleNote, UserManualProgress, ManualRating, UserManualHistory, UserLessonHistory, UserCoursesHistory, Product, ManualDraft
 from flask_jwt_extended import jwt_required, create_access_token, get_jwt_identity
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import timedelta
@@ -180,3 +181,122 @@ def change_password():
     db.session.commit()
 
     return jsonify({ 'message': 'Password updated successfully' })
+
+
+@auth.route('/api/auth/delete-account', methods=['DELETE'])
+@jwt_required()
+def delete_account():
+    """Удаление аккаунта пользователя со всеми связанными данными"""
+    try:
+        current_user_id = get_jwt_identity()
+        
+        user = Member.query.get(current_user_id)
+        if not user:
+            return jsonify({'error': 'Пользователь не найден'}), 404
+        
+        posts = Post.query.filter_by(author_id=current_user_id).all()
+        for post in posts:
+            if post.image_filename:
+                try:
+                    upload_dir = os.path.join(current_app.config.get('UPLOAD_FOLDER', 'static/uploads'), 'posts')
+                    image_path = os.path.join(upload_dir, post.image_filename)
+                    if os.path.exists(image_path):
+                        os.remove(image_path)
+                        current_app.logger.info(f'Deleted post image: {image_path}')
+                except Exception as e:
+                    current_app.logger.error(f'Error deleting post image: {str(e)}')
+            
+            comments = Comment.query.filter_by(post_id=post.id).all()
+            for comment in comments:
+                comment_likes = Like.query.filter_by(target_type='comment', target_id=comment.id).all()
+                for like in comment_likes:
+                    db.session.delete(like)
+                db.session.delete(comment)
+            
+            post_likes = Like.query.filter_by(target_type='post', target_id=post.id).all()
+            for like in post_likes:
+                db.session.delete(like)
+            
+            db.session.delete(post)
+        
+        user_comments = Comment.query.filter_by(author_id=current_user_id).all()
+        for comment in user_comments:
+            comment_likes = Like.query.filter_by(target_type='comment', target_id=comment.id).all()
+            for like in comment_likes:
+                db.session.delete(like)
+            db.session.delete(comment)
+        
+        user_likes = Like.query.filter_by(user_id=current_user_id).all()
+        for like in user_likes:
+            db.session.delete(like)
+        
+        motorcycles = Motorcycle.query.filter_by(user_id=current_user_id).all()
+        for motorcycle in motorcycles:
+            notes = MotorcycleNote.query.filter_by(motorcycle_id=motorcycle.id).all()
+            for note in notes:
+                db.session.delete(note)
+            
+            maintenance_tasks = MotorcycleMaintenance.query.filter_by(motorcycle_id=motorcycle.id).all()
+            for task in maintenance_tasks:
+                db.session.delete(task)
+            
+            db.session.delete(motorcycle)
+        
+        manual_progress = UserManualProgress.query.filter_by(user_id=current_user_id).all()
+        for progress in manual_progress:
+            db.session.delete(progress)
+        
+        manual_ratings = ManualRating.query.filter_by(user_id=current_user_id).all()
+        for rating in manual_ratings:
+            db.session.delete(rating)
+        
+        manual_history = UserManualHistory.query.filter_by(user_id=current_user_id).all()
+        for history in manual_history:
+            db.session.delete(history)
+        
+        lesson_history = UserLessonHistory.query.filter_by(user_id=current_user_id).all()
+        for history in lesson_history:
+            db.session.delete(history)
+        
+        courses_history = UserCoursesHistory.query.filter_by(user_id=current_user_id).all()
+        for history in courses_history:
+            db.session.delete(history)
+        
+        manual_drafts = ManualDraft.query.filter_by(user_id=current_user_id).all()
+        for draft in manual_drafts:
+            if draft.uploaded_images:
+                try:
+                    upload_dir = os.path.join(current_app.config.get('UPLOAD_FOLDER', 'static/uploads'), 'manuals')
+                    for image_name in draft.uploaded_images:
+                        image_path = os.path.join(upload_dir, image_name)
+                        if os.path.exists(image_path):
+                            os.remove(image_path)
+                except Exception as e:
+                    current_app.logger.error(f'Error deleting draft images: {str(e)}')
+            db.session.delete(draft)
+        
+        products = Product.query.filter_by(owner_id=current_user_id).all()
+        for product in products:
+            product_likes = Like.query.filter_by(
+                target_type='product', 
+                target_id=product.id
+            ).all()
+            for like in product_likes:
+                db.session.delete(like)
+            
+            db.session.delete(product)
+        
+        db.session.delete(user)
+        db.session.commit()
+        
+        current_app.logger.info(f'Account deleted: user_id={current_user_id}')
+        
+        return jsonify({
+            'success': True,
+            'message': 'Аккаунт успешно удален'
+        }), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f'Error deleting account: {str(e)}')
+        return jsonify({'error': 'Ошибка при удалении аккаунта'}), 500
