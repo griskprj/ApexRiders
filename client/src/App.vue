@@ -119,6 +119,12 @@ const isScrolled = ref(false)
 const user = ref(null)
 const isLoading = ref(false)
 
+const trackVKEvent = (eventName, eventParams = {}) => {
+    if (window.VK && window.VK.Retargeting) {
+        window.VK.Retargeting.Event(eventName, eventParams)
+    }
+}
+
 const loadUser = async () => {
     isLoading.value = true
     
@@ -146,6 +152,11 @@ const loadUser = async () => {
 watch(
     () => router.currentRoute.value,
     (to) => {
+        trackVKEvent('ViewContent', {
+            page_path: to.path,
+            page_title: to.meta.title || document.title
+        })
+
         if (to.meta.requiresAuth && !user.value) {
             loadUser()
         }
@@ -159,11 +170,18 @@ const handleUserUpdate = (userData) => {
             userObj._timestamp = Date.now()
             authService.saveUser(userObj)
             user.value = userObj
+
+            trackVKEvent(userData.isNewUser ? 'CompleteRegistration' : 'Login', {
+                user_id: userObj.id || userObj.email,
+                email: userObj.email
+            })
         }
     }
 }
 
 const logout = async () => {
+    trackVKEvent('Logout')
+
     await authService.logout()
     user.value = null
     isMobileMenuOpen.value = false
@@ -189,6 +207,8 @@ const handleScroll = () => {
 }
 
 onMounted(() => {
+    trackVKEvent('PageView')
+    
     checkMobile()
     loadUser()
     
