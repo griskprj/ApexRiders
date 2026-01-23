@@ -1,5 +1,5 @@
 import os
-from flask import Flask, jsonify
+from flask import Flask, jsonify, send_from_directory
 from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
 from flask_jwt_extended import JWTManager
@@ -26,7 +26,6 @@ def expired_token_loader(jwt_header, jwt_payload):
 def create_app(config_name=None):
     app = Flask(__name__)
 
-    # Определяет конфиг
     if config_name is None:
         config_name = os.environ.get('FLASK_CONFIG', 'default')
 
@@ -51,6 +50,14 @@ def create_app(config_name=None):
             "supports_credentials": True
         }
     })
+
+    @app.route('/uploads/<path:filename>')
+    def uploaded_file(filename):
+        upload_folder = app.config['UPLOAD_FOLDER']
+        # Добавляем проверку безопасности
+        if '..' in filename or filename.startswith('/'):
+            return jsonify({'error': 'Invalid file path'}), 400
+        return send_from_directory(upload_folder, filename)
 
     from app.routes import auth, motorcycles, statist, manuals, courses, product, community, garage
     app.register_blueprint(auth.auth)

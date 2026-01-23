@@ -90,8 +90,8 @@ def get_posts():
                     'username': author.username,
                     'name': author.username
                 },
-                'createdAt': post.created_at,
-                'updatedAt': post.updated_at,
+                'createdAt': post.created_at.isoformat(),
+                'updatedAt': post.updated_at.isoformat(),
                 'commentsCount': post.comment_count,
                 'likesCount': post.like_count,
                 'views': post.view_count,
@@ -164,8 +164,8 @@ def get_post(post_id):
                 'username': author.username,
                 'isVerified': True if int(author.id) == int(current_user_id) else False
             },
-            'createdAt': post.created_at,
-            'updatedAt': post.updated_at,
+            'createdAt': post.created_at.isoformat(),
+            'updatedAt': post.updated_at.isoformat(),
             'commentsCount': post.comment_count,
             'likesCount': post.like_count,
             'views': post.view_count,
@@ -308,7 +308,7 @@ def create_post():
                 'username': author.username,
                 'name': author.username
             },
-            'createdAt': new_post.created_at,
+            'createdAt': new_post.created_at.isoformat(),
             'commentsCount': 0,
             'likesCount': 0,
             'views': 0,
@@ -379,7 +379,7 @@ def get_comments(post_id):
                     'username': author.username,
                     'isVerified': author.is_verified
                 },
-                'createdAt': comment.created_at,
+                'createdAt': comment.created_at.isoformat(),
                 'likeCount': comment.like_count
             })
 
@@ -428,7 +428,7 @@ def create_comment(post_id):
                 'id': author.id,
                 'username': author.username
             },
-            'createdAt': new_comment.created_at,
+            'createdAt': new_comment.created_at.isoformat(),
             'likeCount': 0
         }), 201
     
@@ -657,8 +657,8 @@ def update_post(post_id):
                 'username': author.username,
                 'name': author.username
             },
-            'createdAt': post.created_at,
-            'updatedAt': post.updated_at,
+            'createdAt': post.created_at.isoformat(),
+            'updatedAt': post.updated_at.isoformat(),
             'commentsCount': post.comment_count,
             'likesCount': post.like_count,
             'views': post.view_count,

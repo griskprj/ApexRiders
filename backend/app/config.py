@@ -10,6 +10,8 @@ class Config:
     UPLOAD_FOLDER = os.path.join(BASE_DIR, 'uploads')
     MAX_CONTENT_LENGTH = 16 * 1024 * 1024
     
+    UPLOAD_URL_PATH = '/uploads'
+    
     @staticmethod
     def init_app(app):
         os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
@@ -19,6 +21,10 @@ class DevelopmentConfig(Config):
     SQLALCHEMY_DATABASE_URI = 'sqlite:///database.db'
     JWT_SECRET_KEY = 'dev-secret-key-change-this'
     CORS_ORIGINS = ['http://localhost:8080', 'http://localhost:3000']
+    
+    @staticmethod
+    def init_app(app):
+        super(DevelopmentConfig, DevelopmentConfig).init_app(app)
 
 class ProductionConfig(Config):
     env_file = '.env.production' if os.path.exists('.env.production') else '.env.development'
@@ -32,6 +38,10 @@ class ProductionConfig(Config):
     cors_env = os.environ.get('CORS_ORIGINS')
     if cors_env:
         CORS_ORIGINS = [origin.strip() for origin in cors_env.split(',') if origin.strip()]
+    
+    @staticmethod
+    def init_app(app):
+        super(ProductionConfig, ProductionConfig).init_app(app)
 
 config = {
     'development': DevelopmentConfig,
