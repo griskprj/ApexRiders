@@ -218,29 +218,27 @@ class Product(db.Model):
     owner_id = db.Column(db.Integer, db.ForeignKey('members.id'), nullable=False)  
     owner = db.relationship('Member', backref='products', lazy=True)
 
-    likes = db.relationship(
-        'Like',
-        primaryjoin="and_(Like.target_type=='product', foreign(Like.target_id)==Product.id)",
-        viewonly=True
-    )
-
 class Post(db.Model):
     __tablename__ = 'posts'  
 
     id = db.Column(db.Integer, primary_key=True)
+    author_id = db.Column(db.Integer, db.ForeignKey('members.id'), nullable=False)  
+    
     title = db.Column(db.String(256), nullable=False)
     content = db.Column(db.Text, nullable=False)
     html_content = db.Column(db.Text, nullable=True)
 
-    author_id = db.Column(db.Integer, db.ForeignKey('members.id'), nullable=False)  
-    author = db.relationship('Member', backref='posts', lazy=True)  
-
+    like_count = db.Column(db.Integer, default=0)
     view_count = db.Column(db.Integer, default=0)
     comment_count = db.Column(db.Integer, default=0)
-    like_count = db.Column(db.Integer, default=0)
+    image_filename = db.Column(db.String(256), nullable=True, default=None)
+    image_url = db.Column(db.String(500), nullable=True, default=None)
     
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc)) 
     updated_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), onupdate=datetime.now(timezone.utc))  
+    
+    author = db.relationship('Member', backref='posts', lazy=True)  
+    comments = db.relationship('Comment', backref='post')
 
 class Comment(db.Model):
     __tablename__ = 'comments'  
@@ -252,7 +250,6 @@ class Comment(db.Model):
     author_id = db.Column(db.Integer, db.ForeignKey('members.id'), nullable=False)  
     
     author = db.relationship('Member', backref='comments', lazy=True)  
-    post = db.relationship('Post', backref=db.backref('comments', lazy=True))  
 
     like_count = db.Column(db.Integer, default=0)
 

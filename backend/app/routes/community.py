@@ -1,12 +1,52 @@
 import markdown
 from bleach import clean
-import bleach
+import os
+import uuid
+from werkzeug.utils import secure_filename
 from flask import Blueprint, request, jsonify, current_app
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from app.models import Member, Post, Comment, Like, db
 from datetime import datetime, timezone
 
 community = Blueprint('community', __name__)
+
+UPLOAD_FOLDER = 'static/uploads/posts'
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp'}
+
+def save_uploaded_image(file):
+    """Сохранение загруженного изображения"""
+    try:
+        if not allowed_file(file.filename):
+            raise ValueError('Недопустимый тип файла')
+        
+        file.seek(0, os.SEEK_END)
+        file_length = file.tell()
+        file.seek(0)
+        
+        if file_length > 5 * 1024 * 1024:
+            raise ValueError('Файл слишком большой. Максимальный размер: 5MB')
+        
+        filename = secure_filename(file.filename)
+        unique_filename = f"{uuid.uuid4().hex}_{filename}"
+
+        upload_dir = os.path.join(current_app.config.get('UPLOAD_FOLDER', 'static/uploads'), 'posts')
+        os.makedirs(upload_dir, exist_ok=True)
+        
+        filepath = os.path.join(upload_dir, unique_filename)
+        file.save(filepath)
+        
+        return {
+            'filename': unique_filename,
+            'url': f"/uploads/posts/{unique_filename}"
+        }
+        
+    except Exception as e:
+        current_app.logger.error(f'Error saving image: {str(e)}')
+        raise ValueError(f'Ошибка загрузки изображения: {str(e)}')
+
+def allowed_file(filename):
+    return '.' in filename and \
+        filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 @community.route('/api/posts', methods=['GET'])
 @jwt_required()
@@ -50,14 +90,14 @@ def get_posts():
                     'username': author.username,
                     'name': author.username
                 },
-                'createdAt': post.created_at.isoformat(),
-                'updatedAt': post.updated_at.isoformat(),
+                'createdAt': post.created_at,
+                'updatedAt': post.updated_at,
                 'commentsCount': post.comment_count,
                 'likesCount': post.like_count,
                 'views': post.view_count,
                 'category': 'General',
                 'categoryIcon': 'fas fa-comment',
-                'imageUrl': None
+                'imageUrl': post.image_url
             })
 
         return jsonify({
@@ -128,25 +168,89 @@ def get_post(post_id):
             'updatedAt': post.updated_at,
             'commentsCount': post.comment_count,
             'likesCount': post.like_count,
-            'views': post.view_count
+            'views': post.view_count,
+            'imageUrl': post.image_url
         }), 200
 
     except Exception as e:
         current_app.logger.error(f'Error fetching post: {str(e)}')
         return jsonify({ 'error': 'Post not found' }), 404
     
+@community.route('/api/posts/upload-image', methods=['POST'])
+@jwt_required()
+def upload_image():
+    try:
+        current_user_id = get_jwt_identity()
+        
+        if 'image' not in request.files:
+            return jsonify({ 'error': 'Файл не найден' }), 404
+        
+        file = request.files['image']
+        if file.filename == '':
+            return jsonify({ 'error': 'Файл не выбран' }), 400
+        
+        if not allowed_file(file.filename):
+            return jsonify({ 'error': 'Недопустимый тип файла. Разрешены: PNG, JPG, JPEG, GIF, WEBP' }), 400
+
+        file.seek(0, os.SEEK_END)
+        file_length = file.tell()
+        file.seek(0)
+
+        if file_length > 5 * 1024 * 1024:
+            return jsonify({ 'error': 'Файл слишком большой. Максимальный размер: 5MB' }), 400
+        
+        filename = secure_filename(file.filename)
+        unique_filename = f"{uuid.uuid4().hex}_{filename}"
+
+        upload_dir = os.path.join(current_app.config['UPLOAD_FOLDER'], 'posts')
+        os.makedirs(upload_dir, exist_ok=True)
+
+        filepath = os.path.join(upload_dir, unique_filename)
+        file.save(filepath)
+
+        image_url = f"/uploads/posts/{unique_filename}"
+        
+        return jsonify({
+            'success': True,
+            'image_url': image_url,
+            'filename': unique_filename
+        })
+
+    except Exception as e:
+        current_app.logger.error(f'Error uploading image: {str(e)}')
+        return jsonify({ 'error': 'Failed to upload image' }), 500
+    
 @community.route('/api/posts', methods=['POST'])
 @jwt_required()
 def create_post():
     try:
         current_user_id = get_jwt_identity()
-        data = request.get_json()
+        
+        image_url = None
+        image_filename = None
+        
+        if request.is_json:
+            data = request.get_json()
+            image_url = data.get('imageUrl', None)
+        else:
+            data = request.form.to_dict()
+            image_url = data.get('imageUrl', None)
+            
+            if 'image' in request.files:
+                file = request.files['image']
+                try:
+                    upload_result = save_uploaded_image(file)
+                    if upload_result:
+                        image_filename = upload_result['filename']
+                        image_url = upload_result['url']
+                except ValueError as e:
+                    return jsonify({ 'error': str(e) }), 400
 
         if not data.get('title') or not data.get('content'):
             return jsonify({ 'error': 'Title and content are required' }), 400
         
         raw_content = data['content']
-        print(raw_content)
+        
         html_content = markdown.markdown(
             raw_content, 
             extensions=['tables', 'fenced_code', 'nl2br']
@@ -182,11 +286,15 @@ def create_post():
             html_content=safe_html,
             author_id=current_user_id,
             created_at=datetime.now(timezone.utc),
-            updated_at=datetime.now(timezone.utc)
+            updated_at=datetime.now(timezone.utc),
+            image_url=image_url,
+            image_filename=image_filename
         )
 
         db.session.add(new_post)
         db.session.commit()
+        
+        current_app.logger.info(f'Post created: ID={new_post.id}, image_url={image_url}, image_filename={image_filename}')
 
         author = Member.query.get(current_user_id)
 
@@ -200,11 +308,11 @@ def create_post():
                 'username': author.username,
                 'name': author.username
             },
-            'createdAt': new_post.created_at.isoformat(),
+            'createdAt': new_post.created_at,
             'commentsCount': 0,
             'likesCount': 0,
             'views': 0,
-            'imageUrl': data.get('imageUrl')
+            'imageUrl': new_post.image_url or ''
         }), 201
     
     except Exception as e:
@@ -320,7 +428,7 @@ def create_comment(post_id):
                 'id': author.id,
                 'username': author.username
             },
-            'createdAt': new_comment.created_at.isoformat(),
+            'createdAt': new_comment.created_at,
             'likeCount': 0
         }), 201
     
@@ -413,15 +521,32 @@ def delete_post(post_id):
             current_app.logger.error('Post not found')
             return jsonify({ 'error': 'Post not found' }), 404
         
+        if int(post.author_id) != int(current_user_id):
+            return jsonify({ 'error': 'You can only delete your own posts' }), 403
+        
+        if post.image_filename:
+            try:
+                upload_dir = os.path.join(current_app.config.get('UPLOAD_FOLDER', 'static/uploads'), 'posts')
+                image_path = os.path.join(upload_dir, post.image_filename)
+                if os.path.exists(image_path):
+                    os.remove(image_path)
+                    current_app.logger.info(f'Deleted image file: {image_path}')
+            except Exception as e:
+                current_app.logger.error(f'Error deleting image file: {str(e)}')
+        
         comments = Comment.query.filter_by(post_id=post_id).all()
         likes = Like.query.filter_by(target_type='post', target_id=post_id).all()
 
-        if comments:
-            for comment in comments:
-                db.session.delete(comment)
-        if likes:
-            for like in likes:
+        for comment in comments:
+            comment_likes = Like.query.filter_by(target_type='comment', target_id=comment.id).all()
+            for like in comment_likes:
                 db.session.delete(like)
+
+        for comment in comments:
+            db.session.delete(comment)
+        
+        for like in likes:
+            db.session.delete(like)
 
         db.session.delete(post)
 
@@ -432,20 +557,50 @@ def delete_post(post_id):
             'message': 'Пост удален'
         })
     except Exception as e:
-        current_app.logger.error(f'Error delete post: {str(e)}')
-        return jsonify({ 'error': 'Error delete post'}), 500
+        db.session.rollback()
+        current_app.logger.error(f'Error deleting post: {str(e)}')
+        return jsonify({ 'error': 'Error deleting post'}), 500
     
 @community.route('/api/posts/<int:post_id>', methods=['PUT'])
 @jwt_required()
 def update_post(post_id):
     try:
         current_user_id = get_jwt_identity()
-        data = request.get_json()
 
         post = Post.query.get_or_404(post_id)
         if int(post.author_id) != int(current_user_id):
             return jsonify({ 'error': 'You can only edit your own posts' }), 403
         
+        image_url = post.image_url
+        image_filename = post.image_filename
+        
+        if request.is_json:
+            data = request.get_json()
+            image_url = data.get('imageUrl', post.image_url)
+        else:
+            data = request.form.to_dict()
+            image_url = data.get('imageUrl', post.image_url)
+
+            if 'image' in request.files:
+                file = request.files['image']
+                try:
+                    if post.image_filename:
+                        try:
+                            upload_dir = os.path.join(current_app.config.get('UPLOAD_FOLDER', 'static/uploads'), 'posts')
+                            old_image_path = os.path.join(upload_dir, post.image_filename)
+                            if os.path.exists(old_image_path):
+                                os.remove(old_image_path)
+                                current_app.logger.info(f'Deleted old image: {old_image_path}')
+                        except Exception as e:
+                            current_app.logger.error(f'Error deleting old image: {str(e)}')
+                    
+                    upload_result = save_uploaded_image(file)
+                    if upload_result:
+                        image_filename = upload_result['filename']
+                        image_url = upload_result['url']
+                except ValueError as e:
+                    return jsonify({ 'error': str(e) }), 400
+                
         if 'title' in data and data['title']:
             post.title = data['title']
         
@@ -454,7 +609,7 @@ def update_post(post_id):
 
             html_content = markdown.markdown(
                 raw_content, 
-                extensions=['tables', 'fenced_code', 'nl2br']  # <-- ДОБАВЬТЕ ЭТО
+                extensions=['tables', 'fenced_code', 'nl2br']
             )
 
             allowed_tags = [
@@ -484,6 +639,8 @@ def update_post(post_id):
             post.content = raw_content
             post.html_content = safe_html
         
+        post.image_url = image_url
+        post.image_filename = image_filename
         post.updated_at = datetime.now(timezone.utc)
 
         db.session.commit()
@@ -504,7 +661,8 @@ def update_post(post_id):
             'updatedAt': post.updated_at,
             'commentsCount': post.comment_count,
             'likesCount': post.like_count,
-            'views': post.view_count
+            'views': post.view_count,
+            'imageUrl': post.image_url
         }), 200
     
     except Exception as e:

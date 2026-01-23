@@ -65,7 +65,7 @@ import MarkdownEditor from './MarkdownEditor.vue';
                     >
                         <!-- Изображение поста -->
                         <div class="post-image">
-                            <img src="/DefaultPostPhoto.png" :alt="post.title">
+                            <img :src="post.imageUrl" :alt="post.title">
                             <div class="post-category">
                                 <i :class="post.categoryIcon"></i>
                                 {{ post.category }}
@@ -223,15 +223,58 @@ import MarkdownEditor from './MarkdownEditor.vue';
                         </div>
                         
                         <div class="form-group">
-                            <label for="postImage">Изображение (URL)</label>
-                            <input
-                                id="postImage"
-                                v-model="newPost.imageUrl"
-                                type="text"
-                                placeholder="https://example.com/photo.jpg"
-                            />
-                            <div v-if="newPost.imageUrl" class="image-preview">
-                                <img :src="newPost.imageUrl" alt="Preview" />
+                            <label for="postImage">Изображение</label>
+                            
+                            <div class="image-upload-container">
+                                <!-- Превью изображения -->
+                                <div v-if="imagePreview" class="image-preview">
+                                    <img :src="imagePreview" alt="Preview" />
+                                    <button type="button" class="remove-image" @click="removeImage">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                </div>
+                                
+                                <!-- Кнопки загрузки -->
+                                <div class="upload-options" v-if="!imagePreview">
+                                    <input
+                                        type="file"
+                                        id="fileInput"
+                                        ref="fileInput"
+                                        @change="handleFileUpload"
+                                        accept="image/*"
+                                        style="display: none"
+                                    />
+                                    
+                                    <div class="upload-buttons">
+                                        <button 
+                                            type="button" 
+                                            class="btn btn-outline upload-btn"
+                                            @click="$refs.fileInput.click()"
+                                        >
+                                            <i class="fas fa-upload"></i>
+                                            Загрузить с устройства
+                                        </button>
+                                        
+                                        <div class="upload-or">
+                                            <span>или</span>
+                                        </div>
+                                        
+                                        <div class="url-upload">
+                                            <input
+                                                type="text"
+                                                v-model="newPost.imageUrl"
+                                                placeholder="Вставьте URL изображения"
+                                                @blur="updateImagePreview"
+                                                @keyup.enter="updateImagePreview"
+                                            />
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="upload-hints">
+                                        <small>Поддерживаемые форматы: JPG, PNG, GIF, WebP</small>
+                                        <small>Максимальный размер: 5MB</small>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                         
@@ -294,7 +337,13 @@ export default {
 
             draftKey: 'post_create_draft_',
             autoSaveTimer: null,
-            hasUnsavedDraft: false
+            hasUnsavedDraft: false,
+
+            imagePreview: null,
+            uploadingImage: false,
+            uploadProgress: 0,
+
+            oldImageToDelete: null
         };
     },
     
@@ -306,6 +355,10 @@ export default {
         totalPages() {
             return Math.ceil(this.totalPosts / this.postsPerPage);
         },
+
+        hasImage() {
+            return !!this.imagePreview || !!this.newPost.imageUrl
+        }
     },
 
     watch: {
@@ -454,47 +507,163 @@ export default {
                 return
             }
             
-            this.creatingPost = true;
+            this.creatingPost = true
             
             try {
-                const token = localStorage.getItem('authToken');
+                const token = localStorage.getItem('authToken')
+ 
+                const formData = new FormData()
+                formData.append('title', title)
+                formData.append('content', content)
                 
-                const postData = {
-                    title: title,
-                    content: content,
-                    tags: String(this.newPost.tags || '').trim(),
-                    imageUrl: String(this.newPost.imageUrl || '').trim()
+                if (this.newPost.tags && this.newPost.tags.trim()) {
+                    formData.append('tags', this.newPost.tags.trim())
+                }
+                
+                const fileInput = this.$refs.fileInput
+                
+                if (fileInput && fileInput.files && fileInput.files[0]) {
+                    formData.append('image', fileInput.files[0])
+                } 
+                else if (this.newPost.imageUrl && this.newPost.imageUrl.trim()) {
+                    formData.append('imageUrl', this.newPost.imageUrl.trim())
+                }
+                else if (this.imagePreview && this.imagePreview.startsWith('data:')) {
+                    alert('Пожалуйста, загрузите изображение заново или введите URL')
+                    this.creatingPost = false
+                    return
                 }
                 
                 const response = await fetch('/api/posts', {
                     method: 'POST',
                     headers: {
                         'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify(postData)
-                });
+                    body: formData
+                })
 
                 if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`)
+                    const errorText = await response.text()
+                    console.error('Ошибка сервера:', errorText)
+                    try {
+                        const errorData = JSON.parse(errorText)
+                        throw new Error(errorData.error || `Ошибка ${response.status}`)
+                    } catch {
+                        throw new Error(`Ошибка ${response.status}: ${errorText}`)
+                    }
                 }
 
-                const newPostData = await response.json();
+                const newPostData = await response.json()
 
                 this.clearDraft()
-                this.clearForm
+                this.clearForm()
                 
                 await this.fetchPosts()
                 await this.fetchCommunityStats()
                 
-                this.showCreateModal = false;
-                alert('Пост успешно создан!');
+                this.showCreateModal = false
+                
+                alert('Пост успешно создан!')
                 
             } catch (error) {
-                console.error('Ошибка при создании поста:', error);
-                alert('Не удалось создать пост');
+                console.error('Ошибка при создании поста:', error)
+                alert(`Не удалось создать пост: ${error.message}`)
             } finally {
-                this.creatingPost = false;
+                this.creatingPost = false
+            }
+        },
+
+        async handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (!file) {
+                return;
+            }
+            
+            const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp', 'image/bmp'];
+            const fileExt = file.name.split('.').pop().toLowerCase();
+            const validExts = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'];
+            
+            if (!validTypes.includes(file.type) && !validExts.includes(fileExt)) {
+                alert('Пожалуйста, выберите файл изображения (JPG, PNG, GIF, WebP, BMP)');
+                this.resetFileInput();
+                return;
+            }
+            
+            if (file.size > 5 * 1024 * 1024) {
+                alert('Файл слишком большой. Максимальный размер: 5MB');
+                this.resetFileInput();
+                return;
+            }
+            
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                this.imagePreview = e.target.result;
+            };
+            reader.readAsDataURL(file);
+            
+            this.uploadingImage = true;
+            try {
+                const formData = new FormData();
+                formData.append('image', file);
+                
+                const token = localStorage.getItem('authToken');
+                const response = await fetch('/api/posts/upload-image', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                    },
+                    body: formData
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    this.newPost.imageUrl = data.image_url || data.imageUrl || '';
+                } else {
+                    alert(data.error || 'Ошибка загрузки изображения');
+                    this.resetFileInput();
+                    this.imagePreview = null;
+                }
+            } catch (error) {
+                console.error('Ошибка загрузки:', error);
+                alert('Не удалось загрузить изображение');
+                this.resetFileInput();
+                this.imagePreview = null;
+            } finally {
+                this.uploadingImage = false;
+            }
+        },
+
+        updateImagePreview() {
+            if (this.newPost.imageUrl && this.newPost.imageUrl.trim()) {
+                const url = this.newPost.imageUrl.trim();
+                
+                const urlPattern = /^(https?:\/\/.*\.(?:png|jpg|jpeg|gif|webp|bmp)(\?.*)?)$/i;
+                
+                if (urlPattern.test(url)) {
+                    this.imagePreview = url;
+
+                    if (this.$refs.fileInput) {
+                        this.$refs.fileInput.value = '';
+                    }
+                } else {
+                    this.imagePreview = null;
+                    
+                    if (url.startsWith('data:')) {
+                        this.imagePreview = url;
+                    }
+                }
+            } else {
+                this.imagePreview = null;
+            }
+        },
+
+        removeImage() {
+            this.imagePreview = null
+            this.newPost.imageUrl = ''
+            
+            if (this.$refs.fileInput) {
+                this.$refs.fileInput.value = ''
             }
         },
             
@@ -570,6 +739,12 @@ export default {
 
             this.showCreateModal = false
         },
+        
+        resetFileInput() {
+            if (this.$refs.fileInput) {
+                this.$refs.fileInput.value = ''
+            }
+        },
 
         clearForm() {
             this.newPost = {
@@ -578,7 +753,13 @@ export default {
                 tags: '',
                 imageUrl: ''
             }
+            this.imagePreview = null
+            this.uploadingImage = false
             this.hasUnsavedDraft = false
+            
+            if (this.$refs.fileInput) {
+                this.$refs.fileInput.value = ''
+            }
         },
 
         openPost(post) {
@@ -1266,6 +1447,148 @@ export default {
     object-fit: cover;
     border-radius: 10px;
     border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.image-upload-container {
+    border: 2px dashed rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    padding: 20px;
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.image-preview {
+    position: relative;
+    margin-bottom: 20px;
+}
+
+.image-preview img {
+    width: 100%;
+    max-height: 300px;
+    object-fit: contain;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.remove-image {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.7);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: white;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+}
+
+.remove-image:hover {
+    background: var(--primary);
+    transform: scale(1.1);
+}
+
+.upload-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    align-items: center;
+}
+
+.upload-btn {
+    padding: 12px 25px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 0.95rem;
+}
+
+.upload-or {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+.upload-or::before,
+.upload-or::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.upload-or span {
+    padding: 0 15px;
+}
+
+.url-upload {
+    width: 100%;
+}
+
+.url-upload input {
+    width: 100%;
+    padding: 12px 15px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    color: var(--text);
+    font-size: 0.95rem;
+}
+
+.upload-hints {
+    margin-top: 15px;
+    text-align: center;
+    color: var(--text-secondary);
+    font-size: 0.8rem;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.uploading-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    z-index: 10;
+}
+
+.uploading-spinner {
+    width: 40px;
+    height: 40px;
+    border: 3px solid rgba(255, 255, 255, 0.1);
+    border-top: 3px solid var(--primary);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+/* Адаптивность */
+@media (max-width: 768px) {
+    .upload-buttons {
+        gap: 10px;
+    }
+    
+    .upload-btn {
+        width: 100%;
+        justify-content: center;
+        padding: 10px 15px;
+    }
+    
+    .upload-or span {
+        padding: 0 10px;
+        font-size: 0.8rem;
+    }
 }
 
 .form-actions {
