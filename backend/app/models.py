@@ -15,6 +15,10 @@ class Member(db.Model):
     is_verified = db.Column(db.Boolean, default=False)
     verification_date = db.Column(db.DateTime, nullable=True)
 
+    admin_level = db.Column(db.Integer, default=False)
+    is_super_admin = db.Column(db.Boolean, default=False)
+    last_admin_login = db.Column(db.DateTime, nullable=True)
+
     manual_progress = db.relationship('UserManualProgress', back_populates='user', lazy=True)
     manual_ratings = db.relationship('ManualRating', back_populates='user', lazy=True)
 

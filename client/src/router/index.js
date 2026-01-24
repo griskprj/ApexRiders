@@ -19,6 +19,8 @@ import AboutPage from '../components/AboutPage.vue'
 import PrivacyPolicy from '../components/PrivacyPolicy.vue'
 import CommunityRules from '../components/CommunityRules.vue'
 import Contacts from '../components/Contacts.vue'
+import AdminDashboard from '../components/admin/AdminDashboard.vue'
+import AdminUsers from '../components/admin/AdminUsers.vue'
 
 const routes = [
     {
@@ -111,6 +113,17 @@ const routes = [
         path: '/garage/:id',
         name: 'Garage',
         component: Garage,
+        meta: { requiresAuth: true }
+    },
+
+    {
+        path: '/admin/dashboard',
+        component: AdminDashboard,
+        meta: { requiresAuth: true }
+    },
+    {
+        path: '/admin/users',
+        component: AdminUsers,
         meta: { requiresAuth: true }
     },
 
@@ -213,8 +226,6 @@ router.beforeEach(async (to, from, next) => {
     if (guestOnly && hasToken) {
         return next({ name: 'Dashboard' })
     }
-
-    next()
 })
 
 export default router

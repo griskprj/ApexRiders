@@ -117,8 +117,9 @@ def get_one_manual(manual_id):
 def create_manual():
     current_user_id = get_jwt_identity()
 
-    if not check_user_verification(current_user_id):
-        return jsonify({ 'error': 'Только верифицированные пользователи могут создавать мануалы'}), 403
+    user = Member.query.get(current_user_id)
+    if user.admin_level < 1:
+        return jsonify({ 'error': 'Только пользователи с уровнем админа 1 могут создать мануалы'}), 403
     
     data = request.get_json()
 
@@ -482,7 +483,7 @@ def verify_access():
         return jsonify({ 'error': 'Пользователь не найден' }), 404
     
     return jsonify({
-        'is_verified': user.is_verified,
+        'admin_level': user.admin_level,
         'username': user.username,
         'role': user.role,
         'verification_date': user.verification_date.isoformat() if user.verification_date else None

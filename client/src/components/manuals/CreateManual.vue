@@ -493,8 +493,8 @@ export default {
                     headers: { 'Authorization': `Bearer ${token}`}
                 })
 
-                if (!response.data.is_verified) {
-                    alert('Только верифицированные пользователи могут создать мануалы')
+                if (response.data.admin_level < 1) {
+                    alert('Только пользователи с уровнем админа 1 могут создать мануалы')
                     this.$router.push('/manuals')
                     return
                 }
