@@ -1,62 +1,62 @@
 <template>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 
-    <div id="app">
-        <!-- Навигация -->
-        <nav class="navbar" :class="{ 'scrolled': isScrolled }">
-            <router-link to="/" class="logo">
-                <i class="fas fa-motorcycle"></i>
-                <span>ApexRiders</span>
-            </router-link>
-            
-            <div class="nav-links" v-if="!isMobile">
-                <router-link to="/dashboard" class="nav-link" v-if="user">Главная</router-link>
-                <router-link to="/manuals" class="nav-link" v-if="user">Мануалы</router-link>
-                <router-link to="/courses" class="nav-link" v-if="user">Курсы</router-link>
-                <router-link to="/market" class="nav-link" v-if="user">Маркет</router-link>
-                <router-link to="/community" class="nav-link" v-if="user">Сообщество</router-link>
-                <router-link to="/profile" class="nav-link" v-if="user">Профиль</router-link>
-            </div>
-            
-            <div class="auth-buttons" v-if="!isMobile && !user">
-                <router-link to="/login" class="btn btn-outline">Войти</router-link>
-                <router-link to="/register" class="btn btn-primary">Регистрация</router-link>
-            </div>
-            <div class="auth-buttons" v-if="!isMobile && user">
-                <button @click="logout" class="btn btn-outline">Выйти</button>
-            </div>
-            
-            <button class="mobile-menu-btn" @click="toggleMobileMenu">
-                <i class="fas fa-bars"></i>
-            </button>
-        </nav>
-
-        <!-- Мобильное меню -->
-        <div class="mobile-menu" :class="{ 'active': isMobileMenuOpen }" v-if="isMobile">
-            <router-link to="/dashboard" class="nav-link" v-if="user" @click="closeMobileMenu">Главная</router-link>
-            <router-link to="/manuals" class="nav-link" v-if="user" @click="closeMobileMenu">Мануалы</router-link>
-            <router-link to="/courses" class="nav-link" v-if="user" @click="closeMobileMenu">Курсы</router-link>
-            <router-link to="/market" class="nav-link" v-if="user" @click="closeMobileMenu">Маркет</router-link>
-            <router-link to="/community" class="nav-link" v-if="user" @click="closeMobileMenu">Сообщество</router-link>
+    <!-- Условный рендеринг навигации -->
+    <nav v-if="!isAdminRoute" class="navbar" :class="{ 'scrolled': isScrolled }">
+        <router-link to="/" class="logo">
+            <i class="fas fa-motorcycle"></i>
+            <span>ApexRiders</span>
+        </router-link>
+        
+        <div class="nav-links" v-if="!isMobile">
+            <router-link to="/dashboard" class="nav-link" v-if="user">Главная</router-link>
+            <router-link to="/manuals" class="nav-link" v-if="user">Мануалы</router-link>
+            <router-link to="/courses" class="nav-link" v-if="user">Курсы</router-link>
+            <router-link to="/market" class="nav-link" v-if="user">Маркет</router-link>
+            <router-link to="/community" class="nav-link" v-if="user">Сообщество</router-link>
             <router-link to="/profile" class="nav-link" v-if="user">Профиль</router-link>
-            
-            <div class="mobile-auth">
-                <router-link to="/login" class="btn btn-outline" v-if="!user" @click="closeMobileMenu">Войти</router-link>
-                <router-link to="/register" class="btn btn-primary" v-if="!user" @click="closeMobileMenu">Регистрация</router-link>
-                <button v-if="user" @click="logout" class="btn btn-outline">Выйти</button>
-            </div>
+            <router-link to="/admin/dashboard" class="nav-link" v-if="user && user.admin_level > 0">Админка</router-link>
+        </div>
+        
+        <div class="auth-buttons" v-if="!isMobile && !user">
+            <router-link to="/login" class="btn btn-outline">Войти</router-link>
+            <router-link to="/register" class="btn btn-primary">Регистрация</router-link>
+        </div>
+        <div class="auth-buttons" v-if="!isMobile && user">
+            <button @click="logout" class="btn btn-outline">Выйти</button>
+        </div>
+        
+        <button class="mobile-menu-btn" @click="toggleMobileMenu">
+            <i class="fas fa-bars"></i>
+        </button>
+    </nav>
 
-            <div class="mobile-menu-overlay" @click="closeMobileMenu"></div>
+    <!-- Мобильное меню -->
+    <div v-if="isMobile && !isAdminRoute" class="mobile-menu" :class="{ 'active': isMobileMenuOpen }">
+        <router-link to="/dashboard" class="nav-link" v-if="user" @click="closeMobileMenu">Главная</router-link>
+        <router-link to="/manuals" class="nav-link" v-if="user" @click="closeMobileMenu">Мануалы</router-link>
+        <router-link to="/courses" class="nav-link" v-if="user" @click="closeMobileMenu">Курсы</router-link>
+        <router-link to="/market" class="nav-link" v-if="user" @click="closeMobileMenu">Маркет</router-link>
+        <router-link to="/community" class="nav-link" v-if="user" @click="closeMobileMenu">Сообщество</router-link>
+        <router-link to="/profile" class="nav-link" v-if="user" @click="closeMobileMenu">Профиль</router-link>
+        <router-link to="/admin/dashboard" class="nav-link" v-if="user && user.admin_level > 0" @click="closeMobileMenu">Админка</router-link>
+
+        
+        <div class="mobile-auth">
+            <router-link to="/login" class="btn btn-outline" v-if="!user" @click="closeMobileMenu">Войти</router-link>
+            <router-link to="/register" class="btn btn-primary" v-if="!user" @click="closeMobileMenu">Регистрация</router-link>
+            <button v-if="user" @click="logout" class="btn btn-outline">Выйти</button>
         </div>
 
-        <main class="main-content">
-            <router-view @user-updated="handleUserUpdate"></router-view>
-        </main>
-
+        <div class="mobile-menu-overlay" @click="closeMobileMenu"></div>
     </div>
-    <!-- Футер -->
-    <footer class="footer">
+
+    <main class="main-content">
+        <router-view @user-updated="handleUserUpdate"></router-view>
+    </main>
+
+    <!-- Условный рендеринг футера -->
+    <footer v-if="!isAdminRoute" class="footer">
         <div class="footer-content">
             <div class="footer-column">
                 <h4>ApexRiders</h4>
@@ -107,102 +107,118 @@
     </footer>
 </template>
 
-<script setup>
-import { ref, onMounted, onUnmounted, watch } from 'vue'
-import { useRouter } from 'vue-router'
+<script>
 import { authService } from './utils/checkAuth'
 
-const router = useRouter()
-const isMobile = ref(false)
-const isMobileMenuOpen = ref(false)
-const isScrolled = ref(false)
-const user = ref(null)
-const isLoading = ref(false)
-
-// ========== Основные функции ==========
-const loadUser = async () => {
-  isLoading.value = true
-  
-  try {
-    const cachedUser = authService.getUser()
-    user.value = cachedUser
+export default {
+    name: 'App',
     
-    if (navigator.onLine) {
-      const freshUser = await authService.checkAuth()
-      if (freshUser) {
-        user.value = freshUser
-      } else if (!cachedUser) {
-        if (router.currentRoute.value.meta.requiresAuth) {
-          await router.push('/login')
+    data() {
+        return {
+            isMobile: false,
+            isMobileMenuOpen: false,
+            isScrolled: false,
+            user: null,
+            isLoading: false,
+            currentRoute: null
         }
-      }
+    },
+    
+    computed: {
+        isAdminRoute() {
+            // Проверяем, находится ли пользователь на админском дашборде
+            if (!this.currentRoute) return false
+            return this.currentRoute.path.startsWith('/admin/dashboard')
+        }
+    },
+    
+    watch: {
+        '$route'(to, from) {
+            this.currentRoute = to
+            
+            if (to.meta.requiresAuth && !this.user) {
+                this.loadUser()
+            }
+        }
+    },
+    
+    methods: {
+        async loadUser() {
+            this.isLoading = true
+            
+            try {
+                const cachedUser = authService.getUser()
+                this.user = cachedUser
+                
+                if (navigator.onLine) {
+                    const freshUser = await authService.checkAuth()
+                    if (freshUser) {
+                        this.user = freshUser
+                    } else if (!cachedUser) {
+                        if (this.$route.meta.requiresAuth) {
+                            await this.$router.push('/login')
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading user:', error)
+            } finally {
+                this.isLoading = false
+            }
+        },
+        
+        handleUserUpdate(userData) {
+            if (userData) {
+                const userObj = userData.user || userData.member || userData
+                if (userObj && (userObj.id || userObj.email)) {
+                    userObj._timestamp = Date.now()
+                    authService.saveUser(userObj)
+                    this.user = userObj
+                }
+            }
+        },
+        
+        async logout() {
+            await authService.logout()
+            this.user = null
+            this.isMobileMenuOpen = false
+            this.$router.push('/')
+        },
+        
+        checkMobile() {
+            this.isMobile = window.innerWidth <= 992
+        },
+        
+        toggleMobileMenu() {
+            this.isMobileMenuOpen = !this.isMobileMenuOpen
+            document.body.style.overflow = this.isMobileMenuOpen ? 'hidden' : 'auto'
+        },
+        
+        closeMobileMenu() {
+            this.isMobileMenuOpen = false
+            document.body.style.overflow = 'auto'
+        },
+        
+        handleScroll() {
+            this.isScrolled = window.scrollY > 50
+        }
+    },
+    
+    mounted() {
+        // Первоначальная инициализация
+        this.currentRoute = this.$route
+        this.checkMobile()
+        this.loadUser()
+        
+        window.addEventListener('resize', this.checkMobile)
+        window.addEventListener('scroll', this.handleScroll)
+    },
+    
+    beforeUnmount() {
+        window.removeEventListener('resize', this.checkMobile)
+        window.removeEventListener('scroll', this.handleScroll)
     }
-  } catch (error) {
-    console.error('Error loading user:', error)
-  } finally {
-    isLoading.value = false
-  }
 }
-
-watch(
-  () => router.currentRoute.value,
-  (to, from) => {
-    if (to.meta.requiresAuth && !user.value) {
-      loadUser()
-    }
-  },
-  { immediate: true }
-)
-
-const handleUserUpdate = (userData) => {
-  if (userData) {
-    const userObj = userData.user || userData.member || userData
-    if (userObj && (userObj.id || userObj.email)) {
-      userObj._timestamp = Date.now()
-      authService.saveUser(userObj)
-      user.value = userObj
-    }
-  }
-}
-
-const logout = async () => {
-  await authService.logout()
-  user.value = null
-  isMobileMenuOpen.value = false
-  router.push('/')
-}
-
-const checkMobile = () => {
-  isMobile.value = window.innerWidth <= 992
-}
-
-const toggleMobileMenu = () => {
-  isMobileMenuOpen.value = !isMobileMenuOpen.value
-  document.body.style.overflow = isMobileMenuOpen.value ? 'hidden' : 'auto'
-}
-
-const closeMobileMenu = () => {
-  isMobileMenuOpen.value = false
-  document.body.style.overflow = 'auto'
-}
-
-const handleScroll = () => {
-  isScrolled.value = window.scrollY > 50
-}
-
-onMounted(() => {
-  // Первоначальная инициализация
-  checkMobile()
-  loadUser()
-  
-  window.addEventListener('resize', checkMobile)
-  window.addEventListener('scroll', handleScroll)
-})
-
-onUnmounted(() => {
-  window.removeEventListener('resize', checkMobile)
-  window.removeEventListener('scroll', handleScroll)
-})
 </script>
 
 <style>
