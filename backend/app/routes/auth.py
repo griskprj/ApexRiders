@@ -86,7 +86,8 @@ def get_current_user():
             'user': {
                 'id': user.id,
                 'username': user.username,
-                'email': user.email
+                'email': user.email,
+                'admin_level': user.admin_level
             }
         })
     except Exception as e:
