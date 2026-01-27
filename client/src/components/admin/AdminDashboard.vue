@@ -163,15 +163,6 @@
                                     <div class="user-details-large">
                                         <h4>{{ currentAdmin?.username || 'Администратор' }}</h4>
                                         <p>{{ currentAdmin?.email || 'Email не указан' }}</p>
-                                        <div class="user-status">
-                                            <span class="badge" :class="getAdminBadgeClass">{{ getCurrentAdminLevelText }}</span>
-                                            <span v-if="currentAdmin?.is_super_admin" class="badge badge-super">
-                                                <i class="fas fa-star"></i> Супер-админ
-                                            </span>
-                                            <span v-if="currentAdmin?.is_verified" class="badge badge-verified">
-                                                <i class="fas fa-check-circle"></i> Верифицирован
-                                            </span>
-                                        </div>
                                     </div>
                                 </div>
                                 <div class="user-stats">
@@ -313,6 +304,7 @@
                                     <th>Дата регистрации</th>
                                     <th>Активность</th>
                                     <th>Действия</th>
+                                    <th>Последний вход</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -384,6 +376,9 @@
                                             <i class="fas fa-eye"></i>
                                         </button>
                                     </td>
+                                    <td>
+                                        <p>Последний вход: {{ formatDate(user.last_login) }}</p>
+                                    </td>
                                 </tr>
                             </tbody>
                         </table>
@@ -435,8 +430,6 @@
                 </div>
             </main>
         </div>
-        
-        <!-- Модальные окна (общие для всей админки) -->
         
         <!-- Модальное окно удаления -->
         <div v-if="showDeleteModal" class="modal-overlay" @click.self="closeDeleteModal">
@@ -570,6 +563,55 @@
                 </div>
             </div>
         </div>
+
+        <!-- Модальное окно просмотра данных пользователя -->
+        <div v-if="showPreviewModal" class="modal-overlay" @click.self="closePreviewModal">
+            <div class="modal">
+                <div class="modal-header">
+                    <h3><i class="fas fa-license"></i> Данные пользователя</h3>
+                    <button @click="closePreviewModal" class="modal-close">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="user-delete-info" v-if="userToPreview">
+                        <div class="info-item">
+                            <span>ID:</span>
+                            <strong>#{{ userToPreview.id }}</strong>
+                        </div>
+                        <div class="info-item">
+                            <span>Имя пользователя:</span>
+                            <strong>#{{ userToPreview.username }}</strong>
+                        </div>
+                        <div class="info-item">
+                            <span>Email:</span>
+                            <strong>{{ userToPreview.email }}</strong>
+                        </div>
+                        <div class="info-item">
+                            <span>Создано постов:</span>
+                            <strong>{{ userToPreview.post_count }}</strong>
+                        </div>
+                        <div class="info-item">
+                            <span>Объявлений:</span>
+                            <strong>{{ userToPreview.product_count }}</strong>
+                        </div>
+                        <div class="info-item">
+                            <span>Уровень администратора:</span>
+                            <strong>{{ userToPreview.admin_level }}</strong>
+                        </div>
+                        <div class="info-item">
+                            <span>Верификация:</span>
+                            <strong>{{ userToPreview.is_verified ? 'Верифицирован' : 'Не верефицирован' }}</strong>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button @click="closePreviewModal" class="btn btn-outline">
+                        Закрыть
+                    </button>
+                </div>
+            </div>
+        </div>
     </div>
 </template>
 
@@ -578,9 +620,8 @@ export default {
     name: 'AdminDashboard',
     data() {
         return {
-            currentView: 'dashboard', // 'dashboard' или 'users'
-            
-            // Данные для дашборда
+            currentView: 'dashboard',
+        
             stats: {
                 total_users: 0,
                 verified_users: 0,
@@ -590,7 +631,6 @@ export default {
             recentUsers: [],
             currentAdmin: null,
             
-            // Данные для управления пользователями
             users: [],
             loading: false,
             searchQuery: '',
@@ -600,11 +640,12 @@ export default {
             totalUsers: 0,
             totalPages: 0,
             
-            // Модальные окна
             showDeleteModal: false,
             showEditModal: false,
+            showPreviewModal: false,
             userToDelete: null,
             userToEdit: null,
+            userToPreview: null,
             deleting: false,
             saving: false,
             
@@ -613,7 +654,6 @@ export default {
     },
     
     computed: {
-        // Для текущего администратора
         getCurrentAdminLevelText() {
             const levels = {
                 0: 'Пользователь',
@@ -661,7 +701,6 @@ export default {
     },
     
     methods: {
-        // Для других пользователей (в таблице)
         getUserAdminLevelText(level) {
             const levels = {
                 0: 'Пользователь',
@@ -674,7 +713,6 @@ export default {
             return levels[level] || 'Неизвестно'
         },
         
-        // Общие методы
         async checkAuthAndLoadData() {
             const user = JSON.parse(localStorage.getItem('user') || '{}')
             const token = localStorage.getItem('authToken')
@@ -748,7 +786,6 @@ export default {
             window.location.href = '/'
         },
         
-        // Форматирование дат
         formatDate(dateString) {
             if (!dateString) return '-'
             try {
@@ -790,7 +827,6 @@ export default {
             }
         },
         
-        // Методы для управления пользователями
         async loadUsers() {
             this.loading = true
             try {
@@ -851,7 +887,6 @@ export default {
             }
         },
         
-        // Методы для модальных окон
         confirmDelete(user) {
             if (this.currentAdmin?.id === user.id) {
                 alert('Вы не можете удалить свой аккаунт')
@@ -954,8 +989,14 @@ export default {
             }
         },
 
-        viewUserDetails(user) {
-            alert(`Ник: ${user.username}. E-mail: ${user.email}`)
+        viewUserDetails(user) {            
+            this.userToPreview = { ...user}
+            this.showPreviewModal = true
+        },
+
+        closePreviewModal() {
+            this.showPreviewModal = false
+            this.userToPreview = null
         }
     },
     

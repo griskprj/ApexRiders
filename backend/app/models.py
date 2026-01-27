@@ -11,6 +11,7 @@ class Member(db.Model):
     password_hash = db.Column(db.String(512))
     role = db.Column(db.String(20), default='member')  
     join_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    last_login = db.Column(db.DateTime)
 
     is_verified = db.Column(db.Boolean, default=False)
     verification_date = db.Column(db.DateTime, nullable=True)

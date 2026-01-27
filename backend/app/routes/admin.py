@@ -80,6 +80,7 @@ def get_users():
                 'is_verified': user.is_verified,
                 'join_at': user.join_at.isoformat() if user.join_at else None,
                 'last_admin_login': user.last_admin_login.isoformat() if user.last_admin_login else None,
+                'last_login': user.last_login.isoformat() if user.last_login else None,
                 'post_count': len(user.posts) if user.posts else 0,
                 'product_count': len(user.products) if user.products else 0,
                 'manual_count': len(user.authored_manuals) if user.authored_manuals else 0
@@ -195,8 +196,10 @@ def get_admin_stats():
             'id': u.id,
             'username': u.username,
             'email': u.email,
-            'join_at': u.join_at.isoformat() if u.join_at else None
+            'join_at': u.join_at.isoformat() if u.join_at else None,
         } for u in recent_users]
+
+        user.last_admin_login = datetime.now(timezone.utc)
 
         return jsonify({
             'stats': {
@@ -213,8 +216,9 @@ def get_admin_stats():
                 'admin_level': user.admin_level,
                 'is_super_admin': user.is_super_admin,
                 'is_verified': user.is_verified,
-                'last_admin_login': user.last_admin_login.isoformat() if user.last_admin_login else datetime.now(timezone.utc),
-                'join_at': user.join_at.isoformat() if user.join_at else None
+                'last_admin_login': user.last_admin_login.isoformat(),
+                'join_at': user.join_at.isoformat() if user.join_at else None,
+                'last_login': user.last_login.isoformat() if user.last_login else None
             }
         }), 200
     

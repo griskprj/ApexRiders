@@ -4,7 +4,7 @@ from app import db
 from app.models import Member, Post, Motorcycle, Like, Comment, MotorcycleMaintenance, MotorcycleNote, UserManualProgress, ManualRating, UserManualHistory, UserLessonHistory, UserCoursesHistory, Product, ManualDraft
 from flask_jwt_extended import jwt_required, create_access_token, get_jwt_identity
 from werkzeug.security import generate_password_hash, check_password_hash
-from datetime import timedelta
+from datetime import timedelta, datetime, timezone
 
 auth = Blueprint('auth', __name__)
 
@@ -19,6 +19,9 @@ def login_user():
             identity=str(member.id),
             expires_delta=timedelta(hours=24)
         )
+
+        member.last_login = datetime.now(timezone.utc)
+        db.session.commit()
 
         return jsonify({
             'access_token': access_token,
