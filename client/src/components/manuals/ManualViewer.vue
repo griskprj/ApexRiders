@@ -42,6 +42,7 @@
                             {{ manual.estimated_time }}
                         </span>
                     </div>
+                    <p>{{ manual.description }}</p>
                 </div>
             </div>
 
@@ -574,6 +575,7 @@ export default {
     gap: 20px;
     color: var(--text-secondary);
     font-size: 1rem;
+    margin-bottom: 15px;    
 }
 
 .manual-subtitle span {
