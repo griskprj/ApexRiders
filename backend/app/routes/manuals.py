@@ -52,7 +52,12 @@ def get_manuals():
         .order_by(UserManualHistory.viewed_at.desc()) \
         .limit(3) \
         .all()
-    user_manuals = [MaintenanceManual.query.get(manual_record.id) for manual_record in user_manuals_history]
+    
+    user_manuals = []
+    for manual_record in user_manuals_history:
+        manual = MaintenanceManual.query.get(manual_record.manual_id)
+        if manual:
+            user_manuals.append(manual)
 
     user_manuals_data = [{
         'id': m.id,
