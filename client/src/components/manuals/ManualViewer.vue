@@ -29,20 +29,30 @@
                 <div class="manual-title-section">
                     <h1>{{ manual.title }}</h1>
                     <div class="manual-subtitle">
-                        <span class="moto-info">
-                            <i class="fas fa-motorcycle"></i>
-                            {{ manual.moto_type }}
-                        </span>
-                        <span class="category">
-                            <i class="fas fa-tag"></i>
-                            {{ manual.category }}
-                        </span>
-                        <span class="time-estimate">
-                            <i class="fas fa-clock"></i>
-                            {{ manual.estimated_time }}
-                        </span>
+                        <div class="meta-info">
+                            <span class="moto-info">
+                                <i class="fas fa-motorcycle"></i>
+                                {{ manual.moto_type }}
+                            </span>
+                            <span class="category">
+                                <i class="fas fa-tag"></i>
+                                {{ manual.category }}
+                            </span>
+                            <span class="time-estimate" v-if="manual.estimated_time">
+                                <i class="fas fa-clock"></i>
+                                {{ manual.estimated_time }}
+                            </span>
+                        </div>
                     </div>
-                    <p>{{ manual.description }}</p>
+                    <div v-if="manual.description" class="manual-description">
+                        <div class="description-label">
+                            <i class="fas fa-file-alt"></i>
+                            <h3>Описание мануала</h3>
+                        </div>
+                        <div class="description-text">
+                            <p>{{ manual.description }}</p>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -571,6 +581,7 @@ export default {
 
 .manual-subtitle {
     display: flex;
+    flex-direction: column;
     flex-wrap: wrap;
     gap: 20px;
     color: var(--text-secondary);
@@ -582,6 +593,62 @@ export default {
     display: flex;
     align-items: center;
     gap: 8px;
+}
+
+.manual-description {
+    background: var(--dark-light);
+    border-radius: 20px;
+    padding: 25px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    max-width: 450px;
+    overflow-wrap: break-word;
+    word-wrap: break-word;
+    word-break: break-word;
+    hyphens: auto;
+}
+
+.manual-description p {
+    margin: 0;
+    line-height: 1.6;
+    color: var(--text);
+    font-size: 1.05rem;
+}
+
+.manual-description-compact {
+    background: rgba(255, 69, 0, 0.05);
+    border-radius: 10px;
+    padding: 15px;
+    margin-top: 15px;
+    border: 1px solid rgba(255, 69, 0, 0.1);
+}
+
+.manual-description-compact .description-content {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+}
+
+.manual-description-compact i {
+    color: var(--primary);
+    margin-top: 3px;
+    flex-shrink: 0;
+}
+
+.manual-description-compact .description-text {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.manual-description-compact strong {
+    color: var(--text);
+    font-weight: 600;
+}
+
+.manual-description-compact span {
+    color: var(--text);
+    line-height: 1.5;
 }
 
 .manual-progress {
