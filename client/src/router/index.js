@@ -20,7 +20,7 @@ import PrivacyPolicy from '../components/PrivacyPolicy.vue'
 import CommunityRules from '../components/CommunityRules.vue'
 import Contacts from '../components/Contacts.vue'
 import AdminDashboard from '../components/admin/AdminDashboard.vue'
-import AdminUsers from '../components/admin/AdminUsers.vue'
+import NotificationsPage from '../components/NotificationsPage.vue'
 
 const routes = [
     {
@@ -121,9 +121,11 @@ const routes = [
         component: AdminDashboard,
         meta: { requiresAuth: true }
     },
+
     {
-        path: '/admin/users',
-        component: AdminUsers,
+        path: '/notifications',
+        name: 'Notifications',
+        component: NotificationsPage,
         meta: { requiresAuth: true }
     },
 

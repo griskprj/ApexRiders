@@ -1,4 +1,4 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, current_app
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from app import db
 from app.models import Notification, Member, Post, Comment, Product
@@ -9,44 +9,52 @@ notifications_bp = Blueprint('notifications', __name__)
 @notifications_bp.route('/notifications', methods=['GET'])
 @jwt_required()
 def get_notifications():
-    """ Получить уведомления """
+    """Получить уведомления пользователя"""
     try:
         user_id = get_jwt_identity()
-
+        
+        # Параметры запроса
         page = request.args.get('page', 1, type=int)
         per_page = request.args.get('per_page', 20, type=int)
         unread_only = request.args.get('unread_only', 'false').lower() == 'true'
         notification_type = request.args.get('type')
-
+        
+        # Базовый запрос
         query = Notification.query.filter_by(user_id=user_id, is_archived=False)
-
+        
+        # Фильтры
         if unread_only:
             query = query.filter_by(is_read=False)
-
+        
         if notification_type:
             query = query.filter_by(notification_type=notification_type)
-
+        
+        # Сортировка по времени создания (новые первыми)
         query = query.order_by(Notification.created_at.desc())
-
+        
+        # Пагинация
         pagination = query.paginate(page=page, per_page=per_page, error_out=False)
-
+        
         notifications = [n.to_dict() for n in pagination.items]
-
+        
+        # Подсчет непрочитанных
         unread_count = Notification.query.filter_by(
-            user_id=user_id,
-            is_read=False,
+            user_id=user_id, 
+            is_read=False, 
             is_archived=False
         ).count()
-
+        
         return jsonify({
             'notifications': notifications,
             'unread_count': unread_count,
             'total': pagination.total,
+            'pages': pagination.pages,
             'current_page': page,
             'per_page': per_page
         }), 200
-    
+        
     except Exception as e:
+        current_app.logger.error(str(e))
         return jsonify({'error': str(e)}), 500
     
 @notifications_bp.route('/notifications/<int:notification_id>/read', methods=['PUT'])
@@ -102,7 +110,7 @@ def make_all_read():
     except Exception as e:
         db.session.rollback()
         return jsonify({
-            'error': {str(e)}
+            'error': str(e)
         }), 500
     
 @notifications_bp.route('/notifications/<int:notification_id>/archive', methods=['PUT'])
@@ -114,7 +122,7 @@ def archive_notification(notification_id):
 
         notification = Notification.query.get_or_404(notification_id)
 
-        if notification_id.user_id != user_id:
+        if int(notification.user_id) != int(user_id):
             return jsonify({'error': 'Недостаточно прав'}), 403
         
         notification.is_archived = True
@@ -127,7 +135,7 @@ def archive_notification(notification_id):
     except Exception as e:
         db.session.rollback()
         return jsonify({
-            'error': {str(e)}
+            'error': str(e)
         }), 500
     
 @notifications_bp.route('/notifications/count', methods=['GET'])

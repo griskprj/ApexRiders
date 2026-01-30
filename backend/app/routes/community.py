@@ -351,10 +351,10 @@ def like_post(post_id):
 
             from app.services.notification_service import NotificationService
             NotificationService.send_like_notification(
-                user_id=current_user_id,
+                liker_id=current_user_id,
                 target_type='post',
                 target_id=post.id,
-                target_owner_id=post.author_id
+                target_owner_id=post.author_id,
             )
 
             return jsonify({ 'liked': True, 'likesCount': post.like_count }), 200
@@ -477,7 +477,7 @@ def like_comment(comment_id):
 
             from app.services.notification_service import NotificationService
             NotificationService.send_like_notification(
-                user_id=current_user_id,
+                liker_id=current_user_id,
                 target_type='comment',
                 target_id=comment_id,
                 target_owner_id=comment.author_id

@@ -36,7 +36,7 @@ class NotificationService:
             metadata={
                 'liker_id': liker_id,
                 'liker_username': liker.username
-            }
+            },
         )
 
         db.session.add(notification)
@@ -68,7 +68,7 @@ class NotificationService:
                 'action_taken': action_taken,
                 'admin_username': admin.username,
                 'target_info': target_info
-            }
+            },
         )
 
         db.session.add(notification)
@@ -92,7 +92,7 @@ class NotificationService:
             admin_id=admin_id,
             metadata={
                 'admin_username': admin.username if admin else 'Администрация'
-            }
+            },
         )
 
         db.session.add(notification)

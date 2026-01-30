@@ -240,7 +240,8 @@ class Post(db.Model):
     image_url = db.Column(db.String(500), nullable=True, default=None)
     
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc)) 
-    updated_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), onupdate=datetime.now(timezone.utc))  
+    updated_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), 
+                       onupdate=lambda: datetime.now(timezone.utc)) 
     
     author = db.relationship('Member', backref='posts', lazy=True)  
     comments = db.relationship('Comment', backref='post')
@@ -259,7 +260,8 @@ class Comment(db.Model):
     like_count = db.Column(db.Integer, default=0)
 
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))  
-    updated_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))  
+    updated_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), 
+                       onupdate=lambda: datetime.now(timezone.utc))
 
 class Like(db.Model):
     __tablename__ = 'likes'  
@@ -617,7 +619,15 @@ class Notification(db.Model):
             return "только что"
         
         now = datetime.now(timezone.utc)
-        diff = now - self.created_at
+        
+        # Убедимся, что created_at тоже offset-aware
+        if self.created_at.tzinfo is None:
+            # Если created_at без временной зоны, добавим UTC
+            created_at_aware = self.created_at.replace(tzinfo=timezone.utc)
+        else:
+            created_at_aware = self.created_at
+        
+        diff = now - created_at_aware
         
         if diff.days > 365:
             years = diff.days // 365

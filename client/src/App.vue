@@ -1,3 +1,7 @@
+<script setup>
+import NotificationBell from './components/NotificationBell.vue';
+</script>
+
 <template>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
@@ -115,7 +119,6 @@
 </template>
 
 <script>
-import NotificationBell from './components/NotificationBell.vue';
 import { authService } from './utils/checkAuth'
 
 export default {
