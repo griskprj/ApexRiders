@@ -8,7 +8,7 @@
             <span>ApexRiders</span>
         </router-link>
         
-        <div class="nav-links" v-if="!isMobile">
+        <div class="nav-links" v-if="!isMobile && user">
             <router-link to="/dashboard" class="nav-link" v-if="user">Главная</router-link>
             <router-link to="/manuals" class="nav-link" v-if="user">Мануалы</router-link>
             <router-link to="/courses" class="nav-link" v-if="user">Курсы</router-link>
@@ -16,6 +16,8 @@
             <router-link to="/community" class="nav-link" v-if="user">Сообщество</router-link>
             <router-link to="/profile" class="nav-link" v-if="user">Профиль</router-link>
             <router-link to="/admin/dashboard" class="nav-link" v-if="user && user.admin_level > 0">Админка</router-link>
+            
+            <NotificationBell/>
         </div>
         
         <div class="auth-buttons" v-if="!isMobile && !user">
@@ -32,7 +34,7 @@
     </nav>
 
     <!-- Мобильное меню -->
-    <div v-if="isMobile && !isAdminRoute" class="mobile-menu" :class="{ 'active': isMobileMenuOpen }">
+    <div v-if="isMobile && user && !isAdminRoute" class="mobile-menu" :class="{ 'active': isMobileMenuOpen }">
         <router-link to="/dashboard" class="nav-link" v-if="user" @click="closeMobileMenu">Главная</router-link>
         <router-link to="/manuals" class="nav-link" v-if="user" @click="closeMobileMenu">Мануалы</router-link>
         <router-link to="/courses" class="nav-link" v-if="user" @click="closeMobileMenu">Курсы</router-link>
@@ -41,6 +43,11 @@
         <router-link to="/profile" class="nav-link" v-if="user" @click="closeMobileMenu">Профиль</router-link>
         <router-link to="/admin/dashboard" class="nav-link" v-if="user && user.admin_level > 0" @click="closeMobileMenu">Админка</router-link>
 
+        <router-link to="/notifications" class="nav-link" @click="closeMobileMenu">
+            <i class="fas fa-bell"></i>
+            Уведомления
+            <span v-if="notificationCount > 0" class=""></span>
+        </router-link>
         
         <div class="mobile-auth">
             <router-link to="/login" class="btn btn-outline" v-if="!user" @click="closeMobileMenu">Войти</router-link>
@@ -108,6 +115,7 @@
 </template>
 
 <script>
+import NotificationBell from './components/NotificationBell.vue';
 import { authService } from './utils/checkAuth'
 
 export default {

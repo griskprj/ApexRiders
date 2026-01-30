@@ -348,6 +348,15 @@ def like_post(post_id):
             db.session.add(new_like)
             post.like_count += 1
             db.session.commit()
+
+            from app.services.notification_service import NotificationService
+            NotificationService.send_like_notification(
+                user_id=current_user_id,
+                target_type='post',
+                target_id=post.id,
+                target_owner_id=post.author_id
+            )
+
             return jsonify({ 'liked': True, 'likesCount': post.like_count }), 200
         
     except Exception as e:
@@ -465,6 +474,15 @@ def like_comment(comment_id):
             db.session.add(new_like)
             comment.like_count += 1
             db.session.commit()
+
+            from app.services.notification_service import NotificationService
+            NotificationService.send_like_notification(
+                user_id=current_user_id,
+                target_type='comment',
+                target_id=comment_id,
+                target_owner_id=comment.author_id
+            )
+
             return jsonify({ 'liked': True, 'likesCount': comment.like_count }), 200
         
     except Exception as e:

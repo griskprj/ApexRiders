@@ -560,3 +560,83 @@ class UserManualHistory(db.Model):
 
     user = db.relationship('Member', back_populates='manual_history')  
     manual = db.relationship('MaintenanceManual')
+
+
+class Notification(db.Model):
+    __tablename__ = 'notifications'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('members.id'), nullable=False)
+    
+    notification_type = db.Column(db.String(50), nullable=False)  # like_post, like_comment, like_product, admin_report, admin_broadcast
+    
+    title = db.Column(db.String(200), nullable=False)
+    message = db.Column(db.Text)
+    
+    target_type = db.Column(db.String(50))  # post, comment, product, admin
+    target_id = db.Column(db.Integer)
+    
+    metadata_ = db.Column(db.JSON, default=dict)
+    
+    is_read = db.Column(db.Boolean, default=False)
+    is_archived = db.Column(db.Boolean, default=False)
+    
+    admin_id = db.Column(db.Integer, db.ForeignKey('members.id'), nullable=True)
+    priority = db.Column(db.String(20), default='normal')  # low, normal, high
+    
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    read_at = db.Column(db.DateTime, nullable=True)
+    
+    user = db.relationship('Member', backref=db.backref('notifications', lazy=True), foreign_keys=[user_id])
+    admin = db.relationship('Member', foreign_keys=[admin_id])
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'user_id': self.user_id,
+            'notification_type': self.notification_type,
+            'title': self.title,
+            'message': self.message,
+            'target_type': self.target_type,
+            'target_id': self.target_id,
+            'metadata': self.metadata_ or {},
+            'is_read': self.is_read,
+            'is_archived': self.is_archived,
+            'priority': self.priority,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'read_at': self.read_at.isoformat() if self.read_at else None,
+            'admin_info': {
+                'id': self.admin.id if self.admin else None,
+                'username': self.admin.username if self.admin else None
+            } if self.admin else None,
+            'ago_time': self.get_ago_time()
+        }
+    
+    def get_ago_time(self):
+        if not self.created_at:
+            return "только что"
+        
+        now = datetime.now(timezone.utc)
+        diff = now - self.created_at
+        
+        if diff.days > 365:
+            years = diff.days // 365
+            return f"{years} год назад" if years == 1 else f"{years} лет назад"
+        elif diff.days > 30:
+            months = diff.days // 30
+            return f"{months} месяц назад" if months == 1 else f"{months} месяцев назад"
+        elif diff.days > 0:
+            return f"{diff.days} день назад" if diff.days == 1 else f"{diff.days} дней назад"
+        elif diff.seconds > 3600:
+            hours = diff.seconds // 3600
+            return f"{hours} час назад" if hours == 1 else f"{hours} часов назад"
+        elif diff.seconds > 60:
+            minutes = diff.seconds // 60
+            return f"{minutes} минуту назад" if minutes == 1 else f"{minutes} минут назад"
+        else:
+            return "только что"
+    
+    def mark_as_read(self):
+        if not self.is_read:
+            self.is_read = True
+            self.read_at = datetime.now(timezone.utc)
