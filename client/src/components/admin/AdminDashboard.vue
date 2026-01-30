@@ -1490,7 +1490,7 @@ export default {
     background: rgba(10, 10, 15, 0.5);
 }
 
-/* Стили для страницы управления пользователями (из AdminUsers.vue) */
+/* Стили для страницы управления пользователями */
 .page-header {
     display: flex;
     justify-content: space-between;
@@ -1634,7 +1634,7 @@ export default {
     background: rgba(255, 255, 255, 0.03);
     border-radius: 15px;
     border: 1px solid rgba(255, 255, 255, 0.05);
-    overflow: hidden;
+    overflow-x: scroll;
     position: relative;
     min-height: 400px;
 }
@@ -2254,7 +2254,6 @@ export default {
     
     .users-table {
         display: block;
-        overflow-x: auto;
     }
     
     .pagination {
