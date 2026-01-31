@@ -13,35 +13,62 @@ export class AuthService {
             this.clearAuth()
             return null
         }
+
+        if (!this.isValidToken(token)) {
+            this.clearAuth()
+            return null
+        }
+
+        if (token && this.isTokenExpired(token)) {
+            this.clearAuth()
+            return null
+        }
         
         const cachedUser = this.getUser()
         const now = Date.now()
 
         if (cachedUser && cachedUser._timestamp && 
             (now - cachedUser._timestamp < 5 * 60 * 1000) && !force) {
-                return cachedUser
+            return cachedUser
         }
 
-        try {
-            const user = await this.fetchCurrentUser()
-            if (user) {
-                user._timestamp = now
-                this.saveUser(user)
-                return user
-            }
-        } catch (error) {
-            console.error('Auth check failed: ', error)
+        if (this.isOnline()) {
+            try {
+                const user = await this.fetchCurrentUser()
+                if (user) {
+                    user._timestamp = now
+                    this.saveUser(user)
+                    return user
+                } else {
+                    this.clearAuth()
+                    return null
+                }
+            } catch (error) {
+                console.error('Auth check failed: ', error)
 
-            if (error.status === 401) {
-                this.clearAuth()
-            }
+                if (error.status === 401 || error.status === 403) {
+                    this.clearAuth()
+                    return null
+                }
 
-            if (!this.isOnline() && cachedUser) {
-                return cachedUser
+                if (!this.isOnline() && cachedUser) {
+                    return cachedUser
+                }
             }
+        } else {
+            return cachedUser || null
         }
         
         return null
+    }
+
+    isTokenExpired(token) {
+        try {
+            const payload = JSON.parse(atob(token.split('.')[1]))
+            return payload.exp && payload.exp * 1000 < Date.now()
+        } catch {
+            return true
+        }
     }
 
     async fetchCurrentUser() {
@@ -64,8 +91,8 @@ export class AuthService {
             clearTimeout(timeoutId)
 
             if (!response.ok) {
-                if (response.status === 401) {
-                    throw { status: 401, message: 'Unauthorized' }
+                if (response.status === 401 || response.status === 403) {
+                    throw { status: response.status, message: 'Unauthorized' }
                 }
                 throw new Error(`HTTP ${response.status}`)
             }
@@ -158,6 +185,11 @@ export class AuthService {
 
         if (!token || !user) return false
 
+        if (this.isTokenExpired(token)) {
+            this.clearAuth()
+            return false
+        }
+
         if (!this.isValidToken(token)) {
             return false
         }
@@ -207,6 +239,20 @@ export class AuthService {
     isOnline() {
         return typeof navigator !== 'undefined' && navigator.onLine
     }
+
+    getAuthStatus() {
+        const token = this.getToken()
+        const user = this.getUser()
+        const isAuthenticated = this.isAuthenticated()
+        
+        return {
+            isAuthenticated,
+            hasToken: !!token,
+            hasUser: !!user,
+            user,
+            token
+        }
+    }
 }
 
 export const authService = new AuthService()
@@ -216,3 +262,4 @@ export const isAuthenticated = () => authService.isAuthenticated()
 export const getToken = () => authService.getToken()
 export const getUser = () => authService.getUser()
 export const logout = () => authService.logout()
+export const getAuthStatus = () => authService.getAuthStatus()

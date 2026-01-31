@@ -1,140 +1,119 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { authService } from '../utils/checkAuth'
-import Home from '../components/Home.vue'
-import Register from '../components/Register.vue'
-import Login from '../components/Login.vue'
-import Dashboard from '../components/Dashboard.vue'
-import Manuals from '../components/Manuals.vue'
-import Courses from '../components/Courses.vue'
-import Market from '../components/Market.vue'
-import Community from '../components/Community.vue'
-import ProductDetails from '../components/ProductDetails.vue'
-import CreateManual from '../components/manuals/CreateManual.vue'
-import ManualViewer from '../components/manuals/ManualViewer.vue'
-import EditManual from '../components/manuals/EditManual.vue'
-import PostView from '../components/PostView.vue'
-import Profile from '../components/Profile.vue'
-import Garage from '../components/Garage.vue'
-import AboutPage from '../components/AboutPage.vue'
-import PrivacyPolicy from '../components/PrivacyPolicy.vue'
-import CommunityRules from '../components/CommunityRules.vue'
-import Contacts from '../components/Contacts.vue'
-import AdminDashboard from '../components/admin/AdminDashboard.vue'
-import NotificationsPage from '../components/NotificationsPage.vue'
 
 const routes = [
     {
         path: '/',
         name: 'Home',
-        component: Home,
+        component: () => import('../components/Home.vue'),
         meta: { public: true }
     },
     {
         path: '/register',
         name: 'Register',
-        component: Register,
+        component: () => import('../components/Register.vue'),
         meta: { public: true, guestOnly: true }
     },
     {
         path: '/login',
         name: 'Login',
-        component: Login,
+        component: () => import('../components/Login.vue'),
         meta: { public: true, guestOnly: true }
     },
     {
         path: '/dashboard',
         name: 'Dashboard',
-        component: Dashboard,
+        component: () => import('../components/Dashboard.vue'),
         meta: { requiresAuth: true }
     },
     {
         path: '/manuals',
         name: 'Manuals',
-        component: Manuals,
+        component: () => import('../components/Manuals.vue'),
         meta: { requiresAuth: true }
     },
     {
         path: '/create-manual',
         name: 'CreateManual',
-        component: CreateManual,
+        component: () => import('../components/manuals/CreateManual.vue'),
         meta: { requiresAuth: true }
     },
     {
         path: '/manual/:id',
         name: 'ManualViewer',
-        component: ManualViewer,
+        component: () => import('../components/manuals/ManualViewer.vue'),
         props: true,
         meta: { requiresAuth: true }
     },
     {
         path: '/constructor/edit/:id',
         name: 'EditManual',
-        component: EditManual,
+        component: () => import('../components/manuals/EditManual.vue'),
         meta: { requiresAuth: true }
     },
     {
         path: '/courses',
         name: 'Courses',
-        component: Courses,
+        component: () => import('../components/Courses.vue'),
         meta: { requiresAuth: true }
     },
     {
         path: '/market',
         name: 'Market',
-        component: Market,
+        component: () => import('../components/Market.vue'),
         meta: { requiresAuth: true }
     },
     {
         path: '/market/:id',
         name: 'MarketDetail',
-        component: ProductDetails,
+        component: () => import('../components/ProductDetails.vue'),
         props: true,
         meta: { requiresAuth: true }
     },
     {
         path: '/community',
         name: 'Community',
-        component: Community,
+        component: () => import('../components/Community.vue'),
         meta: { requiresAuth: true }
     },
     {
         path: '/community/post/:id',
         name: 'PostView',
-        component: PostView,
+        component: () => import('../components/PostView.vue'),
         meta: { requiresAuth: true }
     },
     {
         path: '/profile',
         name: 'Profile',
-        component: Profile,
+        component: () => import('../components/Profile.vue'),
         meta: { requiresAuth: true }
     },
     {
         path: '/garage/:id',
         name: 'Garage',
-        component: Garage,
+        component: () => import('../components/Garage.vue'),
         meta: { requiresAuth: true }
     },
 
     {
         path: '/admin/dashboard',
-        component: AdminDashboard,
-        meta: { requiresAuth: true }
+        component: () => import('../components/admin/AdminDashboard.vue'),
+        meta: { requiresAuth: true, requiresAdmin: true }
     },
 
     {
         path: '/notifications',
         name: 'Notifications',
-        component: NotificationsPage,
+        component: () => import('../components/NotificationsPage.vue'),
         meta: { requiresAuth: true }
     },
 
     {
         path: '/about',
         name: 'AboutPage',
-        component: AboutPage,
+        component: () => import('../components/AboutPage.vue'),
         meta: { 
-            requiresAuth: false,
+            public: true,
             title: 'О проекте'
          }
     },
@@ -142,24 +121,27 @@ const routes = [
     {
         path: '/privacy-policy',
         name: 'PrivacyPolicy',
-        component: PrivacyPolicy,
+        component: () => import('../components/PrivacyPolicy.vue'),
         meta: {
+            public: true,
             title: 'Политика конфиденциальности'
         }
     },
     {
         path: '/community-rules',
         name: 'CommunityRules',
-        component: CommunityRules,
+        component: () => import('../components/CommunityRules.vue'),
         meta: {
+            public: true,
             title: 'Правила сообщества'
         }
     },
     {
         path: '/contacts',
         name: 'Contacts',
-        component: Contacts,
+        component: () => import('../components/Contacts.vue'),
         meta: {
+            public: true,
             title: 'Контакты'
         }
     },
@@ -167,7 +149,7 @@ const routes = [
     {
         path: '/:pathMatch(.*)*',
         name: 'NotFound',
-        component: Home,
+        component: () => import('../components/Home.vue'),
         meta: { public: true }
     }
 ]
@@ -191,42 +173,47 @@ router.beforeEach(async (to, from, next) => {
 
     const requiresAuth = to.matched.some(record => record.meta.requiresAuth)
     const guestOnly = to.matched.some(record => record.meta.guestOnly)
+    const requiresAdmin = to.matched.some(record => record.meta.requiresAdmin)
 
-    const hasToken = authService.getToken()
-    const cachedUser = authService.getUser()
-
-    if (hasToken && cachedUser && !guestOnly) {
+    if (guestOnly) {
+        const isAuthenticated = authService.isAuthenticated()
+        if (isAuthenticated) {
+            return next('/dashboard')
+        }
         return next()
     }
 
     if (requiresAuth) {
         try {
-            if (!navigator.onLine && cachedUser) {
-                console.log('Offline mode, using cached user')
-                return next()
+            const user = await authService.checkAuth(false)
+            
+            if (!user) {
+                authService.clearAuth()
+                return next('/login')
             }
 
-            const user = await authService.checkAuth()
-            if (user) {
-                return next()
-            } else {
-                return next({
-                    name: 'Login',
-                    query: { redirect: to.fullPath }
-                })
+            if (requiresAdmin) {
+                if (!user.admin_level || user.admin_level <= 0) {
+                    return next('/dashboard')
+                }
             }
+
+            return next()
         } catch (error) {
-            console.error('Auth check error:', error)
-            if (cachedUser && hasToken) {
-                console.log('Network error, using cached auth')
-                return next()
-            }
-            return next({ name: 'Login' })
+            console.error('Auth error:', error)
+            authService.clearAuth()
+            return next('/login')
         }
     }
 
-    if (guestOnly && hasToken) {
-        return next({ name: 'Dashboard' })
+    next()
+})
+
+router.afterEach((to) => {
+    if (to.meta.title) {
+        document.title = `${to.meta.title} | ApexRiders`
+    } else {
+        document.title = 'ApexRiders'
     }
 })
 
