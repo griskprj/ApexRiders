@@ -114,7 +114,7 @@
           title="Предпросмотр"
         >
           <i class="fas fa-eye"></i>
-          <span v-if="!isMobile">Просмотр</span>
+          <span v-if="!isMobile"></span>
         </button>
       </div>
     </div>
@@ -182,33 +182,6 @@
         <i :class="mode.icon"></i>
         <span v-if="!isMobile">{{ mode.label }}</span>
       </button>
-    </div>
-
-    <!-- Мобильное контекстное меню -->
-    <div class="mobile-context-menu" v-if="showContextMenu && isMobile">
-      <div class="context-menu-content">
-        <button @click="copySelectedText">
-          <i class="fas fa-copy"></i>
-          <span>Копировать</span>
-        </button>
-        <button @click="cutSelectedText">
-          <i class="fas fa-cut"></i>
-          <span>Вырезать</span>
-        </button>
-        <button @click="pasteText">
-          <i class="fas fa-paste"></i>
-          <span>Вставить</span>
-        </button>
-        <button @click="selectAllText">
-          <i class="fas fa-check-double"></i>
-          <span>Выделить всё</span>
-        </button>
-        <div class="divider"></div>
-        <button @click="showContextMenu = false">
-          <i class="fas fa-times"></i>
-          <span>Закрыть</span>
-        </button>
-      </div>
     </div>
   </div>
 </template>
@@ -698,7 +671,7 @@ export default {
 /* Текстовое поле */
 .markdown-textarea {
   width: 100%;
-  height: 100%;
+  height: 460px;
   min-height: 250px;
   background: transparent;
   border: none;
@@ -909,59 +882,6 @@ export default {
   color: white;
 }
 
-/* Контекстное меню для мобильных */
-.mobile-context-menu {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  background: var(--dark-light);
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
-  z-index: 1000;
-  animation: slideUp 0.3s ease;
-}
-
-@keyframes slideUp {
-  from {
-    transform: translateY(100%);
-  }
-  to {
-    transform: translateY(0);
-  }
-}
-
-.context-menu-content {
-  padding: 15px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.context-menu-content button {
-  display: flex;
-  align-items: center;
-  gap: 15px;
-  padding: 12px 15px;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 10px;
-  color: var(--text-secondary);
-  cursor: pointer;
-  transition: all 0.3s ease;
-  text-align: left;
-}
-
-.context-menu-content button:hover {
-  background: rgba(255, 255, 255, 0.1);
-  color: var(--text);
-}
-
-.context-menu-content .divider {
-  height: 1px;
-  background: rgba(255, 255, 255, 0.1);
-  margin: 5px 0;
-}
-
 /* Адаптивность */
 @media (max-width: 768px) {
   .editor-toolbar .left-group > button:not(.mobile-menu-btn):not(.keyboard-toggle) {
@@ -981,7 +901,7 @@ export default {
   }
   
   .markdown-textarea {
-    font-size: 16px !important; /* Предотвращает масштабирование на iOS */
+    font-size: 16px !important;
     min-height: 200px;
   }
   

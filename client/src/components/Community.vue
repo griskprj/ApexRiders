@@ -1,316 +1,64 @@
 <script setup>
+import CreatePostModal from './community/CreatePostModal.vue';
+import HeaderFilter from './community/HeaderFilter.vue';
+import Paginatie from './community/Paginatie.vue';
+import PostsArray from './community/PostsArray.vue';
+import Sidebar from './community/Sidebar.vue';
 import MarkdownEditor from './MarkdownEditor.vue';
 </script>
 <template>
-    <!-- Декоративные элементы -->
-    <div class="decoration decoration-1"></div>
-    <div class="decoration decoration-2"></div>
 
     <!-- Сообщество -->
     <section class="community">
-        <!-- Заголовок и фильтры -->
-        <div class="community-header">
-            <div class="header-main">
-                <h1 class="community-title">
-                    <i class="fas fa-users"></i>
-                    <span>Сообщество мотоциклистов</span>
-                </h1>
-                <p class="community-subtitle">Общайтесь, делитесь опытом и находите единомышленников</p>
-            </div>
-            
-            <div class="header-controls">
-                <div class="filters">
-                    <button 
-                        v-for="filter in filters" 
-                        :key="filter.id"
-                        @click="activeFilter = filter.id"
-                        :class="['filter-btn', { active: activeFilter === filter.id }]"
-                    >
-                        <i :class="filter.icon"></i>
-                        {{ filter.label }}
-                    </button>
-                </div>
-                
-                <button class="btn btn-primary create-post-btn" @click="openCreateModal">
-                    <i class="fas fa-plus"></i>
-                    Создать пост
-                </button>
-            </div>
-        </div>
+        <HeaderFilter 
+            :active-filter="activeFilter"
+            @filter-change="handleFilterChange"
+            @create-post="openCreateModal"
+        />
 
         <!-- Основной контент -->
         <div class="community-content">
             <!-- Список постов -->
             <div class="posts-section">
-                <div v-if="loading" class="loading-container">
-                    <div class="loading-spinner"></div>
-                    <p>Загрузка постов...</p>
-                </div>
-                
-                <div v-else-if="filteredPosts.length === 0" class="no-posts">
-                    <i class="fas fa-comments"></i>
-                    <h3>Пока нет постов</h3>
-                    <p>Будьте первым, кто поделится своим опытом!</p>
-                    <button class="btn btn-primary" @click="showCreateModal = true">
-                        Создать первый пост
-                    </button>
-                </div>
-                
-                <div v-else class="posts-grid">
-                    <div 
-                        v-for="post in filteredPosts" 
-                        :key="post.id" 
-                        class="post-card"
-                        @click="openPost(post)"
-                    >
-                        <!-- Изображение поста -->
-                        <div class="post-image">
-                            <img :src="post.imageUrl" :alt="post.title">
-                            <div class="post-category">
-                                <i :class="post.categoryIcon"></i>
-                                {{ post.category }}
-                            </div>
-                        </div>
-                        
-                        <div class="post-content" :class="{ 'no-image': !post.imageUrl }">
-                            <!-- Заголовок и мета-информация -->
-                            <div class="post-header">
-                                <h3 class="post-title">{{ post.title }}</h3>
-                                <div class="post-meta">
-                                    <div class="post-author">
-                                        <div class="author-avatar">
-                                            <i class="fas fa-user"></i>
-                                        </div>
-                                        <div class="author-info">
-                                            <div class="author-name">{{ post.author.name }}</div>
-                                            <div class="post-date">{{ formatDate(post.createdAt) }}</div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <!-- Краткое содержание -->
-                            <p class="post-excerpt">{{ post.excerpt }}</p>
-                            
-                            <!-- Статистика и действия -->
-                            <div class="post-footer">
-                                <div class="post-stats">
-                                    <span class="post-stat">
-                                        <i class="fas fa-comment"></i>
-                                        {{ post.commentsCount }}
-                                    </span>
-                                    <span class="post-stat">
-                                        <i class="fas fa-heart"></i>
-                                        {{ post.likesCount }}
-                                    </span>
-                                    <span class="post-stat">
-                                        <i class="fas fa-eye"></i>
-                                        {{ post.views }}
-                                    </span>
-                                </div>                                
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                <PostsArray
+                    :filtered-posts="filteredPosts"
+                    :format-date="formatDate"
+                    :open-post="openPost"
+                    :show-create-modal="showCreateModal"
+                />
                 
                 <!-- Пагинация -->
-                <div v-if="filteredPosts.length > 0" class="pagination">
-                    <button 
-                        class="pagination-btn"
-                        :disabled="currentPage === 1"
-                        @click="currentPage--"
-                    >
-                        <i class="fas fa-chevron-left"></i>
-                        Назад
-                    </button>
-                    
-                    <div class="page-numbers">
-                        <span 
-                            v-for="page in totalPages" 
-                            :key="page"
-                            :class="['page-number', { active: currentPage === page }]"
-                            @click="currentPage = page"
-                        >
-                            {{ page }}
-                        </span>
-                    </div>
-                    
-                    <button 
-                        class="pagination-btn"
-                        :disabled="currentPage === totalPages"
-                        @click="currentPage++"
-                    >
-                        Вперед
-                        <i class="fas fa-chevron-right"></i>
-                    </button>
-                </div>
+                 <Paginatie
+                    :filtered-posts="filteredPosts"
+                    :current-page="currentPage"
+                    :total-pages="totalPages"
+                 />
             </div>
             
-            <!-- Боковая панель -->
-            <div class="sidebar">
-                <!-- Активные пользователи -->
-                <div class="sidebar-card users-card">
-                    <h3 class="sidebar-title">
-                        <i class="fas fa-trophy"></i>
-                        Активные пользователи
-                    </h3>
-                    <div class="users-list">
-                        <div 
-                            v-for="user in activeUsers" 
-                            :key="user.id"
-                            class="user-item"
-                        >
-                            <div class="user-avatar">
-                                <i class="fas fa-user"></i>
-                            </div>
-                            <div class="user-info">
-                                <div class="user-name">{{ user.name }}</div>
-                                <div class="user-posts">{{ user.posts }} постов</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
+            <Sidebar
+                :active-users="activeUsers"
+            />
         </div>
 
-        <!-- Модальное окно создания поста -->
-        <div v-if="showCreateModal" class="modal-overlay" @click.self="closeCreateModal">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <div>
-                        <h2>Создать новый пост</h2>
-                        <button class="modal-close" @click="closeCreateModal">
-                            <i class="fas fa-times"></i>
-                        </button>
-                        <button 
-                            type="button" 
-                            class="btn btn-outline"
-                            @click="clearDraftAndForm"
-                            v-if="hasUnsavedDraft"
-                        >
-                            <i class="fas fa-trash"></i>
-                            Удалить черновик
-                        </button>
-                    </div>
-                    <div v-if="hasUnsavedDraft" class="draft-info">
-                        <i class="fas fa-save"></i>
-                        <span>Черновик сохранен</span>
-                        <small>Автоматически сохраняется при изменении</small>
-                    </div>
-                </div>
-                
-                <div class="modal-body">
-                    <div>
-                        <div class="form-group">
-                            <label for="postTitle">Заголовок</label>
-                            <input
-                                id="postTitle"
-                                v-model="newPost.title"
-                                type="text"
-                                placeholder="О чём хотите рассказать?"
-                                required
-                            />
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="postContent">Содержание (Markdown)</label>
-                            <MarkdownEditor
-                                v-if="showCreateModal"
-                                :key="markdownEditorKey"
-                                v-model="newPost.content"
-                                :rows="8"
-                                placeholder="Напишите ваш пост используя Markdown..."
-                            />
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="postTags">Теги (через запятую)</label>
-                            <input
-                                id="postTags"
-                                v-model="newPost.tags"
-                                type="text"
-                                placeholder="ремонт, байк, путешествие"
-                            />
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="postImage">Изображение</label>
-                            
-                            <div class="image-upload-container">
-                                <!-- Превью изображения -->
-                                <div v-if="imagePreview" class="image-preview">
-                                    <img :src="imagePreview" alt="Preview" />
-                                    <button type="button" class="remove-image" @click="removeImage">
-                                        <i class="fas fa-times"></i>
-                                    </button>
-                                </div>
-                                
-                                <!-- Кнопки загрузки -->
-                                <div class="upload-options" v-if="!imagePreview">
-                                    <input
-                                        type="file"
-                                        id="fileInput"
-                                        ref="fileInput"
-                                        @change="handleFileUpload"
-                                        accept="image/*"
-                                        style="display: none"
-                                    />
-                                    
-                                    <div class="upload-buttons">
-                                        <button 
-                                            type="button" 
-                                            class="btn btn-outline upload-btn"
-                                            @click="$refs.fileInput.click()"
-                                        >
-                                            <i class="fas fa-upload"></i>
-                                            Загрузить с устройства
-                                        </button>
-                                        
-                                        <div class="upload-or">
-                                            <span>или</span>
-                                        </div>
-                                        
-                                        <div class="url-upload">
-                                            <input
-                                                type="text"
-                                                v-model="newPost.imageUrl"
-                                                placeholder="Вставьте URL изображения"
-                                                @blur="updateImagePreview"
-                                                @keyup.enter="updateImagePreview"
-                                            />
-                                        </div>
-                                    </div>
-                                    
-                                    <div class="upload-hints">
-                                        <small>Поддерживаемые форматы: JPG, PNG, GIF, WebP</small>
-                                        <small>Максимальный размер: 5MB</small>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div class="form-actions">
-                            <button 
-                                type="button" 
-                                class="btn btn-outline"
-                                @click="showCreateModal = false"
-                            >
-                                Отмена
-                            </button>
-                            <button 
-                                type="submit" 
-                                class="btn btn-primary"
-                                :disabled="creatingPost"
-                                @click.prevent="createPost"
-                            >
-                                <span v-if="creatingPost">Публикация...</span>
-                                <span v-else>Опубликовать</span>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
+        <!-- Модальное окно создания/редактирования поста -->
+        <CreatePostModal
+            :show="showCreateModal"
+            :form-data="newPost"
+            :image-preview="imagePreview"
+            :has-unsaved-draft="hasUnsavedDraft"
+            :creating-post="creatingPost"
+            :markdown-editor-key="markdownEditorKey"
+            @close="closeCreateModal"
+            @submit="createPost"
+            @clear-draft="clearDraftAndForm"
+            @remove-image="removeImage"
+            @file-upload="handleFileUpload"
+            @update-image-preview="updateImagePreview"
+            @update:title="value => newPost.title = value"
+            @update:content="value => newPost.content = value"
+            @update:tags="value => newPost.tags = value"
+            @update:imageUrl="value => newPost.imageUrl = value"
+        />
     </section>
 </template>
 
@@ -320,12 +68,6 @@ export default {
     
     data() {
         return {
-            filters: [
-                { id: 'all', label: 'Все посты', icon: 'fas fa-globe' },
-                { id: 'popular', label: 'Популярные', icon: 'fas fa-fire' },
-                { id: 'recent', label: 'Новые', icon: 'fas fa-clock' },
-                { id: 'my', label: 'Мои посты', icon: 'fas fa-user' }
-            ],
             activeFilter: 'all',
             posts: [],
             loading: true,
@@ -371,7 +113,7 @@ export default {
         },
 
         hasImage() {
-            return !!this.imagePreview || !!this.newPost.imageUrl
+            return !!this.imagePreview || !!this.newPost.imageUrl;
         }
     },
 
@@ -414,9 +156,9 @@ export default {
     },
     
     async mounted() {
-        this.getCurrentUserId()
+        this.getCurrentUserId();
 
-        window.addEventListener('beforeunload', this.handleBeforeUnload)
+        window.addEventListener('beforeunload', this.handleBeforeUnload);
 
         await Promise.all([
             this.fetchPosts(),
@@ -425,10 +167,10 @@ export default {
     },
 
     beforeUnmount() {
-        window.removeEventListener('beforeunload', this.handleBeforeUnload)
+        window.removeEventListener('beforeunload', this.handleBeforeUnload);
 
         if (this.autoSaveTimer) {
-            clearTimeout(this.autoSaveTimer)
+            clearTimeout(this.autoSaveTimer);
         }
     },
     
@@ -516,44 +258,44 @@ export default {
         },
 
         async createPost() {
-            const title = String(this.newPost.title || '').trim()
-            const content = String(this.newPost.content || '')
+            const title = String(this.newPost.title || '').trim();
+            const content = String(this.newPost.content || '');
             
             if (!title) {
-                alert('Заголовок обязателен')
-                return
+                alert('Заголовок обязателен');
+                return;
             }
             
             if (!content) {
-                alert('Содержание поста обязательно')
-                return
+                alert('Содержание поста обязательно');
+                return;
             }
             
-            this.creatingPost = true
+            this.creatingPost = true;
             
             try {
-                const token = localStorage.getItem('authToken')
+                const token = localStorage.getItem('authToken');
  
-                const formData = new FormData()
-                formData.append('title', title)
-                formData.append('content', content)
+                const formData = new FormData();
+                formData.append('title', title);
+                formData.append('content', content);
                 
                 if (this.newPost.tags && this.newPost.tags.trim()) {
-                    formData.append('tags', this.newPost.tags.trim())
+                    formData.append('tags', this.newPost.tags.trim());
                 }
                 
-                const fileInput = this.$refs.fileInput
+                const fileInput = this.$refs.fileInput;
                 
                 if (fileInput && fileInput.files && fileInput.files[0]) {
-                    formData.append('image', fileInput.files[0])
+                    formData.append('image', fileInput.files[0]);
                 } 
                 else if (this.newPost.imageUrl && this.newPost.imageUrl.trim()) {
-                    formData.append('imageUrl', this.newPost.imageUrl.trim())
+                    formData.append('imageUrl', this.newPost.imageUrl.trim());
                 }
                 else if (this.imagePreview && this.imagePreview.startsWith('data:')) {
-                    alert('Пожалуйста, загрузите изображение заново или введите URL')
-                    this.creatingPost = false
-                    return
+                    alert('Пожалуйста, загрузите изображение заново или введите URL');
+                    this.creatingPost = false;
+                    return;
                 }
                 
                 const response = await fetch('/api/posts', {
@@ -565,31 +307,31 @@ export default {
                 })
 
                 if (!response.ok) {
-                    const errorText = await response.text()
-                    console.error('Ошибка сервера:', errorText)
+                    const errorText = await response.text();
+                    console.error('Ошибка сервера:', errorText);
                     try {
-                        const errorData = JSON.parse(errorText)
-                        throw new Error(errorData.error || `Ошибка ${response.status}`)
+                        const errorData = JSON.parse(errorText);
+                        throw new Error(errorData.error || `Ошибка ${response.status}`);
                     } catch {
-                        throw new Error(`Ошибка ${response.status}: ${errorText}`)
+                        throw new Error(`Ошибка ${response.status}: ${errorText}`);
                     }
                 }
 
-                const newPostData = await response.json()
-                this.clearDraft()
-                this.clearForm()
+                const newPostData = await response.json();
+                this.clearDraft();
+                this.clearForm();
 
-                await this.fetchPosts()
-                await this.fetchCommunityStats()
+                await this.fetchPosts();
+                await this.fetchCommunityStats();
                 
-                this.showCreateModal = false
+                this.showCreateModal = false;
                 
                 alert('Пост успешно создан!')
             } catch (error) {
-                console.error('Ошибка при создании поста:', error)
-                alert(`Не удалось создать пост: ${error.message}`)
+                console.error('Ошибка при создании поста:', error);
+                alert(`Не удалось создать пост: ${error.message}`);
             } finally {
-                this.creatingPost = false
+                this.creatingPost = false;
             }
         },
 
@@ -658,13 +400,13 @@ export default {
             try {
                 const token = localStorage.getItem('authToken')
                 if (token) {
-                    const payload = JSON.parse(atob(token.split('.')[1]))
-                    this.currentUserId = payload.sub || payload.identity
-                    this.draftKey = `post_draft_${this.currentUserId}`
+                    const payload = JSON.parse(atob(token.split('.')[1]));
+                    this.currentUserId = payload.sub || payload.identity;
+                    this.draftKey = `post_draft_${this.currentUserId}`;
                 }
             } catch (error) {
-                console.error('Ошибка при получении ID пользователя: ', error)
-                this.currentUserId = null
+                console.error('Ошибка при получении ID пользователя: ', error);
+                this.currentUserId = null;
             }
         },
 
@@ -693,11 +435,11 @@ export default {
         },
 
         removeImage() {
-            this.imagePreview = null
-            this.newPost.imageUrl = ''
+            this.imagePreview = null;
+            this.newPost.imageUrl = '';
             
             if (this.$refs.fileInput) {
-                this.$refs.fileInput.value = ''
+                this.$refs.fileInput.value = '';
             }
         },
             
@@ -710,7 +452,7 @@ export default {
             }
             
             if (this.$refs.markdownEditor) {
-                this.$refs.markdownEditor.internalValue = ''
+                this.$refs.markdownEditor.internalValue = '';
             }
         },
 
@@ -793,12 +535,12 @@ export default {
                 tags: '',
                 imageUrl: ''
             }
-            this.imagePreview = null
-            this.uploadingImage = false
-            this.hasUnsavedDraft = false
+            this.imagePreview = null;
+            this.uploadingImage = false;
+            this.hasUnsavedDraft = false;
             
             if (this.$refs.fileInput) {
-                this.$refs.fileInput.value = ''
+                this.$refs.fileInput.value = '';
             }
 
             this.clearDraft()
@@ -813,17 +555,17 @@ export default {
         },
 
         openPost(post) {
-            this.$router.push(`/community/post/${post.id}`)
+            this.$router.push(`/community/post/${post.id}`);
         },
 
         saveDraft() {
             if (!this.currentUserId) {
-                console.warn('ID пользователя не определен, черновик не сохранен')
-                return
+                console.warn('ID пользователя не определен, черновик не сохранен');
+                return;
             }
 
             if (this.autoSaveTimer) {
-                clearTimeout(this.autoSaveTimer)
+                clearTimeout(this.autoSaveTimer);
             }
             
             this.autoSaveTimer = setTimeout(() => {
@@ -838,11 +580,11 @@ export default {
                     }
 
                     try {
-                        localStorage.setItem(this.draftKey, JSON.stringify(draftData))
-                        this.hasUnsavedDraft = true
-                        console.log('Черновик сохранен: ', draftData)
+                        localStorage.setItem(this.draftKey, JSON.stringify(draftData));
+                        this.hasUnsavedDraft = true;
+                        console.log('Черновик сохранен: ', draftData);
                     } catch (e) {
-                        console.error('Ошибка сохранения черновика: ', e)
+                        console.error('Ошибка сохранения черновика: ', e);
                     }
                 }
             }, 1500)
@@ -881,7 +623,7 @@ export default {
                     
                     this.hasUnsavedDraft = true;
 
-                    this.markdownEditorKey += 1
+                    this.markdownEditorKey += 1;
 
                     this.$nextTick(() => {
                         console.log('Черновик полностью загружен и отображен');
@@ -899,22 +641,28 @@ export default {
 
         clearDraft() {
             localStorage.removeItem(this.draftKey)
-            this.hasUnsavedDraft = false
+            this.hasUnsavedDraft = false;
         },
 
         confirmLoadDraft() {
             if (this.hasUnsavedDraft) {
-                return confirm('У вас есть сохраненный черновик. Загрузить его?')
+                return confirm('У вас есть сохраненный черновик. Загрузить его?');
             }
-            return false
+            return false;
         },
 
         handleBeforeUnload(e) {
             if (this.hasUnsavedDraft && (this.newPost.title || this.newPost.content)) {
-                e.preventDefault()
-                e.returnValue = 'У вас есть несохраненный черновик. Вы уверены, что хотите уйти?'
-                return e.returnValue
+                e.preventDefault();
+                e.returnValue = 'У вас есть несохраненный черновик. Вы уверены, что хотите уйти?';
+                return e.returnValue;
             }
+        },
+
+        handleFilterChange(filterId) {
+            this.activeFilter = filterId;
+            this.currentPage = 1;
+            this.fetchPosts();
         }
     }
 };
@@ -932,76 +680,7 @@ export default {
     margin-bottom: 40px;
 }
 
-.header-main {
-    margin-bottom: 30px;
-}
 
-.community-title {
-    display: flex;
-    align-items: center;
-    gap: 15px;
-    font-size: 2.5rem;
-    font-weight: 300;
-    margin-bottom: 10px;
-    color: var(--text);
-}
-
-.community-title i {
-    color: var(--primary);
-    text-shadow: 0 0 15px rgba(255, 69, 0, 0.5);
-}
-
-.community-subtitle {
-    color: var(--text-secondary);
-    font-size: 1.1rem;
-}
-
-.header-controls {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 20px;
-}
-
-.filters {
-    display: flex;
-    gap: 10px;
-    flex-wrap: wrap;
-}
-
-.filter-btn {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 10px 20px;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 25px;
-    color: var(--text-secondary);
-    font-size: 0.95rem;
-    cursor: pointer;
-    transition: all 0.3s ease;
-}
-
-.filter-btn:hover {
-    background: rgba(255, 255, 255, 0.1);
-    color: var(--text);
-}
-
-.filter-btn.active {
-    background: var(--primary);
-    color: white;
-    border-color: var(--primary);
-    box-shadow: 0 0 15px rgba(255, 69, 0, 0.3);
-}
-
-.create-post-btn {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 12px 25px;
-}
 
 /* ===== КОНТЕНТ СООБЩЕСТВА ===== */
 .community-content {
@@ -1010,305 +689,11 @@ export default {
     gap: 30px;
 }
 
-/* ===== СЕКЦИЯ ПОСТОВ ===== */
-.posts-section {
-    flex: 1;
-}
 
-.loading-container {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    min-height: 300px;
-    background: var(--dark-light);
-    border-radius: 20px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-}
 
-.loading-spinner {
-    width: 50px;
-    height: 50px;
-    border: 3px solid rgba(255, 255, 255, 0.1);
-    border-top: 3px solid var(--primary);
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
-    margin-bottom: 20px;
-}
 
-@keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-}
 
-.no-posts {
-    text-align: center;
-    padding: 60px 20px;
-    background: var(--dark-light);
-    border-radius: 20px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-}
 
-.no-posts i {
-    font-size: 64px;
-    color: var(--text-secondary);
-    margin-bottom: 20px;
-    opacity: 0.5;
-}
-
-.no-posts h3 {
-    font-size: 1.5rem;
-    margin-bottom: 10px;
-}
-
-.no-posts p {
-    color: var(--text-secondary);
-    margin-bottom: 25px;
-}
-
-.posts-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-    gap: 25px;
-    margin-bottom: 30px;
-}
-
-.post-card {
-    background: var(--dark-light);
-    border-radius: 15px;
-    overflow: hidden;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    cursor: pointer;
-    transition: all 0.3s ease;
-}
-
-.post-card:hover {
-    transform: translateY(-5px);
-    border-color: var(--primary-dark);
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3), 0 0 20px rgba(255, 69, 0, 0.1);
-}
-
-.post-image {
-    position: relative;
-    height: 200px;
-    overflow: hidden;
-}
-
-.post-image img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    transition: transform 0.5s ease;
-}
-
-.post-card:hover .post-image img {
-    transform: scale(1.05);
-}
-
-.post-category {
-    position: absolute;
-    top: 15px;
-    left: 15px;
-    background: var(--primary);
-    color: white;
-    padding: 5px 12px;
-    border-radius: 20px;
-    font-size: 0.8rem;
-    display: flex;
-    align-items: center;
-    gap: 5px;
-}
-
-.post-content {
-    padding: 20px;
-}
-
-.post-content.no-image {
-    padding-top: 25px;
-}
-
-.post-header {
-    margin-bottom: 15px;
-}
-
-.post-title {
-    font-size: 1.3rem;
-    font-weight: 600;
-    margin-bottom: 10px;
-    line-height: 1.4;
-}
-
-.post-meta {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.post-author {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-
-.author-avatar {
-    width: 40px;
-    height: 40px;
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 16px;
-    color: var(--text-secondary);
-}
-
-.author-info {
-    display: flex;
-    flex-direction: column;
-}
-
-.author-name {
-    font-weight: 500;
-    font-size: 0.95rem;
-}
-
-.post-date {
-    font-size: 0.85rem;
-    color: var(--text-secondary);
-}
-
-.post-excerpt {
-    color: var(--text-secondary);
-    line-height: 1.6;
-    margin-bottom: 20px;
-    display: -webkit-box;
-    -webkit-line-clamp: 3;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-}
-
-.post-footer {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 15px;
-}
-
-.post-stats {
-    display: flex;
-    gap: 15px;
-}
-
-.post-stat {
-    display: flex;
-    align-items: center;
-    gap: 5px;
-    font-size: 0.9rem;
-    color: var(--text-secondary);
-}
-
-.post-stat i {
-    color: var(--primary);
-}
-
-.post-tags {
-    display: flex;
-    gap: 8px;
-    flex-wrap: wrap;
-}
-
-.post-tag {
-    font-size: 0.8rem;
-    color: var(--accent);
-    background: rgba(0, 191, 255, 0.1);
-    padding: 3px 10px;
-    border-radius: 15px;
-}
-
-/* ===== ПАГИНАЦИЯ ===== */
-.pagination {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 20px;
-    margin-top: 40px;
-}
-
-.pagination-btn {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 10px 20px;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 25px;
-    color: var(--text);
-    cursor: pointer;
-    transition: all 0.3s ease;
-}
-
-.pagination-btn:hover:not(:disabled) {
-    background: rgba(255, 255, 255, 0.1);
-    border-color: var(--primary);
-}
-
-.pagination-btn:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-}
-
-.page-numbers {
-    display: flex;
-    gap: 10px;
-}
-
-.page-number {
-    width: 40px;
-    height: 40px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 50%;
-    cursor: pointer;
-    transition: all 0.3s ease;
-}
-
-.page-number:hover {
-    background: rgba(255, 255, 255, 0.1);
-}
-
-.page-number.active {
-    background: var(--primary);
-    color: white;
-}
-
-/* ===== БОКОВАЯ ПАНЕЛЬ ===== */
-.sidebar {
-    display: flex;
-    flex-direction: column;
-    gap: 25px;
-}
-
-.sidebar-card {
-    background: var(--dark-light);
-    border-radius: 15px;
-    padding: 25px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.sidebar-title {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    font-size: 1.2rem;
-    margin-bottom: 20px;
-    color: var(--text);
-}
-
-.sidebar-title i {
-    color: var(--primary);
-}
 
 /* Активность */
 .activity-stats {
@@ -1366,356 +751,12 @@ export default {
     opacity: 0.7;
 }
 
-/* Пользователи */
-.users-list {
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
-}
 
-.user-item {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 10px;
-    border-radius: 12px;
-    background: rgba(255, 255, 255, 0.05);
-    transition: all 0.3s ease;
-}
 
-.user-item:hover {
-    background: rgba(255, 255, 255, 0.1);
-}
 
-.user-avatar {
-    width: 40px;
-    height: 40px;
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 16px;
-    color: var(--text-secondary);
-}
-
-.user-info {
-    flex: 1;
-}
-
-.user-name {
-    font-weight: 500;
-    font-size: 0.95rem;
-}
-
-.user-posts {
-    font-size: 0.85rem;
-    color: var(--text-secondary);
-}
-
-/* ===== МОДАЛЬНОЕ ОКНО ===== */
-.modal-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0, 0, 0, 0.8);
-    backdrop-filter: blur(5px);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 1000;
-    padding: 20px;
-}
-
-.modal-content {
-    background: var(--dark-light);
-    border-radius: 20px;
-    width: 100%;
-    max-width: 600px;
-    max-height: 90vh;
-    overflow-y: auto;
-    overflow-x: hidden;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
-}
-
-.modal-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 25px 30px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.modal-header h2 {
-    font-size: 1.5rem;
-    font-weight: 600;
-}
-
-.modal-close {
-    background: none;
-    border: none;
-    color: var(--text-secondary);
-    font-size: 1.2rem;
-    cursor: pointer;
-    transition: color 0.3s ease;
-}
-
-.modal-close:hover {
-    color: var(--text);
-}
-
-.draft-info {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 8px 12px;
-    background: rgba(0, 191, 255, 0.1);
-    border: 1px solid rgba(0, 191, 255, 0.2);
-    border-radius: 8px;
-    color: var(--accent);
-    font-size: 0.9rem;
-    margin-bottom: 15px;
-}
-
-.draft-info i {
-    color: var(--accent);
-}
-
-.draft-info small {
-    margin-left: auto;
-    opacity: 0.7;
-    font-size: 0.8rem;
-}
-
-.modal-body {
-    padding: 30px;
-}
-
-.form-group {
-    margin-bottom: 20px;
-}
-
-.form-group label {
-    display: block;
-    margin-bottom: 8px;
-    font-weight: 500;
-    color: var(--text);
-}
-
-.form-group input,
-.form-group textarea {
-    width: 100%;
-    padding: 12px 15px;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 10px;
-    color: var(--text);
-    font-size: 1rem;
-    transition: all 0.3s ease;
-}
-
-.form-group input:focus,
-.form-group textarea:focus {
-    outline: none;
-    border-color: var(--primary);
-    box-shadow: 0 0 0 2px rgba(255, 69, 0, 0.2);
-}
-
-.form-group textarea {
-    resize: vertical;
-    min-height: 100px;
-}
-
-.image-preview {
-    margin-top: 15px;
-}
-
-.image-preview img {
-    width: 100%;
-    max-height: 200px;
-    object-fit: cover;
-    border-radius: 10px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.image-upload-container {
-    border: 2px dashed rgba(255, 255, 255, 0.1);
-    border-radius: 10px;
-    padding: 20px;
-    background: rgba(255, 255, 255, 0.02);
-}
-
-.image-preview {
-    position: relative;
-    margin-bottom: 20px;
-}
-
-.image-preview img {
-    width: 100%;
-    max-height: 300px;
-    object-fit: contain;
-    border-radius: 8px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.remove-image {
-    position: absolute;
-    top: 10px;
-    right: 10px;
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    background: rgba(0, 0, 0, 0.7);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    color: white;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.3s ease;
-}
-
-.remove-image:hover {
-    background: var(--primary);
-    transform: scale(1.1);
-}
-
-.upload-buttons {
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
-    align-items: center;
-}
-
-.upload-btn {
-    padding: 12px 25px;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    font-size: 0.95rem;
-}
-
-.upload-or {
-    display: flex;
-    align-items: center;
-    width: 100%;
-    color: var(--text-secondary);
-    font-size: 0.9rem;
-}
-
-.upload-or::before,
-.upload-or::after {
-    content: '';
-    flex: 1;
-    height: 1px;
-    background: rgba(255, 255, 255, 0.1);
-}
-
-.upload-or span {
-    padding: 0 15px;
-}
-
-.url-upload {
-    width: 100%;
-}
-
-.url-upload input {
-    width: 100%;
-    padding: 12px 15px;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 8px;
-    color: var(--text);
-    font-size: 0.95rem;
-}
-
-.upload-hints {
-    margin-top: 15px;
-    text-align: center;
-    color: var(--text-secondary);
-    font-size: 0.8rem;
-    display: flex;
-    flex-direction: column;
-    gap: 5px;
-}
-
-.uploading-overlay {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0, 0, 0, 0.8);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 8px;
-    z-index: 10;
-}
-
-.uploading-spinner {
-    width: 40px;
-    height: 40px;
-    border: 3px solid rgba(255, 255, 255, 0.1);
-    border-top: 3px solid var(--primary);
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
-}
-
-/* Адаптивность */
-@media (max-width: 768px) {
-    .upload-buttons {
-        gap: 10px;
-    }
-    
-    .upload-btn {
-        width: 100%;
-        justify-content: center;
-        padding: 10px 15px;
-    }
-    
-    .upload-or span {
-        padding: 0 10px;
-        font-size: 0.8rem;
-    }
-}
-
-.form-actions {
-    display: flex;
-    gap: 15px;
-    margin-top: 30px;
-}
-
-.form-actions .btn {
-    flex: 1;
-    justify-content: center;
-}
 
 /* ===== ДЕКОРАТИВНЫЕ ЭЛЕМЕНТЫ ===== */
-.decoration {
-    position: fixed;
-    width: 200px;
-    height: 200px;
-    border-radius: 50%;
-    filter: blur(60px);
-    opacity: 0.15;
-    z-index: -1;
-}
 
-.decoration-1 {
-    background: var(--primary);
-    top: 10%;
-    right: 5%;
-}
-
-.decoration-2 {
-    background: var(--accent);
-    bottom: 10%;
-    left: 5%;
-}
 
 /* ===== АДАПТИВНОСТЬ ===== */
 @media (max-width: 1200px) {

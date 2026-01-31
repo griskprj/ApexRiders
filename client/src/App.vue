@@ -5,6 +5,9 @@ import NotificationBell from './components/NotificationBell.vue';
 <template>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
+    <div class="decoration decoration-1"></div>
+    <div class="decoration decoration-2"></div>
+
     <!-- Условный рендеринг навигации -->
     <nav v-if="!isAdminRoute" class="navbar" :class="{ 'scrolled': isScrolled }">
         <router-link to="/" class="logo">
@@ -297,6 +300,29 @@ export default {
 
 select option {
     background-color: rgb(99, 99, 99);
+}
+
+/* ===== ДЕКОРАТИВНЫЕ ЭЛЕМЕНТЫ ===== */
+.decoration {
+    position: fixed;
+    width: 200px;
+    height: 200px;
+    border-radius: 50%;
+    filter: blur(60px);
+    opacity: 0.15;
+    z-index: -1;
+}
+
+.decoration-1 {
+    background: var(--primary);
+    top: 10%;
+    right: 5%;
+}
+
+.decoration-2 {
+    background: var(--accent);
+    bottom: 10%;
+    left: 5%;
 }
 
 /* ===== НАВИГАЦИЯ ===== */
