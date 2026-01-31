@@ -4,7 +4,7 @@
         <button 
             class="pagination-btn"
             :disabled="currentPage === 1"
-            @click="currentPage--"
+            @click="$emit('page-change', currentPage - 1)"
         >
             <i class="fas fa-chevron-left"></i>
             Назад
@@ -12,10 +12,10 @@
         
         <div class="page-numbers">
             <span 
-                v-for="page in totalPages" 
+                v-for="page in visiblePages" 
                 :key="page"
                 :class="['page-number', { active: currentPage === page }]"
-                @click="currentPage = page"
+                @click="$emit('page-change', page)"
             >
                 {{ page }}
             </span>
@@ -24,7 +24,7 @@
         <button 
             class="pagination-btn"
             :disabled="currentPage === totalPages"
-            @click="currentPage++"
+            @click="$emit('page-change', currentPage + 1)"
         >
             Вперед
             <i class="fas fa-chevron-right"></i>
@@ -39,7 +39,28 @@ export default {
         filteredPosts: Array,
         currentPage: Number,
         totalPages: Number
-    }
+    },
+    computed: {
+        visiblePages() {
+            const pages = [];
+            const maxVisible = 5; // Максимальное количество видимых страниц
+            
+            let start = Math.max(1, this.currentPage - 2);
+            let end = Math.min(this.totalPages, start + maxVisible - 1);
+            
+            // Корректировка начала, если мы в конце списка
+            if (end - start + 1 < maxVisible) {
+                start = Math.max(1, end - maxVisible + 1);
+            }
+            
+            for (let i = start; i <= end; i++) {
+                pages.push(i);
+            }
+            
+            return pages;
+        }
+    },
+    emits: ['page-change']
 }
 </script>
 

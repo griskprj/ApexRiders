@@ -4,7 +4,6 @@ import HeaderFilter from './community/HeaderFilter.vue';
 import Paginatie from './community/Paginatie.vue';
 import PostsArray from './community/PostsArray.vue';
 import Sidebar from './community/Sidebar.vue';
-import MarkdownEditor from './MarkdownEditor.vue';
 </script>
 <template>
 
@@ -28,11 +27,12 @@ import MarkdownEditor from './MarkdownEditor.vue';
                 />
                 
                 <!-- Пагинация -->
-                 <Paginatie
+                <Paginatie
                     :filtered-posts="filteredPosts"
                     :current-page="currentPage"
                     :total-pages="totalPages"
-                 />
+                    @page-change="handlePageChange"
+                />
             </div>
             
             <Sidebar
@@ -123,10 +123,6 @@ export default {
             this.fetchPosts();
         },
         
-        currentPage() {
-            this.fetchPosts();
-        },
-
         'newPost.title'(newTitle) {
             if (newTitle || this.newPost.content || this.newPost.imageUrl) {
                 this.saveDraft();
@@ -201,6 +197,8 @@ export default {
                 const data = await response.json();
                 this.posts = data.posts || [];
                 this.totalPosts = data.total || 0;
+                
+                console.log(`Загружено ${this.posts.length} постов, страница ${this.currentPage}, всего: ${this.totalPosts}`);
             } catch (error) {
                 console.error('Ошибка при загрузке постов:', error);
             } finally {
@@ -253,6 +251,18 @@ export default {
                     day: 'numeric',
                     month: 'long',
                     year: 'numeric'
+                });
+            }
+        },
+
+        handlePageChange(newPage) {
+            if (newPage >= 1 && newPage <= this.totalPages && newPage !== this.currentPage) {
+                this.currentPage = newPage;
+                this.fetchPosts();
+                
+                window.scrollTo({
+                    top: 0,
+                    behavior: 'smooth'
                 });
             }
         },
@@ -321,6 +331,7 @@ export default {
                 this.clearDraft();
                 this.clearForm();
 
+                this.currentPage = 1;
                 await this.fetchPosts();
                 await this.fetchCommunityStats();
                 
