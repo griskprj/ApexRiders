@@ -16,7 +16,7 @@ class Member(db.Model):
     is_verified = db.Column(db.Boolean, default=False)
     verification_date = db.Column(db.DateTime, nullable=True)
 
-    admin_level = db.Column(db.Integer, default=False)
+    admin_level = db.Column(db.Integer, default=0)
     is_super_admin = db.Column(db.Boolean, default=False)
     last_admin_login = db.Column(db.DateTime, nullable=True)
 
