@@ -51,7 +51,8 @@ def register_user():
         user = Member(
             username=data.get('username'),
             email=data.get('email'),
-            password_hash=generate_password_hash(data.get('password'))
+            password_hash=generate_password_hash(data.get('password')),
+            admin_level=0
         )
         
         db.session.add(user)

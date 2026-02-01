@@ -1,51 +1,18 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from functools import wraps
 from app import db
 from app.models import Member
-from datetime import datetime, timezone, timedelta
-import re
+from datetime import datetime, timezone
+from app.utils.admin_required import admin_required
 
 admin = Blueprint('admin', __name__)
 
-def auth_token_required(level=1):
-    def wrapper(fn):
-        @wraps(fn)
-        def decorator(*args, **kwargs):
-            try:
-                current_user_id = get_jwt_identity()
-                
-                user = Member.query.get(current_user_id)
 
-                if user.admin_level == 0 and not user.is_super_admin:
-                    return jsonify({
-                        'error': 'Требуются права администратора',
-                        'code': 'NOT_ADMIN'
-                    }), 403
-                
-                if user.admin_level < level and not user.is_super_admin:
-                    return jsonify({
-                        'error': f'Требуется уровень администрирования {level} или выше',
-                    }), 403
-                
-                request.current_user = user
-                
-                return fn(*args, **kwargs)
-                
-            except Exception as e:
-                return jsonify({
-                    'error': 'Недействительный токен',
-                    'details': str(e),
-                }), 401
-                
-        return decorator
-    return wrapper
-
-""" Список пользователей """
 @admin.route('/users', methods=['GET'])
 @jwt_required()
-@auth_token_required(level=5)
+@admin_required(level=5)
 def get_users():
+    """ Список пользователей """
     try:
         page = request.args.get('page', 1, type=int)
         per_page = request.args.get('per_page', 20, type=int)
@@ -95,12 +62,12 @@ def get_users():
         }), 200
     except Exception as e:
         return jsonify({ 'error': str(e) }), 500
-    
-""" Удаление пользователя """
+
 @admin.route('/users/<int:user_id>', methods=['DELETE'])
 @jwt_required()
-@auth_token_required(level=5)
+@admin_required(level=5)
 def delete_user(user_id):
+    """ Удаление пользователя """
     try:
         current_user = request.current_user
 
@@ -130,11 +97,11 @@ def delete_user(user_id):
         db.session.rollback()
         return jsonify({ 'error': str(e) }), 500
     
-""" Изменение уровня администратора """
 @admin.route('/users/<int:user_id>/admin-level', methods=['PUT'])
 @jwt_required()
-@auth_token_required(level=5)
+@admin_required(level=5)
 def update_admin_level(user_id):
+    """ Изменение уровня администратора """
     try:
         data = request.get_json()
         admin_level = data.get('admin_level')
@@ -172,14 +139,13 @@ def update_admin_level(user_id):
     
     except Exception as e:
         db.session.rollback()
-        print(e)
         return jsonify({ 'error': str(e) }), 500
     
-""" Статистика админки """
 @admin.route('/stats', methods=['GET'])
 @jwt_required()
-@auth_token_required(level=1)
+@admin_required(level=1)
 def get_admin_stats():
+    """ Статистика админки """
     try:
         user_id = get_jwt_identity()
         user = Member.query.get(user_id)
