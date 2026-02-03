@@ -63,7 +63,7 @@ def create_app(config_name=None):
             return jsonify({'error': 'Invalid file path'}), 400
         return send_from_directory(upload_folder, filename)
 
-    from app.routes import auth, motorcycles, statist, manuals, courses, product, community, garage, admin, notifications
+    from app.routes import auth, motorcycles, statist, manuals, courses, product, community, garage, admin, notifications, reports, user_reports
     app.register_blueprint(auth.auth)
     app.register_blueprint(motorcycles.motorcycle)
     app.register_blueprint(statist.statistic)
@@ -74,6 +74,8 @@ def create_app(config_name=None):
     app.register_blueprint(garage.garage)
     app.register_blueprint(admin.admin, url_prefix='/api/admin')
     app.register_blueprint(notifications.notifications_bp, url_prefix='/api')
+    app.register_blueprint(reports.reports_bp, url_prefix='/api/admin')
+    app.register_blueprint(user_reports.user_reports, url_prefix='/api')
 
     if app.config['DEBUG']:
         with app.app_context():

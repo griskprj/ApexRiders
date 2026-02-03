@@ -733,3 +733,128 @@ class Notification(db.Model):
         if not self.is_read:
             self.is_read = True
             self.read_at = datetime.now(timezone.utc)
+
+
+# Добавьте в models.py
+class Report(db.Model):
+    __tablename__ = 'reports'
+
+    id = db.Column(db.Integer, primary_key=True)
+    
+    # Кто отправил жалобу
+    reporter_id = db.Column(db.Integer, db.ForeignKey('members.id'), nullable=False)
+    
+    # На что жалуемся
+    target_type = db.Column(db.String(50), nullable=False)  # post, comment, product, manual, etc.
+    target_id = db.Column(db.Integer, nullable=False)
+    
+    # Причина жалобы
+    reason = db.Column(db.String(200), nullable=False)
+    details = db.Column(db.Text)  # Дополнительные детали
+    
+    # Статус обработки
+    status = db.Column(db.String(20), default='pending')  # pending, reviewing, resolved, dismissed
+    priority = db.Column(db.String(20), default='medium')  # low, medium, high
+    
+    # Кто обрабатывает
+    assigned_admin_id = db.Column(db.Integer, db.ForeignKey('members.id'), nullable=True)
+    
+    # Результат обработки
+    resolution = db.Column(db.Text)  # Что было сделано
+    resolution_type = db.Column(db.String(50))  # warning, delete_content, ban_user, etc.
+    
+    # Связи с другими моделями
+    reported_user_id = db.Column(db.Integer, db.ForeignKey('members.id'), nullable=True)
+    
+    # Метаданные
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), 
+                          onupdate=lambda: datetime.now(timezone.utc))
+    resolved_at = db.Column(db.DateTime, nullable=True)
+    
+    # Связи
+    reporter = db.relationship('Member', foreign_keys=[reporter_id], backref='submitted_reports')
+    assigned_admin = db.relationship('Member', foreign_keys=[assigned_admin_id])
+    reported_user = db.relationship('Member', foreign_keys=[reported_user_id])
+    
+    def to_dict(self, include_details=False):
+        data = {
+            'id': self.id,
+            'reporter_id': self.reporter_id,
+            'reporter_username': self.reporter.username if self.reporter else None,
+            'target_type': self.target_type,
+            'target_id': self.target_id,
+            'reason': self.reason,
+            'details': self.details,
+            'status': self.status,
+            'priority': self.priority,
+            'assigned_admin_id': self.assigned_admin_id,
+            'assigned_admin_username': self.assigned_admin.username if self.assigned_admin else None,
+            'reported_user_id': self.reported_user_id,
+            'reported_user_username': self.reported_user.username if self.reported_user else None,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None,
+            'resolved_at': self.resolved_at.isoformat() if self.resolved_at else None,
+        }
+        
+        if include_details:
+            data.update({
+                'details': self.details,
+                'resolution': self.resolution,
+                'resolution_type': self.resolution_type,
+            })
+            
+            # Получаем информацию о цели жалобы
+            data['target_info'] = self.get_target_info()
+            
+        return data
+    
+    def get_target_info(self):
+        """Получить информацию о цели жалобы"""
+        try:
+            if self.target_type == 'post':
+                post = Post.query.get(self.target_id)
+                if post:
+                    return {
+                        'title': post.title,
+                        'content_preview': post.content[:100] + '...' if len(post.content) > 100 else post.content,
+                        'author_username': post.author.username if post.author else None,
+                        'created_at': post.created_at.isoformat() if post.created_at else None,
+                        'image_url': post.image_url
+                    }
+            elif self.target_type == 'comment':
+                comment = Comment.query.get(self.target_id)
+                if comment:
+                    return {
+                        'content_preview': comment.content[:100] + '...' if len(comment.content) > 100 else comment.content,
+                        'author_username': comment.author.username if comment.author else None,
+                        'created_at': comment.created_at.isoformat() if comment.created_at else None,
+                        'post_title': comment.post.title if comment.post else None,
+                        'post_id': comment.post_id
+                    }
+            elif self.target_type == 'product':
+                product = Product.query.get(self.target_id)
+                if product:
+                    return {
+                        'title': product.title,
+                        'description_preview': product.description[:100] + '...' if len(product.description) > 100 else product.description,
+                        'owner_username': product.owner.username if product.owner else None,
+                        'price': product.cost,
+                        'images': product.images or [],
+                        'created_at': product.date_pub.isoformat() if product.date_pub else None
+                    }
+            elif self.target_type == 'manual':
+                manual = MaintenanceManual.query.get(self.target_id)
+                if manual:
+                    return {
+                        'title': manual.title,
+                        'description_preview': manual.description[:100] + '...' if len(manual.description) > 100 else manual.description,
+                        'author_username': manual.author.username if manual.author else None,
+                        'category': manual.category,
+                        'difficulty': manual.difficulty,
+                        'created_at': manual.created_at.isoformat() if manual.created_at else None
+                    }
+        except Exception as e:
+            print(f"Error getting target info: {e}")
+            
+        return None

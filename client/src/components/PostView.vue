@@ -1,4 +1,6 @@
 <script setup>
+import ReportFlag from './admin/ReportFlag.vue';
+import ReportModal from './admin/ReportModal.vue';
 import MarkdownEditor from './MarkdownEditor.vue';
 </script>
 <template>
@@ -100,6 +102,15 @@ import MarkdownEditor from './MarkdownEditor.vue';
                         <i class="fas fa-comment"></i>
                         <span>{{ post.commentsCount }}</span>
                     </button>
+
+                    <ReportFlag
+                        :target-id="post.id"
+                        target-type="post"
+                        :target-owner-id="post.author.id"
+                        :show-text="false"
+                        size="small"
+                        @open-report="openPostReportModal"
+                    />
                 </div>
             </div>
             
@@ -349,6 +360,17 @@ import MarkdownEditor from './MarkdownEditor.vue';
             </div>
         </div>
     </div>
+
+    <!-- Модальное окно репорта -->
+    <ReportModal
+        v-if="showReportModal"
+        :visible="showReportModal"
+        :target-id="post.id"
+        :target-type="'post'"
+        :target-owner-id="post.author.id"
+        @update:visible="showReportModal = $event"
+        @report-submitted="onReportSubmitted"
+    />
     </template>
 <script>
 export default {
@@ -405,7 +427,10 @@ export default {
             imagePreview: null,
 
             autoSaveTimer: null,
-            draftKey: 'post_draft_'
+            draftKey: 'post_draft_',
+
+            showReportModal: false,
+            reportTarget: null
         };
     },
     
@@ -781,6 +806,21 @@ export default {
         closeEditModal() {
             this.showEditModal = false
             this.imagePreview = null
+        },
+
+        openPostReportModal(data) {
+            console.log('Открываю модалку репорта с данными:', {
+                dataFromFlag: data,
+                postId: this.post.id,
+                postType: 'post',
+                authorId: this.post.author?.id,
+                postData: this.post
+            });
+            
+            this.reportTarget = data;
+            this.showReportModal = true;
+            
+            console.log('showReportModal установлен в:', this.showReportModal);
         },
 
         handleFileUpload(event) {

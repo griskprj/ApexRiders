@@ -1,3 +1,7 @@
+<script setup>
+import ReportsManagement from './ReportsManagement.vue';
+</script>
+
 <template>
     <div class="admin-dashboard">
         <!-- Навигация админки -->
@@ -47,6 +51,21 @@
                         <span class="badge">{{ stats.total_users || 0 }}</span>
                     </button>
                     
+                    <div class="sidebar-section" v-if="currentAdmin?.admin_level >= 4">
+                        <h4><i class="fas fa-flag"></i> Модерация</h4>
+                        <button 
+                            @click="currentView = 'reports'"
+                            :class="{ 'active': currentView === 'reports' }"
+                            class="sidebar-item"
+                        >
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <span>Жалобы</span>
+                            <span v-if="reportsCount > 0" class="badge badge-danger">
+                                {{ reportsCount > 99 ? '99+' : reportsCount }}
+                            </span>
+                        </button>
+                    </div>
+
                     <div class="sidebar-section" v-if="currentAdmin?.admin_level >= 2">
                         <h4><i class="fas fa-newspaper"></i> Контент</h4>
                         <button class="sidebar-item">
@@ -56,15 +75,6 @@
                         <button class="sidebar-item">
                             <i class="fas fa-book"></i>
                             <span>Мануалы</span>
-                        </button>
-                    </div>
-                    
-                    <div class="sidebar-section" v-if="currentAdmin?.admin_level >= 4">
-                        <h4><i class="fas fa-flag"></i> Модерация</h4>
-                        <button class="sidebar-item">
-                            <i class="fas fa-exclamation-triangle"></i>
-                            <span>Жалобы</span>
-                            <span class="badge badge-danger">3</span>
                         </button>
                     </div>
                     
@@ -428,6 +438,12 @@
                         </div>
                     </div>
                 </div>
+                <div v-if="currentView === 'reports'" class="reports-content">
+                    <ReportsManagement
+                        :key="reportsKey"
+                        @update-count="updateReportsCount"
+                    />
+                </div>
             </main>
         </div>
         
@@ -618,6 +634,10 @@
 <script>
 export default {
     name: 'AdminDashboard',
+    components: {
+        ReportsManagement
+    },
+    
     data() {
         return {
             currentView: 'dashboard',

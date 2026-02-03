@@ -65,7 +65,7 @@ def mark_notification_read(notification_id):
 
         notification = Notification.query.get_or_404(notification_id)
 
-        if notification.user_id != user_id:
+        if int(notification.user_id) != int(user_id):
             return jsonify({'error': 'Недостаточно прав'}), 403
 
         notification.mark_as_read()
