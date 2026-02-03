@@ -78,7 +78,8 @@ def register_user():
             username=data.get('username'),
             email=data.get('email'),
             password_hash=generate_password_hash(data.get('password')),
-            admin_level=0
+            admin_level=0,
+            last_login=datetime.now(timezone.utc)
         )
 
         db.session.add(user)
