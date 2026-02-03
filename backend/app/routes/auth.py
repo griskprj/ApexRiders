@@ -28,7 +28,10 @@ def login_user():
             'member': {
                 'id': member.id,
                 'username': member.username,
-                'email': member.email
+                'email': member.email,
+                'admin_level': member.admin_level,
+                'is_super_admin': member.is_super_admin,
+                'is_verified': member.is_verified
             }
         })
     

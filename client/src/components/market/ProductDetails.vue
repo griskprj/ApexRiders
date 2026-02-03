@@ -1,5 +1,5 @@
 <script setup>
-    import EditProductModal from './market/EditProductModal.vue';
+import EditProductModal from './EditProductModal.vue';
 </script>
 
 <template>

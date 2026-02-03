@@ -66,7 +66,7 @@ const routes = [
     {
         path: '/market/:id',
         name: 'MarketDetail',
-        component: () => import('../components/ProductDetails.vue'),
+        component: () => import('../components/market/ProductDetails.vue'),
         props: true,
         meta: { requiresAuth: true }
     },
