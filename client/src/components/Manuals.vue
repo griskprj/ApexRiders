@@ -63,6 +63,33 @@
                     </button>
                 </div>
 
+                <div v-if="searchQuery && serverSearchMode" class="search-filters">
+                    <div class="filter-group">
+                        <label>Сложность:</label>
+                        <select v-model="searchFilters.difficulty" @change="updateSearchFilter('difficulty', $event.target.value)">
+                            <option value="">Все уровни</option>
+                            <option value="Начинающий">Начинающий</option>
+                            <option value="Средний">Средний</option>
+                            <option value="Сложный">Сложный</option>
+                            <option value="Эксперт">Эксперт</option>
+                        </select>
+                    </div>
+                    
+                    <div class="filter-group">
+                        <label>Сортировка:</label>
+                        <select v-model="searchFilters.sort_by" @change="updateSearchFilter('sort_by', $event.target.value)">
+                            <option value="relevance">По релевантности</option>
+                            <option value="newest">Сначала новые</option>
+                            <option value="rating">По рейтингу</option>
+                            <option value="views">По просмотрам</option>
+                        </select>
+                    </div>
+                    
+                    <div class="search-stats" v-if="searchMeta">
+                        <span>Найдено: {{ totalUsers || filteredManuals.length }} мануалов</span>
+                    </div>
+                </div>
+
                 <div class="manuals-grid">
                     <BasicManualCard 
                         :limiterManuals="currentPageManuals",
@@ -109,6 +136,7 @@ export default {
     name: 'Manuals',
     data() {
         return {
+            allManuals: [],
             manuals: [],
             userManuals: [],
             isLoading: true,
@@ -124,12 +152,25 @@ export default {
                 'suspension': 'Подвеска',
                 'electrics': 'Электрика',
                 'maintenance': 'Обслуживание'
-            }
+            },
+
+            serverSearchMode: true,
+            searchFilters: {
+                category: '',
+                difficulty: '',
+                sort_by: 'relevance'
+            },
+            searchMeta: {}
         }
     },
 
     computed: {
         filteredManuals() {
+            if (this.serverSearchMode) {
+                return this.manuals
+            }
+
+            // fallback
             let filtered = this.manuals
 
             if (this.activeFilter !== 'all') {
@@ -182,18 +223,32 @@ export default {
     methods: {
         async fetchManuals() {
             try {
+                this.isLoading = true
                 const token = localStorage.getItem('authToken')
-                
-                const response = await axios.get('/api/manuals/get', {
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
-                })
 
-                if (response.data) {
-                    this.manuals = response.data.manuals_data || []
-                    this.userManuals = response.data.user_manuals || []
+                if (this.serverSearchMode && this.searchQuery) {
+                    await this.searchManuals()
+                } else {
+                    const response = await axios.get('/api/manuals/get', {
+                        headers: {
+                            'Authorization': `Bearer ${token}`
+                        }
+                    })
+    
+                    if (response.data) {
+                        this.manuals = response.data.manuals_data || []
+                        this.userManuals = response.data.user_manuals || []
+                        this.allManuals = this.manuals
+
+                        if (this.activeFilter !== 'all') {
+                            const categoryName = this.categories[this.activeFilter]
+                            this.manuals = this.manuals.filter(manual =>
+                                manual.category === categoryName || manual.moto_type === categoryName
+                            )
+                        }
+                    }
                 }
+                
             } catch (error) {
                 console.error('Ошибка при получении мануалов: ', error)
                 this.manuals = []
@@ -201,6 +256,72 @@ export default {
             } finally {
                 this.isLoading = false
             }
+        },
+
+        async searchManuals() {
+            this.isLoading = true
+            try {
+                const token = localStorage.getItem('authToken')
+                
+                const params = new URLSearchParams({
+                    page: this.currentPage,
+                    per_page: this.itemsPerPage
+                })
+
+                if (this.searchQuery) {
+                    params.append('q', this.searchQuery)
+                }
+
+                if (this.activeFilter !== 'all') {
+                    const category_name = this.categories[this.activeFilter]
+                    params.append('category', categoryName)
+                }
+
+                if (this.searchFilters.difficulty) {
+                    params.append('difficulty', this.searchFilters.difficulty)
+                }
+
+                if (this.searchFilters.sort_by) {
+                    params.append('sort_by', this.searchFilters.sort_by)
+                }
+
+                const response = await axios.get(`/api/manuals/search?${params}`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                })
+
+                if (response.data) {
+                    this.manuals = response.data.manuals || []
+                    this.searchMeta = response.data.search_meta || {}
+
+                    if (response.data.pagination) {
+                        const pagination = response.data.pagination
+                        this.totalPages = pagination.pages
+                        this.totalUsers = pagination.total
+                    }
+                }
+            } catch (error) {
+                console.error('Ошибка при поиске мануалов: ', error)
+                this.serverSearchMode = false
+                this.applyClientSideFilter()
+            } finally {
+                this.isLoading = false
+            }
+        },
+
+        applyClientSideFilter() {
+            let filtered = this.allManuals || []
+
+            if (this.searchQuery) {
+                const query = this.searchQuery.toLowerCase().trim()
+                filtered = filtered.filter(manual => 
+                    manual.title.toLowerCase().includes(query) ||
+                    manual.description.toLowerCase().includes(query)
+                )
+            }
+
+            this.manuals = filtered.slice(0, this.itemsPerPage * this.currentPage)
         },
         
         getCategoryCount(categoryName) {
@@ -211,36 +332,69 @@ export default {
 
         handleFilterChange(filterId) {
             this.activeFilter = filterId
+            this.currentPage = 1
+            if (this.serverSearchMode) {
+                this.searchManuals()
+            }
         },
 
         handleSearch(query) {
             this.searchQuery = query
+            this.currentPage = 1
+            if (this.serverSearchMode) {
+                this.searchManuals()
+            }
         },
 
         resetFilter() {
             this.activeFilter = 'all'
+            this.searchQuery = ''
             this.currentPage = 1
+            if (this.serverSearchMode) {
+                this.fetchManuals()
+            }
         },
 
         clearSearch() {
             this.searchQuery = ''
+            this.currentPage = 1
+            if (this.serverSearchMode) {
+                this.fetchManuals()
+            }
         },
 
         prevPage() {
             if (this.currentPage > 1) {
                 this.currentPage--
+                if (this.serverSearchMode) {
+                    this.searchManuals()
+                }
             }
         },
 
         nextPage() {
             if (this.currentPage < this.totalPages) {
                 this.currentPage++
+                if (this.serverSearchMode) {
+                    this.searchManuals()
+                }
             }
         },
 
         goToPage(page) {
             this.currentPage = page
-        }, 
+            if (this.serverSearchMode) {
+                this.searchManuals()
+            }
+        },
+
+        updateSearchFilter(filterType, value) {
+            this.searchFilters[filterType] = value
+            this.currentPage = 1
+            if (this.serverSearchMode) {
+                this.searchManuals()
+            }
+        },
         
         formatTime(timeString) {
             if (!timeString) return ''
@@ -352,6 +506,50 @@ export default {
 .search-info .search-clear-btn:hover {
     background: rgba(255, 69, 0, 0.2);
     border-color: var(--primary);
+}
+
+.search-filters {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 25px;
+    padding: 15px 20px;
+    background: var(--dark-light);
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.filter-group {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.filter-group label {
+    color: var(--text-secondary);
+    font-size: 14px;
+    white-space: nowrap;
+}
+
+.filter-group select {
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 6px;
+    padding: 8px 12px;
+    color: var(--text);
+    min-width: 150px;
+}
+
+.filter-group select:focus {
+    outline: none;
+    border-color: var(--primary);
+}
+
+.search-stats {
+    margin-left: auto;
+    color: var(--text-secondary);
+    font-size: 14px;
 }
 
 /* ===== СЕТКА МАНУАЛОВ ===== */

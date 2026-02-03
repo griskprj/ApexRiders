@@ -14,6 +14,7 @@ from app.models import (
     ManualDraft, 
     ManualRating
 )
+from sqlalchemy import or_, and_
 
 manuals = Blueprint('manuals', __name__)
 
@@ -733,3 +734,120 @@ def delete_manual(manual_id):
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': f'Ошибка при удалении: {str(e)}'}), 500
+
+
+@manuals.route('/api/manuals/search', methods=['GET'])
+@jwt_required()
+def search_manuals():
+    """ Search manuals """
+
+    current_user_id = get_jwt_identity()
+    user = Member.query.get(current_user_id)
+    if not user:
+        return jsonify({'error': 'user not found'}), 404
+    
+    search_query = request.args.get('q', '').strip()
+    category = request.args.get('category', '')
+    difficulty = request.args.get('difficutly', '')
+    sort_by = request.args.get('sort_by', 'relevance')
+    page = request.args.get('page', 1, type=int)
+    per_page = request.args.get('per_page', 10, type=int)
+
+    query = MaintenanceManual.query.filter(MaintenanceManual.status == 'published')
+
+
+    if search_query:
+        search_terms = search_query.lower().split()
+
+        conditions = []
+        for term in search_terms:
+            if len(term) >= 2:
+                term_pattern = f'%{term}%'
+                conditions.append(
+                    or_(
+                        MaintenanceManual.title.ilike(term_pattern),
+                        MaintenanceManual.description.ilike(term_pattern),
+                        MaintenanceManual.moto_type.ilike(term_pattern),
+                        MaintenanceManual.category.ilike(term_pattern)
+                    )
+                )
+        
+        if conditions:
+            query = query.filter(and_(*conditions))
+    
+    if category:
+        query = query.filter_by(category=category)
+
+    if difficulty:
+        query = query.filter_by(difficulty=difficulty)
+
+    if sort_by == 'newest':
+        query = query.order_by(MaintenanceManual.created_at.desc())
+    elif sort_by == 'rating':
+        query = query.order_by(MaintenanceManual.rating.desc(), MaintenanceManual.rating_count.desc())
+    elif sort_by == 'views':
+        query = query.order_by(MaintenanceManual.views.desc())
+    elif sort_by == 'relevance' and search_query:
+        query = query.order_by(
+            MaintenanceManual.views.desc(),
+            MaintenanceManual.rating.desc()
+        )
+    else:
+        query = query.order_by(MaintenanceManual.created_at.desc())
+
+    pagination = query.paginate(page=page, per_page=per_page, error_out=False)
+    manuals = pagination.items
+
+    manuals_data = [{
+        'id': m.id,
+        'title': m.title,
+        'description': m.description,
+        'moto_type': m.moto_type,
+        'category': m.category,
+        'difficulty': m.difficulty,
+        'estimated_time': m.estimated_time,
+        'tools_required': m.tools_required,
+        'parts_required': m.parts_required,
+        'warnings': m.warnings,
+        'views': m.views,
+        'rating': m.rating,
+        'rating_count': m.rating_count,
+        'created_at': m.created_at.isoformat() if m.created_at else None,
+        'author_id': m.author_id
+    } for m in manuals]
+
+    author_ids = list(set([m['author_id'] for m in manuals_data if m['author_id']]))
+    authors = {}
+    if author_ids:
+        author_users = Member.query.filter(Member.id.in_(author_ids)).all()
+        for author in author_users:
+            authors[author.id] = {
+                'id': author.id,
+                'username': author.username,
+                'is_verified': author.is_verified
+            }
+
+    for manual in manuals_data:
+        author_id = manual.get('author_id')
+        if author_id and author_id in authors:
+            manual['author'] = authors[author_id]
+        else:
+            manual['author'] = None
+    
+    return jsonify({
+        'manuals': manuals_data,
+        'pagination': {
+            'total': pagination.total,
+            'pages': pagination.pages,
+            'current_page': page,
+            'per_page': per_page,
+            'has_next': pagination.has_next,
+            'has_prev': pagination.has_prev
+        },
+        'search_meta': {
+            'query': search_query,
+            'category': category,
+            'difficulty': difficulty,
+            'sort_by': sort_by
+        }
+    })
