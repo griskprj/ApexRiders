@@ -2,20 +2,21 @@ from app import db
 from app.models import Notification, Member
 from datetime import datetime, timezone
 
+
 class NotificationService:
     """ Сервис для работы с уведомлениями """
 
     @staticmethod
     def send_like_notification(liker_id, target_type, target_id, target_owner_id):
-        ''' Уведомление о лайке '''
+        ''' Like notification '''
 
         if liker_id == target_owner_id:
             return None
-        
+
         liker = Member.query.get(liker_id)
         if not liker:
             return None
-        
+
         notification_type = f'like_{target_type}'
 
         titles = {
@@ -43,16 +44,16 @@ class NotificationService:
         db.session.commit()
 
         return notification
-    
+
     @staticmethod
     def send_admin_report(user_id, admin_id, target_type, target_id, reason, action_taken=None):
-        ''' Отправить уведомление о жалобе от администратора '''
+        ''' Send admin report to user '''
 
         admin = Member.query.get(admin_id)
         if not admin:
             return None
-        
-        target_info = {} # TODO: получение деталей
+
+        target_info = {}  # TODO: получение деталей
 
         notification = Notification(
             user_id=user_id,
@@ -75,10 +76,10 @@ class NotificationService:
         db.session.commit()
 
         return notification
-    
+
     @staticmethod
     def send_admin_broadcast(user_id, admin_id, title, message, priority='normal'):
-        ''' Отправить админское уведомление '''
+        ''' Send admin broadcast '''
 
         admin = Member.query.get(admin_id)
 
@@ -99,10 +100,10 @@ class NotificationService:
         db.session.commit()
 
         return notification
-    
+
     @staticmethod
     def get_unread_count(user_id):
-        ''' Получить кол-во непрочитанных сообщений '''
+        ''' Get unread notifications count '''
         return Notification.query.filter_by(
             user_id=user_id,
             is_read=False,

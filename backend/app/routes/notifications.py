@@ -6,44 +6,42 @@ from datetime import datetime, timezone
 
 notifications_bp = Blueprint('notifications', __name__)
 
+
 @notifications_bp.route('/notifications', methods=['GET'])
 @jwt_required()
 def get_notifications():
-    """Получить уведомления пользователя"""
+    """ Get notifications """
     try:
         user_id = get_jwt_identity()
-        
-        # Параметры запроса
+
         page = request.args.get('page', 1, type=int)
         per_page = request.args.get('per_page', 20, type=int)
-        unread_only = request.args.get('unread_only', 'false').lower() == 'true'
+        unread_only = request.args.get(
+            'unread_only', 'false').lower() == 'true'
         notification_type = request.args.get('type')
-        
-        # Базовый запрос
-        query = Notification.query.filter_by(user_id=user_id, is_archived=False)
-        
-        # Фильтры
+
+        query = Notification.query.filter_by(
+            user_id=user_id, is_archived=False)
+
         if unread_only:
             query = query.filter_by(is_read=False)
-        
+
         if notification_type:
             query = query.filter_by(notification_type=notification_type)
-        
-        # Сортировка по времени создания (новые первыми)
+
         query = query.order_by(Notification.created_at.desc())
-        
-        # Пагинация
-        pagination = query.paginate(page=page, per_page=per_page, error_out=False)
-        
+
+        pagination = query.paginate(
+            page=page, per_page=per_page, error_out=False)
+
         notifications = [n.to_dict() for n in pagination.items]
-        
-        # Подсчет непрочитанных
+
         unread_count = Notification.query.filter_by(
-            user_id=user_id, 
-            is_read=False, 
+            user_id=user_id,
+            is_read=False,
             is_archived=False
         ).count()
-        
+
         return jsonify({
             'notifications': notifications,
             'unread_count': unread_count,
@@ -52,15 +50,16 @@ def get_notifications():
             'current_page': page,
             'per_page': per_page
         }), 200
-        
+
     except Exception as e:
         current_app.logger.error(str(e))
         return jsonify({'error': str(e)}), 500
-    
+
+
 @notifications_bp.route('/notifications/<int:notification_id>/read', methods=['PUT'])
 @jwt_required()
 def mark_notification_read(notification_id):
-    """ Отметить уведомление как прочитанное """
+    """ Mark notification as read """
     try:
         user_id = get_jwt_identity()
 
@@ -68,7 +67,7 @@ def mark_notification_read(notification_id):
 
         if notification.user_id != user_id:
             return jsonify({'error': 'Недостаточно прав'}), 403
-        
+
         notification.mark_as_read()
         db.session.commit()
 
@@ -76,17 +75,18 @@ def mark_notification_read(notification_id):
             'message': 'Сообщение отмечено как прочитанное',
             'notification': notification.to_dict()
         }), 200
-    
+
     except Exception as e:
         db.session.rollback()
         return jsonify({
             'error': str(e)
         }), 500
-    
+
+
 @notifications_bp.route('/notifications/read-all', methods=['PUT'])
 @jwt_required()
 def make_all_read():
-    """ Отметить все сообщения как прочитанные """
+    """ Mark all notifications as read """
     try:
         user_id = get_jwt_identity()
 
@@ -106,17 +106,18 @@ def make_all_read():
         return jsonify({
             'message': f'Все уведомления {len(notifications)} отмечены как прочитанные'
         }), 200
-    
+
     except Exception as e:
         db.session.rollback()
         return jsonify({
             'error': str(e)
         }), 500
-    
+
+
 @notifications_bp.route('/notifications/<int:notification_id>/archive', methods=['PUT'])
 @jwt_required()
 def archive_notification(notification_id):
-    """ Переместить уведомление в архив """
+    """ Move notification to archive """
     try:
         user_id = get_jwt_identity()
 
@@ -124,24 +125,25 @@ def archive_notification(notification_id):
 
         if int(notification.user_id) != int(user_id):
             return jsonify({'error': 'Недостаточно прав'}), 403
-        
+
         notification.is_archived = True
         db.session.commit()
 
         return jsonify({
             'message': 'Уведомление перемещено в архив'
         }), 200
-    
+
     except Exception as e:
         db.session.rollback()
         return jsonify({
             'error': str(e)
         }), 500
-    
+
+
 @notifications_bp.route('/notifications/count', methods=['GET'])
 @jwt_required()
 def get_notifications_count():
-    """ Получить кол-во непрочитанных сообщений """
+    """ Get notifications count """
     try:
         user_id = get_jwt_identity()
 
@@ -154,23 +156,24 @@ def get_notifications_count():
         return jsonify({
             'unread_count': unread_count
         })
-    
+
     except Exception as e:
         return jsonify({
             'error': str(e)
         }), 500
-    
+
+
 @notifications_bp.route('/admin/send-notification', methods=['POST'])
 @jwt_required()
 def send_admin_notification():
-    """ Отправка уведомления пользователю от имени админа """
+    """ Send admin notification """
     try:
         current_user_id = get_jwt_identity()
         current_user = Member.query.get(current_user_id)
 
         if current_user.admin_level == 0 and not current_user.is_super_admin:
             return jsonify({'error': 'Недостаточно прав'}), 403
-        
+
         data = request.get_json()
 
         user_id = data.get('user_id')
@@ -181,7 +184,7 @@ def send_admin_notification():
 
         if not user_id or not title:
             return jsonify({'error': 'Не все обязательные поля заполнены'}), 400
-        
+
         notification = Notification(
             user_id=user_id,
             title=title,
@@ -199,24 +202,25 @@ def send_admin_notification():
             'message': 'Уведомление отправлено успешно',
             'notification': notification.to_dict()
         }), 201
-    
+
     except Exception as e:
         db.session.rollback()
         return jsonify({
             'erorr': str(e)
         }), 500
-    
+
+
 @notifications_bp.route('/admin/send-report', methods=['POST'])
 @jwt_required()
 def send_admin_report():
-    """ Отправка жалобы/отчёта администратора пользователю"""
+    """ Send admin report to user """
     try:
         current_user_id = get_jwt_identity()
         current_user = Member.query.get(current_user_id)
 
         if current_user.admin_level == 0 and not current_user.is_super_admin:
             return jsonify({'error': 'Недостаточно прав'}), 403
-        
+
         data = request.get_json()
 
         user_id = data.get('user_id')
@@ -227,7 +231,7 @@ def send_admin_report():
 
         if not user_id or not target_type or not reason:
             return jsonify({'error': 'Заполните обязательные поля'}), 400
-        
+
         target_info = {}
         if target_type == 'post':
             post = Post.query.get(target_id)
@@ -260,7 +264,7 @@ def send_admin_report():
             target_id=target_id,
             priority='high',
             admin_id=current_user_id,
-            metadata = {
+            metadata={
                 'reason': reason,
                 'action_taken': action_taken,
                 'target_info': target_info,
@@ -274,7 +278,7 @@ def send_admin_report():
             'message': 'Жалоба отправлена пользователю',
             'notification': notification.to_dict()
         }), 201
-    
+
     except Exception as e:
         db.session.rollback()
         return jsonify({

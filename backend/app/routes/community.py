@@ -13,44 +13,49 @@ community = Blueprint('community', __name__)
 UPLOAD_FOLDER = 'static/uploads/posts'
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp'}
 
+
 def save_uploaded_image(file):
-    """Сохранение загруженного изображения"""
+    """ Download uploaded image """
     try:
         if not allowed_file(file.filename):
             raise ValueError('Недопустимый тип файла')
-        
+
         file.seek(0, os.SEEK_END)
         file_length = file.tell()
         file.seek(0)
-        
+
         if file_length > 5 * 1024 * 1024:
             raise ValueError('Файл слишком большой. Максимальный размер: 5MB')
-        
+
         filename = secure_filename(file.filename)
         unique_filename = f"{uuid.uuid4().hex}_{filename}"
 
-        upload_dir = os.path.join(current_app.config.get('UPLOAD_FOLDER', 'static/uploads'), 'posts')
+        upload_dir = os.path.join(current_app.config.get(
+            'UPLOAD_FOLDER', 'static/uploads'), 'posts')
         os.makedirs(upload_dir, exist_ok=True)
-        
+
         filepath = os.path.join(upload_dir, unique_filename)
         file.save(filepath)
-        
+
         return {
             'filename': unique_filename,
             'url': f"/uploads/posts/{unique_filename}"
         }
-        
+
     except Exception as e:
         current_app.logger.error(f'Error saving image: {str(e)}')
         raise ValueError(f'Ошибка загрузки изображения: {str(e)}')
+
 
 def allowed_file(filename):
     return '.' in filename and \
         filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
+
 @community.route('/api/posts', methods=['GET'])
 @jwt_required()
 def get_posts():
+    """ Get all posts """
     current_user_id = get_jwt_identity()
 
     try:
@@ -65,9 +70,11 @@ def get_posts():
         elif filter_type == 'recent':
             query = query.order_by(Post.created_at.desc())
         elif filter_type == 'my':
-            query = query.filter_by(author_id=current_user_id).order_by(Post.created_at.desc())
+            query = query.filter_by(author_id=current_user_id).order_by(
+                Post.created_at.desc())
 
-        pagination = query.paginate(page=page, per_page=per_page, error_out=False)
+        pagination = query.paginate(
+            page=page, per_page=per_page, error_out=False)
         posts = pagination.items
 
         posts_data = []
@@ -75,7 +82,8 @@ def get_posts():
             author = Member.query.get(post.author_id)
 
             html_content = markdown.markdown(
-                post.content[:500] + '...' if len(post.content) > 500 else post.content,
+                post.content[:500] +
+                '...' if len(post.content) > 500 else post.content,
                 extensions=['tables', 'fenced_code', 'nl2br']
             )
 
@@ -107,14 +115,16 @@ def get_posts():
             'perPage': per_page,
             'totalPages': pagination.pages
         }), 200
-    
+
     except Exception as e:
         current_app.logger.error(f'Error fetching posts: {str(e)}')
-        return jsonify({ 'error': 'Failed to fetch posts' }), 500
-    
+        return jsonify({'error': 'Failed to fetch posts'}), 500
+
+
 @community.route('/api/posts/<int:post_id>', methods=['GET'])
 @jwt_required()
 def get_post(post_id):
+    """ Get one post """
     try:
         current_user_id = get_jwt_identity()
 
@@ -127,28 +137,28 @@ def get_post(post_id):
 
         raw_content = post.content
         html_content = markdown.markdown(
-            raw_content, 
+            raw_content,
             extensions=['tables', 'fenced_code', 'nl2br']
         )
-        
+
         allowed_tags = [
-            'p', 'br', 'strong', 'em', 'b', 'i', 'u', 
+            'p', 'br', 'strong', 'em', 'b', 'i', 'u',
             'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
-            'ul', 'ol', 'li', 'blockquote', 'code', 'pre', 
-            'hr', 'a', 'img', 'table', 'thead', 'tbody', 
+            'ul', 'ol', 'li', 'blockquote', 'code', 'pre',
+            'hr', 'a', 'img', 'table', 'thead', 'tbody',
             'tr', 'th', 'td', 'span', 'div'
         ]
-        
+
         allowed_attrs = {
             'a': ['href', 'title', 'target', 'rel'],
             'img': ['src', 'alt', 'title', 'width', 'height', 'class', 'style'],
             'code': ['class'],
             'pre': ['class']
         }
-        
+
         safe_html = clean(
-            html_content, 
-            tags=allowed_tags, 
+            html_content,
+            tags=allowed_tags,
             attributes=allowed_attrs,
             protocols=['http', 'https', 'mailto', 'data'],
             strip=False
@@ -174,31 +184,33 @@ def get_post(post_id):
 
     except Exception as e:
         current_app.logger.error(f'Error fetching post: {str(e)}')
-        return jsonify({ 'error': 'Post not found' }), 404
-    
+        return jsonify({'error': 'Post not found'}), 404
+
+
 @community.route('/api/posts/upload-image', methods=['POST'])
 @jwt_required()
 def upload_image():
+    """ Upload image """
     try:
         current_user_id = get_jwt_identity()
-        
+
         if 'image' not in request.files:
-            return jsonify({ 'error': 'Файл не найден' }), 404
-        
+            return jsonify({'error': 'Файл не найден'}), 404
+
         file = request.files['image']
         if file.filename == '':
-            return jsonify({ 'error': 'Файл не выбран' }), 400
-        
+            return jsonify({'error': 'Файл не выбран'}), 400
+
         if not allowed_file(file.filename):
-            return jsonify({ 'error': 'Недопустимый тип файла. Разрешены: PNG, JPG, JPEG, GIF, WEBP' }), 400
+            return jsonify({'error': 'Недопустимый тип файла. Разрешены: PNG, JPG, JPEG, GIF, WEBP'}), 400
 
         file.seek(0, os.SEEK_END)
         file_length = file.tell()
         file.seek(0)
 
         if file_length > 5 * 1024 * 1024:
-            return jsonify({ 'error': 'Файл слишком большой. Максимальный размер: 5MB' }), 400
-        
+            return jsonify({'error': 'Файл слишком большой. Максимальный размер: 5MB'}), 400
+
         filename = secure_filename(file.filename)
         unique_filename = f"{uuid.uuid4().hex}_{filename}"
 
@@ -209,7 +221,7 @@ def upload_image():
         file.save(filepath)
 
         image_url = f"/uploads/posts/{unique_filename}"
-        
+
         return jsonify({
             'success': True,
             'image_url': image_url,
@@ -218,24 +230,26 @@ def upload_image():
 
     except Exception as e:
         current_app.logger.error(f'Error uploading image: {str(e)}')
-        return jsonify({ 'error': 'Failed to upload image' }), 500
-    
+        return jsonify({'error': 'Failed to upload image'}), 500
+
+
 @community.route('/api/posts', methods=['POST'])
 @jwt_required()
 def create_post():
+    """ Create post """
     try:
         current_user_id = get_jwt_identity()
-        
+
         image_url = None
         image_filename = None
-        
+
         if request.is_json:
             data = request.get_json()
             image_url = data.get('imageUrl', None)
         else:
             data = request.form.to_dict()
             image_url = data.get('imageUrl', None)
-            
+
             if 'image' in request.files:
                 file = request.files['image']
                 try:
@@ -244,26 +258,26 @@ def create_post():
                         image_filename = upload_result['filename']
                         image_url = upload_result['url']
                 except ValueError as e:
-                    return jsonify({ 'error': str(e) }), 400
+                    return jsonify({'error': str(e)}), 400
 
         if not data.get('title') or not data.get('content'):
-            return jsonify({ 'error': 'Title and content are required' }), 400
-        
+            return jsonify({'error': 'Title and content are required'}), 400
+
         raw_content = data['content']
-        
+
         html_content = markdown.markdown(
-            raw_content, 
+            raw_content,
             extensions=['tables', 'fenced_code', 'nl2br']
         )
 
         allowed_tags = [
-            'p', 'br', 'strong', 'em', 'b', 'i', 'u', 
+            'p', 'br', 'strong', 'em', 'b', 'i', 'u',
             'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
-            'ul', 'ol', 'li', 'blockquote', 'code', 'pre', 
-            'hr', 'a', 'img', 'table', 'thead', 'tbody', 
+            'ul', 'ol', 'li', 'blockquote', 'code', 'pre',
+            'hr', 'a', 'img', 'table', 'thead', 'tbody',
             'tr', 'th', 'td', 'span', 'div'
         ]
-        
+
         allowed_attrs = {
             '*': ['class', 'id', 'style'],
             'a': ['href', 'title', 'target', 'rel'],
@@ -271,10 +285,10 @@ def create_post():
             'code': ['class'],
             'pre': ['class']
         }
-        
+
         safe_html = clean(
-            html_content, 
-            tags=allowed_tags, 
+            html_content,
+            tags=allowed_tags,
             attributes=allowed_attrs,
             protocols=['http', 'https', 'mailto', 'data'],
             strip=False
@@ -293,8 +307,9 @@ def create_post():
 
         db.session.add(new_post)
         db.session.commit()
-        
-        current_app.logger.info(f'Post created: ID={new_post.id}, image_url={image_url}, image_filename={image_filename}')
+
+        current_app.logger.info(
+            f'Post created: ID={new_post.id}, image_url={image_url}, image_filename={image_filename}')
 
         author = Member.query.get(current_user_id)
 
@@ -314,15 +329,17 @@ def create_post():
             'views': 0,
             'imageUrl': new_post.image_url or ''
         }), 201
-    
+
     except Exception as e:
         db.session.rollback()
         current_app.logger.error(f'Error creating post: {str(e)}')
-        return jsonify({ 'error': 'Failed to create post'}), 500
-    
+        return jsonify({'error': 'Failed to create post'}), 500
+
+
 @community.route('/api/posts/<int:post_id>/like', methods=['POST'])
 @jwt_required()
 def like_post(post_id):
+    """ Like post """
     try:
         current_user_id = get_jwt_identity()
 
@@ -338,7 +355,7 @@ def like_post(post_id):
             db.session.delete(existing_like)
             post.like_count = max(0, post.like_count - 1)
             db.session.commit()
-            return jsonify({ 'liked': False, 'likesCount': post.like_count }), 200
+            return jsonify({'liked': False, 'likesCount': post.like_count}), 200
         else:
             new_like = Like(
                 user_id=current_user_id,
@@ -357,16 +374,18 @@ def like_post(post_id):
                 target_owner_id=post.author_id,
             )
 
-            return jsonify({ 'liked': True, 'likesCount': post.like_count }), 200
-        
+            return jsonify({'liked': True, 'likesCount': post.like_count}), 200
+
     except Exception as e:
         db.session.rollback()
         current_app.logger.error(f'Error toggling like: {str(e)}')
-        return jsonify({ 'error': 'Failed to toggle like'}), 500
-    
+        return jsonify({'error': 'Failed to toggle like'}), 500
+
+
 @community.route('/api/posts/<int:post_id>/comments', methods=['GET'])
 @jwt_required()
 def get_comments(post_id):
+    """ Get comments """
     try:
         page = request.args.get('page', 1, type=int)
         per_page = request.args.get('per_page', 20, type=int)
@@ -374,9 +393,9 @@ def get_comments(post_id):
         comments = Comment.query.filter_by(post_id=post_id)\
             .order_by(Comment.created_at.desc())\
             .paginate(page=page, per_page=per_page, error_out=False)
-        
+
         print(post_id)
-        
+
         comments_data = []
         for comment in comments.items:
             author = Member.query.get(comment.author_id)
@@ -398,21 +417,23 @@ def get_comments(post_id):
             'page': page,
             'perPage': per_page
         }), 200
-    
+
     except Exception as e:
         current_app.logger.error(f'Error fetching comments: {str(e)}')
-        return jsonify({ 'error': 'Failed to fetch comments'}), 500
-    
+        return jsonify({'error': 'Failed to fetch comments'}), 500
+
+
 @community.route('/api/posts/<int:post_id>/comments', methods=['POST'])
 @jwt_required()
 def create_comment(post_id):
+    """ Create comment """
     try:
         current_user_id = get_jwt_identity()
         data = request.get_json()
 
         if not data.get('content'):
-            return jsonify({ 'error': 'Comment content is required' }), 400
-        
+            return jsonify({'error': 'Comment content is required'}), 400
+
         post = Post.query.get_or_404(post_id)
 
         new_comment = Comment(
@@ -440,15 +461,17 @@ def create_comment(post_id):
             'createdAt': new_comment.created_at.isoformat(),
             'likeCount': 0
         }), 201
-    
+
     except Exception as e:
         db.session.rollback()
         current_app.logger.error(f'Error creating comment: {str(e)}')
-        return jsonify({ 'error': 'Failed to create comment' }), 500
-    
+        return jsonify({'error': 'Failed to create comment'}), 500
+
+
 @community.route('/api/comment/<int:comment_id>/like', methods=['POST'])
 @jwt_required()
 def like_comment(comment_id):
+    """ Like comment """
     try:
         current_user_id = get_jwt_identity()
 
@@ -464,7 +487,7 @@ def like_comment(comment_id):
             db.session.delete(existing_like)
             comment.like_count = max(0, comment.like_count - 1)
             db.session.commit()
-            return jsonify({ 'liked': False, 'likesCount': comment.like_count }), 200
+            return jsonify({'liked': False, 'likesCount': comment.like_count}), 200
         else:
             new_like = Like(
                 user_id=current_user_id,
@@ -483,21 +506,24 @@ def like_comment(comment_id):
                 target_owner_id=comment.author_id
             )
 
-            return jsonify({ 'liked': True, 'likesCount': comment.like_count }), 200
-        
+            return jsonify({'liked': True, 'likesCount': comment.like_count}), 200
+
     except Exception as e:
         db.session.rollback()
         current_app.logger.error(f'Error toggling like: {str(e)}')
-        return jsonify({ 'error': 'Failed to toggle like in comment' }), 500
-    
+        return jsonify({'error': 'Failed to toggle like in comment'}), 500
+
+
 @community.route('/api/community/stats', methods=['GET'])
 @jwt_required()
 def get_community_stats():
+    """ Get community stats """
     try:
         current_user_id = get_jwt_identity()
 
         user_posts = Post.query.filter_by(author_id=current_user_id).count()
-        user_comments = Comment.query.filter_by(author_id=current_user_id).count()
+        user_comments = Comment.query.filter_by(
+            author_id=current_user_id).count()
 
         active_users = Member.query\
             .join(Post, Member.id == Post.author_id)\
@@ -505,7 +531,7 @@ def get_community_stats():
             .order_by(db.func.count(Post.id).desc())\
             .limit(5)\
             .all()
-        
+
         active_users_data = []
         for user in active_users:
             post_count = Post.query.filter_by(author_id=user.id).count()
@@ -523,11 +549,12 @@ def get_community_stats():
             },
             'activeUsers': active_users_data
         }), 200
-    
+
     except Exception as e:
         current_app.logger.error(f'Error fetching community stats: {str(e)}')
-        return jsonify({ 'error': 'Error fetching community stats'}), 500
-    
+        return jsonify({'error': 'Error fetching community stats'}), 500
+
+
 @community.route('/api/posts/<int:post_id>/delete', methods=['DELETE'])
 @jwt_required()
 def delete_post(post_id):
@@ -537,32 +564,37 @@ def delete_post(post_id):
         post = Post.query.get(post_id)
         if not post:
             current_app.logger.error('Post not found')
-            return jsonify({ 'error': 'Post not found' }), 404
-        
+            return jsonify({'error': 'Post not found'}), 404
+
         if int(post.author_id) != int(current_user_id):
-            return jsonify({ 'error': 'You can only delete your own posts' }), 403
-        
+            return jsonify({'error': 'You can only delete your own posts'}), 403
+
         if post.image_filename:
             try:
-                upload_dir = os.path.join(current_app.config.get('UPLOAD_FOLDER', 'static/uploads'), 'posts')
+                upload_dir = os.path.join(current_app.config.get(
+                    'UPLOAD_FOLDER', 'static/uploads'), 'posts')
                 image_path = os.path.join(upload_dir, post.image_filename)
                 if os.path.exists(image_path):
                     os.remove(image_path)
-                    current_app.logger.info(f'Deleted image file: {image_path}')
+                    current_app.logger.info(
+                        f'Deleted image file: {image_path}')
             except Exception as e:
-                current_app.logger.error(f'Error deleting image file: {str(e)}')
-        
+                current_app.logger.error(
+                    f'Error deleting image file: {str(e)}')
+
         comments = Comment.query.filter_by(post_id=post_id).all()
-        likes = Like.query.filter_by(target_type='post', target_id=post_id).all()
+        likes = Like.query.filter_by(
+            target_type='post', target_id=post_id).all()
 
         for comment in comments:
-            comment_likes = Like.query.filter_by(target_type='comment', target_id=comment.id).all()
+            comment_likes = Like.query.filter_by(
+                target_type='comment', target_id=comment.id).all()
             for like in comment_likes:
                 db.session.delete(like)
 
         for comment in comments:
             db.session.delete(comment)
-        
+
         for like in likes:
             db.session.delete(like)
 
@@ -577,21 +609,23 @@ def delete_post(post_id):
     except Exception as e:
         db.session.rollback()
         current_app.logger.error(f'Error deleting post: {str(e)}')
-        return jsonify({ 'error': 'Error deleting post'}), 500
-    
+        return jsonify({'error': 'Error deleting post'}), 500
+
+
 @community.route('/api/posts/<int:post_id>', methods=['PUT'])
 @jwt_required()
 def update_post(post_id):
+    """ Update post """
     try:
         current_user_id = get_jwt_identity()
 
         post = Post.query.get_or_404(post_id)
         if int(post.author_id) != int(current_user_id):
-            return jsonify({ 'error': 'You can only edit your own posts' }), 403
-        
+            return jsonify({'error': 'You can only edit your own posts'}), 403
+
         image_url = post.image_url
         image_filename = post.image_filename
-        
+
         if request.is_json:
             data = request.get_json()
             image_url = data.get('imageUrl', post.image_url)
@@ -604,40 +638,44 @@ def update_post(post_id):
                 try:
                     if post.image_filename:
                         try:
-                            upload_dir = os.path.join(current_app.config.get('UPLOAD_FOLDER', 'static/uploads'), 'posts')
-                            old_image_path = os.path.join(upload_dir, post.image_filename)
+                            upload_dir = os.path.join(current_app.config.get(
+                                'UPLOAD_FOLDER', 'static/uploads'), 'posts')
+                            old_image_path = os.path.join(
+                                upload_dir, post.image_filename)
                             if os.path.exists(old_image_path):
                                 os.remove(old_image_path)
-                                current_app.logger.info(f'Deleted old image: {old_image_path}')
+                                current_app.logger.info(
+                                    f'Deleted old image: {old_image_path}')
                         except Exception as e:
-                            current_app.logger.error(f'Error deleting old image: {str(e)}')
-                    
+                            current_app.logger.error(
+                                f'Error deleting old image: {str(e)}')
+
                     upload_result = save_uploaded_image(file)
                     if upload_result:
                         image_filename = upload_result['filename']
                         image_url = upload_result['url']
                 except ValueError as e:
-                    return jsonify({ 'error': str(e) }), 400
-                
+                    return jsonify({'error': str(e)}), 400
+
         if 'title' in data and data['title']:
             post.title = data['title']
-        
+
         if 'content' in data and data['content']:
             raw_content = data['content']
 
             html_content = markdown.markdown(
-                raw_content, 
+                raw_content,
                 extensions=['tables', 'fenced_code', 'nl2br']
             )
 
             allowed_tags = [
-                'p', 'br', 'strong', 'em', 'b', 'i', 'u', 
+                'p', 'br', 'strong', 'em', 'b', 'i', 'u',
                 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
-                'ul', 'ol', 'li', 'blockquote', 'code', 'pre', 
-                'hr', 'a', 'img', 'table', 'thead', 'tbody', 
+                'ul', 'ol', 'li', 'blockquote', 'code', 'pre',
+                'hr', 'a', 'img', 'table', 'thead', 'tbody',
                 'tr', 'th', 'td', 'span', 'div'
             ]
-            
+
             allowed_attrs = {
                 '*': ['class', 'id', 'style'],
                 'a': ['href', 'title', 'target', 'rel'],
@@ -656,7 +694,7 @@ def update_post(post_id):
 
             post.content = raw_content
             post.html_content = safe_html
-        
+
         post.image_url = image_url
         post.image_filename = image_filename
         post.updated_at = datetime.now(timezone.utc)
@@ -682,8 +720,8 @@ def update_post(post_id):
             'views': post.view_count,
             'imageUrl': post.image_url
         }), 200
-    
+
     except Exception as e:
         db.session.rollback()
         current_app.logger.error(f'Error updating post: {str(e)}')
-        return jsonify({ 'error': 'Failed to update post' }), 500
+        return jsonify({'error': 'Failed to update post'}), 500

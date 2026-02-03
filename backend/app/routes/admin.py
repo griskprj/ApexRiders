@@ -33,7 +33,9 @@ def get_users():
 
         query = query.order_by(Member.join_at.desc())
 
-        pagination = query.paginate(page=page, per_page=per_page, error_out=False)
+        pagination = query.paginate(
+            page=page, per_page=per_page, error_out=False
+        )
 
         users = []
         for user in pagination.items:
@@ -61,7 +63,8 @@ def get_users():
             'per_page': per_page
         }), 200
     except Exception as e:
-        return jsonify({ 'error': str(e) }), 500
+        return jsonify({'error': str(e)}), 500
+
 
 @admin.route('/users/<int:user_id>', methods=['DELETE'])
 @jwt_required()
@@ -72,13 +75,13 @@ def delete_user(user_id):
         current_user = request.current_user
 
         if current_user.id == user_id:
-            return jsonify({ 'error': 'Нельзя удалить самого себя' }), 400
-        
+            return jsonify({'error': 'Нельзя удалить самого себя'}), 400
+
         user = Member.query.get(user_id)
 
         if not user:
-            return jsonify({ 'error': 'Пользователь не найден' }), 404
-        
+            return jsonify({'error': 'Пользователь не найден'}), 404
+
         deleted_data = {
             'username': user.username,
             'email': user.email,
@@ -88,15 +91,16 @@ def delete_user(user_id):
 
         db.session.delete(user)
         db.session.commit()
-        
+
         return jsonify({
             'message': 'Пользователь успешно удален',
             'deleted_user': deleted_data
         }), 200
     except Exception as e:
         db.session.rollback()
-        return jsonify({ 'error': str(e) }), 500
-    
+        return jsonify({'error': str(e)}), 500
+
+
 @admin.route('/users/<int:user_id>/admin-level', methods=['PUT'])
 @jwt_required()
 @admin_required(level=5)
@@ -107,13 +111,13 @@ def update_admin_level(user_id):
         admin_level = data.get('admin_level')
 
         if int(admin_level) is None or int(admin_level) < 0 or int(admin_level) > 5:
-            return jsonify({ 'error': 'Некорректный уровень администратора' }), 400
-        
+            return jsonify({'error': 'Некорректный уровень администратора'}), 400
+
         user = Member.query.get(user_id)
 
         if not user:
-            return jsonify({ 'error': 'Пользователь не найден' }), 404
-        
+            return jsonify({'error': 'Пользователь не найден'}), 404
+
         old_level = user.admin_level
         user.admin_level = admin_level
 
@@ -136,11 +140,12 @@ def update_admin_level(user_id):
                 'is_super_admin': user.is_super_admin
             }
         }), 200
-    
+
     except Exception as e:
         db.session.rollback()
-        return jsonify({ 'error': str(e) }), 500
-    
+        return jsonify({'error': str(e)}), 500
+
+
 @admin.route('/stats', methods=['GET'])
 @jwt_required()
 @admin_required(level=1)
@@ -157,7 +162,8 @@ def get_admin_stats():
             db.func.date(Member.join_at) == datetime.now(timezone.utc).date()
         ).count()
 
-        recent_users = Member.query.order_by(Member.join_at.desc()).limit(5).all()
+        recent_users = Member.query.order_by(
+            Member.join_at.desc()).limit(5).all()
         recent_users_data = [{
             'id': u.id,
             'username': u.username,
@@ -187,7 +193,7 @@ def get_admin_stats():
                 'last_login': user.last_login.isoformat() if user.last_login else None
             }
         }), 200
-    
+
     except Exception as e:
         db.session.rollback()
-        return jsonify({ 'error': str(e) }), 500
+        return jsonify({'error': str(e)}), 500

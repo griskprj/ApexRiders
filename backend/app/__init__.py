@@ -11,17 +11,21 @@ db = SQLAlchemy()
 jwt = JWTManager()
 migrate = Migrate()
 
+
 @jwt.unauthorized_loader
 def unauthorized_callback(callback):
     return jsonify({'error': 'Missing authorization token'}), 401
+
 
 @jwt.invalid_token_loader
 def invalid_token_callback(callback):
     return jsonify({'error': 'Invalid token'}), 422
 
+
 @jwt.expired_token_loader
 def expired_token_loader(jwt_header, jwt_payload):
     return jsonify({'error': 'Token has expired'}), 401
+
 
 def create_app(config_name=None):
     app = Flask(__name__)
@@ -40,7 +44,7 @@ def create_app(config_name=None):
     migrate.init_app(app, db, render_as_batch=True)
 
     config[config_name].init_app(app)
-    
+
     # Настройка CORS
     CORS(app, resources={
         r"/api/*": {
