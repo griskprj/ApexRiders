@@ -119,13 +119,8 @@ const handleRegister = async () => {
             form.password
         )
         
-        if (result && result.user) {
-            emit('user-updated', { 
-                user: result.user, 
-                access_token: result.token 
-            })
-            
-            router.push('/dashboard')
+        if (result) {
+            router.push('/login')
         } else {
             error.value = 'Не удалось получить данные пользователя после регистрации'
         }

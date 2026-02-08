@@ -23,115 +23,76 @@ from flask_jwt_extended import (
     get_jwt_identity
 )
 from werkzeug.security import generate_password_hash, check_password_hash
-from datetime import timedelta, datetime, timezone
+from datetime import datetime, timezone
+from app.services.auth_service import AuthService
 
 auth = Blueprint('auth', __name__)
 
 
 @auth.route('/api/auth/login', methods=['POST'])
 def login_user():
-    """ USER LOGIN """
+    """ Аутентификация пользователя """
     data = request.get_json()
 
-    member = Member.query.filter_by(email=data.get('email')).first()
+    result = AuthService.login(
+        email=data.get('email'),
+        password=data.get('password')
+    )
 
-    if member and check_password_hash(member.password_hash, data.get('password')):
-        access_token = create_access_token(
-            identity=str(member.id),
-            expires_delta=timedelta(hours=24)
-        )
-
-        member.last_login = datetime.now(timezone.utc)
-        db.session.commit()
-
-        return jsonify({
-            'access_token': access_token,
-            'member': {
-                'id': member.id,
-                'username': member.username,
-                'email': member.email,
-                'admin_level': member.admin_level,
-                'is_super_admin': member.is_super_admin,
-                'is_verified': member.is_verified
-            }
-        })
-
-    return jsonify({'error': 'Invalid credentials'}), 401
+    return jsonify({
+        'access_token': result['access_token'],
+        'member': {
+            'id': result['member'].id,
+            'username': result['member'].username,
+            'email': result['member'].email,
+            'admin_level': result['member'].admin_level,
+            'is_super_admin': result['member'].is_super_admin,
+            'is_verified': result['member'].is_verified
+        },
+        'message': result['message']
+    })
 
 
 @auth.route('/api/auth/register', methods=['POST'])
 def register_user():
-    """ USER REGISTER """
+    """ Регистрация пользователя """
     data = request.get_json()
+    
+    result = AuthService.register(
+        email=data.get('email'),
+        username=data.get('username'),
+        password=data.get('password')
+    )
 
-    if not all([data.get('username'), data.get('email'), data.get('password')]):
-        return jsonify({'error': 'Do not enter all the necessary information'}), 400
-
-    if Member.query.filter_by(username=data.get('username')).first():
-        return jsonify({'error': 'This username is already in use.'}), 400
-
-    if Member.query.filter_by(email=data.get('email')).first():
-        return jsonify({'error': 'This email is already in use.'}), 400
-
-    try:
-        user = Member(
-            username=data.get('username'),
-            email=data.get('email'),
-            password_hash=generate_password_hash(data.get('password')),
-            admin_level=0,
-            last_login=datetime.now(timezone.utc)
-        )
-
-        db.session.add(user)
-        db.session.commit()
-
-        access_token = create_access_token(identity=str(user.id))
-
-        return jsonify({
-            'message': 'User created successfully',
-            'user': {
-                'id': user.id,
-                'username': user.username,
-                'email': user.email
-            },
-            'access_token': access_token
-        }), 201
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({'error': f'Internal server error: {e}'}), 500
+    return jsonify({
+        'user': {
+            'id': result['member'].id,
+            'username': result['member'].username,
+            'email': result['member'].email
+        },
+        'message': result['message']
+    }), 201
 
 
 @auth.route('/api/auth/user', methods=['GET'])
 @jwt_required()
 def get_current_user():
-    """ GET CURRENT USER """
-    try:
-        current_user_id = get_jwt_identity()
-        print(f"JWT Identity: {current_user_id}")
+    """ Получить текущего пользователя """
+    result = AuthService.get_current_user()
 
-        user = Member.query.get(current_user_id)
-
-        if not user:
-            print("User not found in database")
-            return jsonify({'error': 'User not found'}), 404
-
-        return jsonify({
-            'user': {
-                'id': user.id,
-                'username': user.username,
-                'email': user.email,
-                'admin_level': user.admin_level
-            }
-        })
-    except Exception as e:
-        return jsonify({'error': 'Unable to fetch user data'}), 401
+    return jsonify({
+        'user': result['user']
+    })
 
 
 @auth.route('/api/auth/logout', methods=['POST'])
 @jwt_required()
 def logout_user():
-    """ LOGOUT """
-    return jsonify({'message': 'Successfully logged out'}), 200
+    """ Выход из аккаунта """
+    result = AuthService.logout()
+    return jsonify({
+        'message': result['message']
+    })
 
 
 @auth.route('/api/auth/profile', methods=['GET'])

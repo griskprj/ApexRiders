@@ -1,4 +1,3 @@
-# Создайте новый файл reports.py или добавьте в admin.py
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from app import db
@@ -11,7 +10,7 @@ reports_bp = Blueprint('reports', __name__)
 
 @reports_bp.route('/reports', methods=['GET'])
 @jwt_required()
-@admin_required(level=4)  # Только для супер-модераторов и выше
+@admin_required(level=4)
 def get_reports():
     """Получить список жалоб с фильтрацией"""
     try:
