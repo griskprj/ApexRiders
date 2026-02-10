@@ -880,7 +880,7 @@ export default {
                 }
 
                 const data = await usersResponse.json()
-                this.users = data.users
+                this.users = data.data
                 this.totalUsers = data.total
                 this.totalPages = data.pages
             } catch (error) {

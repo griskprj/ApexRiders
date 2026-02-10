@@ -408,7 +408,7 @@ export default {
             newComment: '',
             likedComments: new Set(),
             commentsPage: 1,
-            commentsPerPage: 20,
+            commentsPerPage: 5,
             commentsTotal: 0,
             addingComment: false,
             loadingComments: true,
@@ -546,12 +546,11 @@ export default {
 
                 const data = await response.json();
 
-                this.comments = (data.comment || []).map(commnet => ({
+                this.comments = (data.data || []).map(commnet => ({
                     ...commnet,
                     isLiked: this.likedComments.has(commnet.id)
                 }));
-
-                this.commentsTotal = data.total || 0;
+                this.commentsTotal = data.meta.total_items || 0
             } catch (error) {
                 console.error('Ошибка при загрузке комментариев:', error);
             } finally {
@@ -805,22 +804,12 @@ export default {
 
         closeEditModal() {
             this.showEditModal = false
-            this.imagePreview = null
+            this.imagePreview = null    
         },
 
         openPostReportModal(data) {
-            console.log('Открываю модалку репорта с данными:', {
-                dataFromFlag: data,
-                postId: this.post.id,
-                postType: 'post',
-                authorId: this.post.author?.id,
-                postData: this.post
-            });
-            
             this.reportTarget = data;
             this.showReportModal = true;
-            
-            console.log('showReportModal установлен в:', this.showReportModal);
         },
 
         handleFileUpload(event) {

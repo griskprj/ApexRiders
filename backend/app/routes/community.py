@@ -7,6 +7,7 @@ from flask import Blueprint, request, jsonify, current_app
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from app.models import Member, Post, Comment, Like, db
 from datetime import datetime, timezone
+from app.utils.pagination_utils import PaginationService, PaginationResult
 
 community = Blueprint('community', __name__)
 
@@ -55,12 +56,12 @@ def allowed_file(filename):
 @community.route('/api/posts', methods=['GET'])
 @jwt_required()
 def get_posts():
-    """ Get all posts """
+    """ Получить все посты """
     current_user_id = get_jwt_identity()
 
     try:
-        page = request.args.get('page', 1, type=int)
-        per_page = request.args.get('per_page', 10, type=int)
+        page, per_page = PaginationService.get_pagination_params()
+
         filter_type = request.args.get('filter', 'all')
 
         query = Post.query
@@ -72,13 +73,18 @@ def get_posts():
         elif filter_type == 'my':
             query = query.filter_by(author_id=current_user_id).order_by(
                 Post.created_at.desc())
+        else:
+            query = query.order_by(Post.created_at.desc())
 
-        pagination = query.paginate(
-            page=page, per_page=per_page, error_out=False)
-        posts = pagination.items
+        pagination_result = PaginationService.paginate_query(
+            query=query,
+            page=page,
+            per_page=per_page,
+            error_out=False
+        )
 
         posts_data = []
-        for post in posts:
+        for post in pagination_result.items:
             author = Member.query.get(post.author_id)
 
             html_content = markdown.markdown(
@@ -107,14 +113,20 @@ def get_posts():
                 'categoryIcon': 'fas fa-comment',
                 'imageUrl': post.image_url
             })
+        
+        response_data = PaginationService.create_response(
+            items=posts_data,
+            total=pagination_result.total,
+            page=pagination_result.page,
+            per_page=pagination_result.per_page,
+            pages=pagination_result.pages,
+            additional_data={
+                'filter': filter_type
+            },
+            include_pagination_meta=True
+        )
 
-        return jsonify({
-            'posts': posts_data,
-            'total': pagination.total,
-            'page': page,
-            'perPage': per_page,
-            'totalPages': pagination.pages
-        }), 200
+        return jsonify(response_data), 200
 
     except Exception as e:
         current_app.logger.error(f'Error fetching posts: {str(e)}')
@@ -385,19 +397,22 @@ def like_post(post_id):
 @community.route('/api/posts/<int:post_id>/comments', methods=['GET'])
 @jwt_required()
 def get_comments(post_id):
-    """ Get comments """
+    """ Получить комментарии """
     try:
-        page = request.args.get('page', 1, type=int)
-        per_page = request.args.get('per_page', 20, type=int)
+        page, per_page = PaginationService.get_pagination_params()
 
-        comments = Comment.query.filter_by(post_id=post_id)\
-            .order_by(Comment.created_at.desc())\
-            .paginate(page=page, per_page=per_page, error_out=False)
+        query = Comment.query.filter_by(post_id=post_id)\
+            .order_by(Comment.created_at.desc())
 
-        print(post_id)
+        pagination_result = PaginationService.paginate_query(
+            query=query,
+            page=page,
+            per_page=per_page,
+            error_out=False
+        )
 
         comments_data = []
-        for comment in comments.items:
+        for comment in pagination_result.items:
             author = Member.query.get(comment.author_id)
             comments_data.append({
                 'id': comment.id,
@@ -411,12 +426,19 @@ def get_comments(post_id):
                 'likeCount': comment.like_count
             })
 
-        return jsonify({
-            'comment': comments_data,
-            'total': comments.total,
-            'page': page,
-            'perPage': per_page
-        }), 200
+        response_data = PaginationService.create_response(
+            items=comments_data,
+            total=pagination_result.total,
+            page=pagination_result.page,
+            per_page=pagination_result.per_page,
+            pages=pagination_result.pages,
+            additional_data={
+                'post_id': post_id
+            },
+            include_pagination_meta=True
+        )
+
+        return jsonify(response_data), 200
 
     except Exception as e:
         current_app.logger.error(f'Error fetching comments: {str(e)}')

@@ -1,11 +1,30 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, current_app
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from app import db
 from app.models import Member
 from datetime import datetime, timezone
 from app.utils.admin_required import admin_required
+from app.utils.pagination_utils import PaginationService
 
 admin = Blueprint('admin', __name__)
+
+def serializer_user(user):
+    """ Сериализация пользователей """
+    return {
+        'id': user.id,
+        'username': user.username,
+        'email': user.email,
+        'role': user.role,
+        'admin_level': user.admin_level,
+        'is_super_admin': user.is_super_admin,
+        'is_verified': user.is_verified,
+        'join_at': user.join_at.isoformat() if user.join_at else None,
+        'last_admin_login': user.last_admin_login.isoformat() if user.last_admin_login else None,
+        'last_login': user.last_login.isoformat() if user.last_login else None,
+        'post_count': len(user.posts) if user.posts else 0,
+        'product_count': len(user.products) if user.products else 0,
+        'manual_count': len(user.authored_manuals) if user.authored_manuals else 0
+    }
 
 
 @admin.route('/users', methods=['GET'])
@@ -14,8 +33,6 @@ admin = Blueprint('admin', __name__)
 def get_users():
     """ Список пользователей """
     try:
-        page = request.args.get('page', 1, type=int)
-        per_page = request.args.get('per_page', 20, type=int)
         search = request.args.get('search', '')
         admin_level = request.args.get('admin_level', type=int)
 
@@ -33,36 +50,16 @@ def get_users():
 
         query = query.order_by(Member.join_at.desc())
 
-        pagination = query.paginate(
-            page=page, per_page=per_page, error_out=False
+        response_data, status_code = PaginationService.paginate_and_response(
+            query=query,
+            serializer_func=serializer_user,
+            error_out=False
         )
 
-        users = []
-        for user in pagination.items:
-            users.append({
-                'id': user.id,
-                'username': user.username,
-                'email': user.email,
-                'role': user.role,
-                'admin_level': user.admin_level,
-                'is_super_admin': user.is_super_admin,
-                'is_verified': user.is_verified,
-                'join_at': user.join_at.isoformat() if user.join_at else None,
-                'last_admin_login': user.last_admin_login.isoformat() if user.last_admin_login else None,
-                'last_login': user.last_login.isoformat() if user.last_login else None,
-                'post_count': len(user.posts) if user.posts else 0,
-                'product_count': len(user.products) if user.products else 0,
-                'manual_count': len(user.authored_manuals) if user.authored_manuals else 0
-            })
+        return jsonify(response_data), status_code
 
-        return jsonify({
-            'users': users,
-            'total': pagination.total,
-            'pages': pagination.pages,
-            'current_page': page,
-            'per_page': per_page
-        }), 200
     except Exception as e:
+        current_app.logger.error(f'Error getting users list: {str(e)}')
         return jsonify({'error': str(e)}), 500
 
 

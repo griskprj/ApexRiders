@@ -15,6 +15,7 @@ from app.models import (
     ManualRating
 )
 from sqlalchemy import or_, and_
+from app.utils.pagination_utils import PaginationService, PaginationResult
 
 manuals = Blueprint('manuals', __name__)
 
@@ -36,50 +37,103 @@ def check_user_verification(user_id):
 @manuals.route('/api/manuals/get', methods=['GET'])
 @jwt_required()
 def get_manuals():
-    """ Get manuals """
-    current_user_id = get_jwt_identity()
-    user = Member.query.get(current_user_id)
-    if not user:
-        print('User not found')
-        return jsonify({'error': 'User not found'}), 404
+    """Get manuals with pagination"""
+    try:
+        current_user_id = get_jwt_identity()
+        user = Member.query.get(current_user_id)
+        if not user:
+            return jsonify({'error': 'User not found'}), 404
 
-    all_manuals = MaintenanceManual.query.all()
-    manuals_data = [{
-        'id': m.id,
-        'title': m.title,
-        'description': m.description,
-        'moto_type': m.moto_type,
-        'category': m.category,
-        'difficulty': m.difficulty,
-        'estimated_time': m.estimated_time,
-        'tools_required': m.tools_required,
-        'parts_required': m.parts_required,
-        'warnings': m.warnings,
-        'views': m.views,
-        'rating': m.rating,
-        'created_at': m.created_at.isoformat() if m.created_at else None,
-    } for m in all_manuals]
-
-    user_manuals_history = UserManualHistory.query.filter_by(user_id=current_user_id) \
-        .order_by(UserManualHistory.viewed_at.desc()) \
-        .limit(3) \
-        .all()
-
-    user_manuals = []
-    for manual_record in user_manuals_history:
-        manual = MaintenanceManual.query.get(manual_record.manual_id)
-        if manual:
-            user_manuals.append(manual)
-
-    user_manuals_data = [{
-        'id': m.id,
-        'title': m.title,
-    } for m in user_manuals]
-
-    return jsonify({
-        'manuals_data': manuals_data,
-        'user_manuals': user_manuals_data
-    })
+        page, per_page = PaginationService.get_pagination_params()
+        
+        filter_params = PaginationService.get_filter_params(['category', 'difficulty'])
+        
+        sort_by, sort_order = PaginationService.get_sort_params(
+            default_sort='created_at',
+            default_order='desc',
+            allowed_fields=['created_at', 'views', 'rating', 'title']
+        )
+        
+        query = MaintenanceManual.query.filter_by(status='published')
+        
+        if filter_params.get('category'):
+            query = query.filter_by(category=filter_params['category'])
+        if filter_params.get('difficulty'):
+            query = query.filter_by(difficulty=filter_params['difficulty'])
+        
+        if sort_by == 'created_at':
+            query = query.order_by(MaintenanceManual.created_at.desc() if sort_order == 'desc' 
+                                  else MaintenanceManual.created_at.asc())
+        elif sort_by == 'views':
+            query = query.order_by(MaintenanceManual.views.desc() if sort_order == 'desc' 
+                                  else MaintenanceManual.views.asc())
+        elif sort_by == 'rating':
+            query = query.order_by(MaintenanceManual.rating.desc() if sort_order == 'desc' 
+                                  else MaintenanceManual.rating.asc())
+        elif sort_by == 'title':
+            query = query.order_by(MaintenanceManual.title.asc() if sort_order == 'asc' 
+                                  else MaintenanceManual.title.desc())
+        
+        pagination_result = PaginationService.paginate_query(
+            query=query,
+            page=page,
+            per_page=per_page,
+            error_out=False
+        )
+        
+        manuals_data = []
+        for m in pagination_result.items:
+            manuals_data.append({
+                'id': m.id,
+                'title': m.title,
+                'description': m.description,
+                'moto_type': m.moto_type,
+                'category': m.category,
+                'difficulty': m.difficulty,
+                'estimated_time': m.estimated_time,
+                'tools_required': m.tools_required,
+                'parts_required': m.parts_required,
+                'warnings': m.warnings,
+                'views': m.views,
+                'rating': m.rating,
+                'rating_count': m.rating_count,
+                'created_at': m.created_at.isoformat() if m.created_at else None,
+                'author_id': m.author_id,
+            })
+        
+        user_manuals_history = UserManualHistory.query.filter_by(user_id=current_user_id) \
+            .order_by(UserManualHistory.viewed_at.desc()) \
+            .limit(3) \
+            .all()
+        
+        user_manuals = []
+        for manual_record in user_manuals_history:
+            manual = MaintenanceManual.query.get(manual_record.manual_id)
+            if manual:
+                user_manuals.append(manual)
+        
+        user_manuals_data = [{
+            'id': m.id,
+            'title': m.title,
+            'viewed_at': manual_record.viewed_at.isoformat() if manual_record.viewed_at else None,
+        } for m, manual_record in zip(user_manuals, user_manuals_history)]
+        
+        response = PaginationService.create_response(
+            items=manuals_data,
+            total=pagination_result.total,
+            page=pagination_result.page,
+            per_page=pagination_result.per_page,
+            pages=pagination_result.pages,
+            additional_data={
+                'user_manuals': user_manuals_data
+            }
+        )
+        
+        return jsonify(response), 200
+        
+    except Exception as e:
+        current_app.logger.error(f'Error getting manuals: {str(e)}')
+        return jsonify({'error': str(e)}), 500
 
 
 @manuals.route('/api/manuals/get/<int:manual_id>', methods=['GET'])
@@ -739,115 +793,161 @@ def delete_manual(manual_id):
 @manuals.route('/api/manuals/search', methods=['GET'])
 @jwt_required()
 def search_manuals():
-    """ Search manuals """
-
-    current_user_id = get_jwt_identity()
-    user = Member.query.get(current_user_id)
-    if not user:
-        return jsonify({'error': 'user not found'}), 404
-    
-    search_query = request.args.get('q', '').strip()
-    category = request.args.get('category', '')
-    difficulty = request.args.get('difficutly', '')
-    sort_by = request.args.get('sort_by', 'relevance')
-    page = request.args.get('page', 1, type=int)
-    per_page = request.args.get('per_page', 10, type=int)
-
-    query = MaintenanceManual.query.filter(MaintenanceManual.status == 'published')
-
-
-    if search_query:
-        search_terms = search_query.lower().split()
-
-        conditions = []
-        for term in search_terms:
-            if len(term) >= 2:
-                term_pattern = f'%{term}%'
-                conditions.append(
-                    or_(
-                        MaintenanceManual.title.ilike(term_pattern),
-                        MaintenanceManual.description.ilike(term_pattern),
-                        MaintenanceManual.moto_type.ilike(term_pattern),
-                        MaintenanceManual.category.ilike(term_pattern)
-                    )
-                )
+    """Search manuals with pagination"""
+    try:
+        current_user_id = get_jwt_identity()
+        user = Member.query.get(current_user_id)
+        if not user:
+            return jsonify({'error': 'user not found'}), 404
         
-        if conditions:
-            query = query.filter(and_(*conditions))
-    
-    if category:
-        query = query.filter_by(category=category)
-
-    if difficulty:
-        query = query.filter_by(difficulty=difficulty)
-
-    if sort_by == 'newest':
-        query = query.order_by(MaintenanceManual.created_at.desc())
-    elif sort_by == 'rating':
-        query = query.order_by(MaintenanceManual.rating.desc(), MaintenanceManual.rating_count.desc())
-    elif sort_by == 'views':
-        query = query.order_by(MaintenanceManual.views.desc())
-    elif sort_by == 'relevance' and search_query:
-        query = query.order_by(
-            MaintenanceManual.views.desc(),
-            MaintenanceManual.rating.desc()
-        )
-    else:
-        query = query.order_by(MaintenanceManual.created_at.desc())
-
-    pagination = query.paginate(page=page, per_page=per_page, error_out=False)
-    manuals = pagination.items
-
-    manuals_data = [{
-        'id': m.id,
-        'title': m.title,
-        'description': m.description,
-        'moto_type': m.moto_type,
-        'category': m.category,
-        'difficulty': m.difficulty,
-        'estimated_time': m.estimated_time,
-        'tools_required': m.tools_required,
-        'parts_required': m.parts_required,
-        'warnings': m.warnings,
-        'views': m.views,
-        'rating': m.rating,
-        'rating_count': m.rating_count,
-        'created_at': m.created_at.isoformat() if m.created_at else None,
-        'author_id': m.author_id
-    } for m in manuals]
-
-    author_ids = list(set([m['author_id'] for m in manuals_data if m['author_id']]))
-    authors = {}
-    if author_ids:
-        author_users = Member.query.filter(Member.id.in_(author_ids)).all()
-        for author in author_users:
-            authors[author.id] = {
-                'id': author.id,
-                'username': author.username,
-                'is_verified': author.is_verified
-            }
-
-    for manual in manuals_data:
-        author_id = manual.get('author_id')
-        if author_id and author_id in authors:
-            manual['author'] = authors[author_id]
+        # Получаем параметры пагинации
+        page, per_page = PaginationService.get_pagination_params()
+        
+        # Получаем параметры поиска
+        search_query = request.args.get('q', '').strip()
+        category = request.args.get('category', '')
+        difficulty = request.args.get('difficulty', '')
+        sort_by = request.args.get('sort_by', 'relevance')
+        
+        # Базовый запрос
+        query = MaintenanceManual.query.filter(MaintenanceManual.status == 'published')
+        
+        # Применяем поиск
+        if search_query:
+            search_terms = search_query.lower().split()
+            conditions = []
+            for term in search_terms:
+                if len(term) >= 2:
+                    term_pattern = f'%{term}%'
+                    conditions.append(
+                        or_(
+                            MaintenanceManual.title.ilike(term_pattern),
+                            MaintenanceManual.description.ilike(term_pattern),
+                            MaintenanceManual.moto_type.ilike(term_pattern),
+                            MaintenanceManual.category.ilike(term_pattern)
+                        )
+                    )
+            if conditions:
+                query = query.filter(and_(*conditions))
+        
+        # Применяем фильтры
+        if category:
+            query = query.filter_by(category=category)
+        if difficulty:
+            query = query.filter_by(difficulty=difficulty)
+        
+        # Применяем сортировку
+        if sort_by == 'newest':
+            query = query.order_by(MaintenanceManual.created_at.desc())
+        elif sort_by == 'rating':
+            query = query.order_by(MaintenanceManual.rating.desc(), MaintenanceManual.rating_count.desc())
+        elif sort_by == 'views':
+            query = query.order_by(MaintenanceManual.views.desc())
+        elif sort_by == 'relevance' and search_query:
+            query = query.order_by(
+                MaintenanceManual.views.desc(),
+                MaintenanceManual.rating.desc()
+            )
         else:
-            manual['author'] = None
+            query = query.order_by(MaintenanceManual.created_at.desc())
+        
+        # Используем PaginationService для пагинации
+        pagination_result = PaginationService.paginate_query(
+            query=query,
+            page=page,
+            per_page=per_page,
+            error_out=False
+        )
+        
+        # Формируем данные мануалов
+        manuals_data = []
+        for m in pagination_result.items:
+            manual_data = {
+                'id': m.id,
+                'title': m.title,
+                'description': m.description,
+                'moto_type': m.moto_type,
+                'category': m.category,
+                'difficulty': m.difficulty,
+                'estimated_time': m.estimated_time,
+                'tools_required': m.tools_required,
+                'parts_required': m.parts_required,
+                'warnings': m.warnings,
+                'views': m.views,
+                'rating': m.rating,
+                'rating_count': m.rating_count,
+                'created_at': m.created_at.isoformat() if m.created_at else None,
+                'author_id': m.author_id
+            }
+            manuals_data.append(manual_data)
+        
+        # Получаем информацию об авторах
+        author_ids = list(set([m['author_id'] for m in manuals_data if m['author_id']]))
+        authors = {}
+        if author_ids:
+            author_users = Member.query.filter(Member.id.in_(author_ids)).all()
+            for author in author_users:
+                authors[author.id] = {
+                    'id': author.id,
+                    'username': author.username,
+                    'is_verified': author.is_verified
+                }
+        
+        for manual in manuals_data:
+            author_id = manual.get('author_id')
+            if author_id and author_id in authors:
+                manual['author'] = authors[author_id]
+            else:
+                manual['author'] = None
+        
+        # Создаем структурированный ответ с помощью PaginationService
+        response = PaginationService.create_response(
+            items=manuals_data,
+            total=pagination_result.total,
+            page=pagination_result.page,
+            per_page=pagination_result.per_page,
+            pages=pagination_result.pages,
+            additional_data={
+                'search_meta': {
+                    'query': search_query,
+                    'category': category,
+                    'difficulty': difficulty,
+                    'sort_by': sort_by
+                },
+                'authors': authors
+            }
+        )
+        
+        return jsonify(response), 200
+        
+    except Exception as e:
+        current_app.logger.error(f'Search error: {str(e)}')
+        return jsonify({'error': str(e)}), 500
     
-    return jsonify({
-        'manuals': manuals_data,
-        'pagination': {
-            'total': pagination.total,
-            'pages': pagination.pages,
-            'current_page': page,
-            'per_page': per_page,
-            'has_next': pagination.has_next,
-            'has_prev': pagination.has_prev
-        },
-        'search_meta': {
-            'query': search_query,
-            'category': category,
-            'difficulty': difficulty,
-            'sort_by': sort_by
-        }
-    })
+
+@manuals.route('/api/manuals/categories-count', methods=['GET'])
+@jwt_required()
+def get_categories_count():
+    """Get count of manuals per category"""
+    try:
+        current_user_id = get_jwt_identity()
+        
+        # Получаем все опубликованные мануалы
+        all_manuals = MaintenanceManual.query.filter_by(status='published').all()
+        
+        # Создаем словарь с подсчетом по категориям
+        categories_count = {}
+        for manual in all_manuals:
+            category = manual.category
+            if category:
+                categories_count[category] = categories_count.get(category, 0) + 1
+        
+        return jsonify({
+            'success': True,
+            'categories_count': categories_count,
+            'total_manuals': len(all_manuals)
+        })
+        
+    except Exception as e:
+        current_app.logger.error(f'Error getting categories count: {str(e)}')
+        return jsonify({'error': str(e)}), 500

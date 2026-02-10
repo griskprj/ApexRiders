@@ -195,10 +195,9 @@ export default {
                 }
 
                 const data = await response.json();
-                this.posts = data.posts || [];
-                this.totalPosts = data.total || 0;
+                this.posts = data.data || [];
+                this.totalPosts = data.meta.total_items || 0;
                 
-                console.log(`Загружено ${this.posts.length} постов, страница ${this.currentPage}, всего: ${this.totalPosts}`);
             } catch (error) {
                 console.error('Ошибка при загрузке постов:', error);
             } finally {
@@ -505,7 +504,7 @@ export default {
                         }
                         
                         if (confirm('У вас есть сохраненный черновик. Загрузить его?')) {
-                            console.log('Черновик загружен');
+                            return
                         } else {
                             this.clearForm();
                         }
@@ -593,7 +592,6 @@ export default {
                     try {
                         localStorage.setItem(this.draftKey, JSON.stringify(draftData));
                         this.hasUnsavedDraft = true;
-                        console.log('Черновик сохранен: ', draftData);
                     } catch (e) {
                         console.error('Ошибка сохранения черновика: ', e);
                     }
@@ -616,7 +614,6 @@ export default {
                     const hoursDiff = (now - draftTime) / (1000 * 60 * 60);
                     
                     if (hoursDiff > 24) {
-                        console.log('Черновик устарел (>24 часов), удаляем');
                         this.clearDraft();
                         return false;
                     }
@@ -637,10 +634,9 @@ export default {
                     this.markdownEditorKey += 1;
 
                     this.$nextTick(() => {
-                        console.log('Черновик полностью загружен и отображен');
+                        return
                     });
                     
-                    console.log('Черновик загружен:', parsed);
                     return true;
                 }
             } catch (e) {

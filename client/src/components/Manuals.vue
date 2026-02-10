@@ -16,11 +16,11 @@
         <ManualsHeader @search="handleSearch" />
 
         <!-- Боковая панель -->
-        <div v-if="manuals.length > 0" class="manuals-sidebar">
+        <div v-if="manuals.length > 0 || searchQuery" class="manuals-sidebar">
             <!-- Категории -->
             <div class="sidebar-card">
                 <ManualsCategory 
-                    :manuals="manuals",
+                    :manuals="allManuals"
                     :getCategoryCount="getCategoryCount"
                     :activeFilter="activeFilter"
                     @filter-change="handleFilterChange"
@@ -35,14 +35,14 @@
         </div>
 
         <!-- Основной контент -->
-        <div class="manuals-content" :class="{ 'no-content': manuals.length === 0 }">
+        <div class="manuals-content" :class="{ 'no-content': manuals.length === 0 && !searchQuery }">
             <!-- Сетка мануалов -->
             <div v-if="isLoading" class="manuals-loading">
                 <div class="loading-spinner-small"></div>
                 <p>Загрузка мануалов...</p>
             </div>
             
-            <div v-else-if="filteredManuals.length === 0" class="empty-state">
+            <div v-else-if="manuals.length === 0 && !isLoading" class="empty-state">
                 <div class="empty-icon">
                     <i class="fas fa-book-open"></i>
                 </div>
@@ -54,16 +54,16 @@
             </div>
 
             <div v-else class="manuals-main">
-                <div v-if="searchQuery" class="search-info">
+                <div v-if="searchQuery || activeFilter !== 'all'" class="search-info">
                     <span class="search-results-count">
-                        Найдено мануалов: {{ filteredManuals.length }}
+                        Найдено мануалов: {{ pagination.total || manuals.length }}
                     </span>
-                    <button v-if="searchQuery" class="search-clear-btn" @click="clearSearch">
-                        <i class="fas fa-times"></i> Очистить поиск
+                    <button v-if="searchQuery || activeFilter !== 'all'" class="search-clear-btn" @click="clearSearch">
+                        <i class="fas fa-times"></i> Очистить фильтры
                     </button>
                 </div>
 
-                <div v-if="searchQuery && serverSearchMode" class="search-filters">
+                <div v-if="searchQuery" class="search-filters">
                     <div class="filter-group">
                         <label>Сложность:</label>
                         <select v-model="searchFilters.difficulty" @change="updateSearchFilter('difficulty', $event.target.value)">
@@ -85,32 +85,32 @@
                         </select>
                     </div>
                     
-                    <div class="search-stats" v-if="searchMeta">
-                        <span>Найдено: {{ totalUsers || filteredManuals.length }} мануалов</span>
+                    <div class="search-stats" v-if="pagination.total">
+                        <span>Всего: {{ pagination.total }} мануалов</span>
                     </div>
                 </div>
 
                 <div class="manuals-grid">
                     <BasicManualCard 
-                        :limiterManuals="currentPageManuals",
+                        :limiterManuals="manuals"
                     />
                 </div>
 
                 <!-- Пагинация -->
-                <div v-if="filteredManuals.length > itemsPerPage" class="pagination">
+                <div v-if="pagination.pages > 1" class="pagination">
                     <button 
                         class="pagination-btn prev"
                         @click="prevPage"
-                        :disabled="currentPage === 1"
+                        :disabled="!pagination.has_prev"
                     >
                         <i class="fas fa-chevron-left"></i> Назад
                     </button>
                     <div class="pagination-pages">
                         <button
-                            v-for="page in totalPages"
+                            v-for="page in pagination.pages"
                             :key="page"
                             class="page-btn"
-                            :class="{ active: currentPage === page }"
+                            :class="{ active: pagination.page === page }"
                             @click="goToPage(page)"
                         >
                             {{ page }}
@@ -119,7 +119,7 @@
                     <button 
                         class="pagination-btn next"
                         @click="nextPage"
-                        :disabled="currentPage === totalPages"
+                        :disabled="!pagination.has_next"
                     >
                         Вперед <i class="fas fa-chevron-right"></i>
                     </button>
@@ -142,9 +142,7 @@ export default {
             isLoading: true,
             activeFilter: 'all',
             searchQuery: '',
-            currentPage: 1,
-            itemsPerPage: 6,
-
+            
             categories: {
                 'engine': 'Двигатель',
                 'transmission': 'Трансмиссия',
@@ -160,50 +158,23 @@ export default {
                 difficulty: '',
                 sort_by: 'relevance'
             },
-            searchMeta: {}
+            
+            pagination: {
+                page: 1,
+                per_page: 6,
+                total: 0,
+                pages: 1,
+                has_next: false,
+                has_prev: false
+            }
         }
     },
 
     computed: {
-        filteredManuals() {
-            if (this.serverSearchMode) {
-                return this.manuals
-            }
-
-            // fallback
-            let filtered = this.manuals
-
-            if (this.activeFilter !== 'all') {
-                const categoryName = this.categories[this.activeFilter]
-                filtered = filtered.filter(manual =>
-                    manual.category === categoryName || manual.moto_type === categoryName
-                )
-            }
-
-            if (this.searchQuery) {
-                const query = this.searchQuery.toLowerCase().trim()
-                filtered = filtered.filter(manual =>
-                    manual.title.toLowerCase().includes(query) ||
-                    manual.description.toLowerCase().includes(query)
-                )
-            }
-
-            return filtered
-        },
-
+        // Убираем лишние computed свойства, так как теперь все через API
         currentPageManuals() {
-            const start = (this.currentPage - 1) * this.itemsPerPage
-            const end = start + this.itemsPerPage
-            return this.filteredManuals.slice(start, end)
-        },
-
-        totalPages() {
-            return Math.ceil(this.filteredManuals.length / this.itemsPerPage)
-        },
-        
-        limiterManuals() {
-            return this.manuals.slice(0, 6)
-        },
+            return this.manuals
+        }
     },
 
     mounted() {
@@ -212,11 +183,13 @@ export default {
 
     watch: {
         activeFilter() {
-            this.currentPage = 1
+            this.pagination.page = 1
+            this.fetchManuals()
         },
 
         searchQuery() {
-            this.currentPage = 1
+            this.pagination.page = 1
+            this.fetchManuals()
         }
     },
 
@@ -225,58 +198,27 @@ export default {
             try {
                 this.isLoading = true
                 const token = localStorage.getItem('authToken')
-
-                if (this.serverSearchMode && this.searchQuery) {
-                    await this.searchManuals()
-                } else {
-                    const response = await axios.get('/api/manuals/get', {
-                        headers: {
-                            'Authorization': `Bearer ${token}`
-                        }
-                    })
-    
-                    if (response.data) {
-                        this.manuals = response.data.manuals_data || []
-                        this.userManuals = response.data.user_manuals || []
-                        this.allManuals = this.manuals
-
-                        if (this.activeFilter !== 'all') {
-                            const categoryName = this.categories[this.activeFilter]
-                            this.manuals = this.manuals.filter(manual =>
-                                manual.category === categoryName || manual.moto_type === categoryName
-                            )
-                        }
-                    }
-                }
-                
-            } catch (error) {
-                console.error('Ошибка при получении мануалов: ', error)
-                this.manuals = []
-                this.userManuals = []
-            } finally {
-                this.isLoading = false
-            }
-        },
-
-        async searchManuals() {
-            this.isLoading = true
-            try {
-                const token = localStorage.getItem('authToken')
                 
                 const params = new URLSearchParams({
-                    page: this.currentPage,
-                    per_page: this.itemsPerPage
+                    page: this.pagination.page,
+                    per_page: this.pagination.per_page
                 })
 
+                // Определяем URL в зависимости от наличия поискового запроса
+                let url = '/api/manuals/get'
+                
                 if (this.searchQuery) {
+                    url = '/api/manuals/search'
                     params.append('q', this.searchQuery)
                 }
 
+                // Добавляем фильтры категории
                 if (this.activeFilter !== 'all') {
-                    const category_name = this.categories[this.activeFilter]
+                    const categoryName = this.categories[this.activeFilter]
                     params.append('category', categoryName)
                 }
 
+                // Добавляем дополнительные фильтры поиска
                 if (this.searchFilters.difficulty) {
                     params.append('difficulty', this.searchFilters.difficulty)
                 }
@@ -285,115 +227,152 @@ export default {
                     params.append('sort_by', this.searchFilters.sort_by)
                 }
 
-                const response = await axios.get(`/api/manuals/search?${params}`, {
+                const response = await axios.get(`${url}?${params}`, {
                     headers: {
                         'Authorization': `Bearer ${token}`
                     }
                 })
 
                 if (response.data) {
-                    this.manuals = response.data.manuals || []
-                    this.searchMeta = response.data.search_meta || {}
-
-                    if (response.data.pagination) {
-                        const pagination = response.data.pagination
-                        this.totalPages = pagination.pages
-                        this.totalUsers = pagination.total
+                    // Обрабатываем ответ с пагинацией
+                    if (response.data.data && response.data.pagination) {
+                        this.manuals = response.data.data
+                        this.pagination = {
+                            page: response.data.pagination.page,
+                            per_page: response.data.pagination.per_page,
+                            total: response.data.pagination.total,
+                            pages: response.data.pagination.pages,
+                            has_next: response.data.pagination.has_next,
+                            has_prev: response.data.pagination.has_prev
+                        }
+                        
+                        // Получаем недавно просмотренные мануалы
+                        if (response.data.user_manuals) {
+                            this.userManuals = response.data.user_manuals
+                        }
+                        
+                        // Загружаем все мануалы для категорий только при первой загрузке
+                        if (!this.searchQuery && this.activeFilter === 'all' && this.allManuals.length === 0) {
+                            this.loadAllManualsForCategories()
+                        }
+                    } else {
+                        // Fallback для старого формата ответа
+                        this.manuals = response.data.manuals_data || []
+                        this.userManuals = response.data.user_manuals || []
+                        this.serverSearchMode = false
                     }
                 }
+                
             } catch (error) {
-                console.error('Ошибка при поиске мануалов: ', error)
-                this.serverSearchMode = false
-                this.applyClientSideFilter()
+                console.error('Ошибка при получении мануалов: ', error)
+                this.manuals = []
+                this.userManuals = []
+                this.pagination = {
+                    page: 1,
+                    per_page: 6,
+                    total: 0,
+                    pages: 1,
+                    has_next: false,
+                    has_prev: false
+                }
             } finally {
                 this.isLoading = false
             }
         },
-
-        applyClientSideFilter() {
-            let filtered = this.allManuals || []
-
-            if (this.searchQuery) {
-                const query = this.searchQuery.toLowerCase().trim()
-                filtered = filtered.filter(manual => 
-                    manual.title.toLowerCase().includes(query) ||
-                    manual.description.toLowerCase().includes(query)
-                )
-            }
-
-            this.manuals = filtered.slice(0, this.itemsPerPage * this.currentPage)
-        },
         
+        async loadAllManualsForCategories() {
+            try {
+                const token = localStorage.getItem('authToken')
+                const response = await axios.get('/api/manuals/get?per_page=100', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                })
+                
+                if (response.data && response.data.data) {
+                    this.allManuals = response.data.data
+                }
+            } catch (error) {
+                console.error('Ошибка при загрузке всех мануалов: ', error)
+            }
+        },
+
         getCategoryCount(categoryName) {
-            return this.manuals.filter(manual =>
+            // Используем allManuals для подсчета категорий
+            return this.allManuals.filter(manual =>
                 manual.category === categoryName || manual.moto_type === categoryName
             ).length
         },
 
         handleFilterChange(filterId) {
             this.activeFilter = filterId
-            this.currentPage = 1
-            if (this.serverSearchMode) {
-                this.searchManuals()
-            }
+            this.pagination.page = 1
+            this.fetchManuals()
         },
 
         handleSearch(query) {
             this.searchQuery = query
-            this.currentPage = 1
-            if (this.serverSearchMode) {
-                this.searchManuals()
-            }
+            this.pagination.page = 1
+            this.fetchManuals()
         },
 
         resetFilter() {
             this.activeFilter = 'all'
             this.searchQuery = ''
-            this.currentPage = 1
-            if (this.serverSearchMode) {
-                this.fetchManuals()
+            this.searchFilters = {
+                category: '',
+                difficulty: '',
+                sort_by: 'relevance'
             }
+            this.pagination.page = 1
+            this.fetchManuals()
         },
 
         clearSearch() {
             this.searchQuery = ''
-            this.currentPage = 1
-            if (this.serverSearchMode) {
-                this.fetchManuals()
+            this.activeFilter = 'all'
+            this.searchFilters = {
+                category: '',
+                difficulty: '',
+                sort_by: 'relevance'
             }
+            this.pagination.page = 1
+            this.fetchManuals()
         },
 
         prevPage() {
-            if (this.currentPage > 1) {
-                this.currentPage--
-                if (this.serverSearchMode) {
-                    this.searchManuals()
-                }
+            if (this.pagination.has_prev) {
+                this.pagination.page--
+                this.fetchManuals()
+                this.scrollToTop()
             }
         },
 
         nextPage() {
-            if (this.currentPage < this.totalPages) {
-                this.currentPage++
-                if (this.serverSearchMode) {
-                    this.searchManuals()
-                }
+            if (this.pagination.has_next) {
+                this.pagination.page++
+                this.fetchManuals()
+                this.scrollToTop()
             }
         },
 
         goToPage(page) {
-            this.currentPage = page
-            if (this.serverSearchMode) {
-                this.searchManuals()
-            }
+            this.pagination.page = page
+            this.fetchManuals()
+            this.scrollToTop()
         },
 
         updateSearchFilter(filterType, value) {
             this.searchFilters[filterType] = value
-            this.currentPage = 1
-            if (this.serverSearchMode) {
-                this.searchManuals()
-            }
+            this.pagination.page = 1
+            this.fetchManuals()
+        },
+        
+        scrollToTop() {
+            window.scrollTo({
+                top: 0,
+                behavior: 'smooth'
+            })
         },
         
         formatTime(timeString) {
@@ -412,8 +391,10 @@ export default {
             return date.toLocaleDateString()
         },
 
-        isManualAuthor (manual) {
-            return manual.author_id === current_user_id
+        isManualAuthor(manual) {
+            // Эта функция вероятно должна использовать данные из хранилища
+            // Пока оставим заглушку
+            return false
         }
     }
 }
