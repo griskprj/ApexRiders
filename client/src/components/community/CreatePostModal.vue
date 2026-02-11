@@ -1,5 +1,5 @@
 <script setup>
-import MarkdownEditor from '../MarkdownEditor.vue';
+import MarkdownEditor from './MarkdownEditor.vue';
 </script>
 
 <template>

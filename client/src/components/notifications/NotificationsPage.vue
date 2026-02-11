@@ -156,7 +156,7 @@
 <script>
 import { ref, computed, onMounted } from 'vue'
 import axios from 'axios'
-import { authService } from '../utils/checkAuth'
+import { authService } from '../../utils/checkAuth'
 
 export default {
     name: 'NotificationsPage',

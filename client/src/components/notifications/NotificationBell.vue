@@ -112,7 +112,7 @@
 <script>
 import { ref, onMounted, onUnmounted } from 'vue'
 import axios from 'axios'
-import { authService } from '../utils/checkAuth'
+import { authService } from '../../utils/checkAuth'
 
 export default {
     name: 'NotificationBell',

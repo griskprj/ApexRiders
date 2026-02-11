@@ -419,7 +419,7 @@
 <script setup>
 import { ref, onMounted, reactive } from 'vue'
 import axios from 'axios'
-import { authService } from '../utils/checkAuth'
+import { authService } from '../../utils/checkAuth'
 import { useRouter } from 'vue-router'
 
 const router = useRouter()

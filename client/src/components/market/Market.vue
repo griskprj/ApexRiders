@@ -1,9 +1,9 @@
 <script setup>
-import MarketCard from './market/MarketCard.vue';
-import MarketCategory from './market/MarketCategory.vue';
-import MarketFiltersCategory from './market/MarketFiltersCategory.vue';
-import MarketHeader from './market/MarketHeader.vue';
-import MarketModal from './market/MarketModal.vue';
+import MarketCard from './MarketCard.vue';
+import MarketCategory from './MarketCategory.vue';
+import MarketFiltersCategory from './MarketFiltersCategory.vue';
+import MarketHeader from './MarketHeader.vue';
+import MarketModal from './MarketModal.vue';
 </script>
 <template>
     <!-- Декоративные элементы -->

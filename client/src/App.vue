@@ -1,5 +1,5 @@
 <script setup>
-import NotificationBell from './components/NotificationBell.vue';
+import NotificationBell from './components/notifications/NotificationBell.vue';
 </script>
 
 <template>

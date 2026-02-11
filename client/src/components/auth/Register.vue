@@ -87,7 +87,7 @@
 <script setup>
 import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
-import { authService } from '../utils/checkAuth'
+import { authService } from '../../utils/checkAuth'
 
 const router = useRouter()
 const emit = defineEmits(['user-updated'])

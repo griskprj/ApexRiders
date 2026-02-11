@@ -1,7 +1,5 @@
 <template>
-  <!-- Тот же шаблон, который у вас уже есть -->
   <div class="markdown-editor">
-    <!-- Мобильная версия тулбара (свайп меню) -->
     <div class="mobile-toolbar-overlay" v-if="showMobileToolbar" @click="showMobileToolbar = false">
       <div class="mobile-toolbar" @click.stop>
         <div class="mobile-toolbar-header">
@@ -61,7 +59,6 @@
           <span>Формат</span>
         </button>
 
-        <!-- Десктопные кнопки (скрываются на мобильных) -->
         <template v-if="!isMobile">
           <button type="button" @click="formatText('bold')" title="Жирный">
             <i class="fas fa-bold"></i>
@@ -94,7 +91,6 @@
           </button>
         </template>
         
-        <!-- Кнопка для мобильных: скрыть клавиатуру -->
         <button 
           type="button" 
           class="keyboard-toggle"

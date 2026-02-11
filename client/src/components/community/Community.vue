@@ -1,9 +1,9 @@
 <script setup>
-import CreatePostModal from './community/CreatePostModal.vue';
-import HeaderFilter from './community/HeaderFilter.vue';
-import Paginatie from './community/Paginatie.vue';
-import PostsArray from './community/PostsArray.vue';
-import Sidebar from './community/Sidebar.vue';
+import CreatePostModal from './CreatePostModal.vue';
+import HeaderFilter from './HeaderFilter.vue';
+import Paginatie from './Paginatie.vue';
+import PostsArray from './PostsArray.vue';
+import Sidebar from './Sidebar.vue';
 </script>
 <template>
 

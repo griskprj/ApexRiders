@@ -1,6 +1,6 @@
 <script setup>
-import ReportFlag from './admin/ReportFlag.vue';
-import ReportModal from './admin/ReportModal.vue';
+import ReportFlag from '../admin/ReportFlag.vue';
+import ReportModal from '../admin/ReportModal.vue';
 import MarkdownEditor from './MarkdownEditor.vue';
 </script>
 <template>

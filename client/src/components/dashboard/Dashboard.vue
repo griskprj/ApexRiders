@@ -41,25 +41,25 @@
 <script>
 import { ref, computed, onMounted, defineAsyncComponent } from 'vue'
 import axios from 'axios'
-import { authService } from '../utils/checkAuth'
+import { authService } from '../../utils/checkAuth'
 
 const DashboardHeader = defineAsyncComponent(() => 
-    import('./dashboard/DashboardHeader.vue')
+    import('./DashboardHeader.vue')
 )
 const DashboardStats = defineAsyncComponent(() => 
-    import('./dashboard/DashboardStats.vue')
+    import('./DashboardStats.vue')
 )
 const QuickActions = defineAsyncComponent(() => 
-    import('./dashboard/QuickActions.vue')
+    import('./QuickActions.vue')
 )
 const MyCourses = defineAsyncComponent(() => 
-    import('./dashboard/MyCourses.vue')
+    import('./MyCourses.vue')
 )
 const MyProducts = defineAsyncComponent(() => 
-    import('./dashboard/MyProducts.vue')
+    import('./MyProducts.vue')
 )
 const SocialActivites = defineAsyncComponent(() => 
-    import('./dashboard/SocialActivites.vue')
+    import('./SocialActivites.vue')
 )
 
 export default {

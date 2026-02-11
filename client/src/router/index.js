@@ -5,31 +5,31 @@ const routes = [
     {
         path: '/',
         name: 'Home',
-        component: () => import('../components/Home.vue'),
+        component: () => import('../components/busines/Home.vue'),
         meta: { public: true }
     },
     {
         path: '/register',
         name: 'Register',
-        component: () => import('../components/Register.vue'),
+        component: () => import('../components/auth/Register.vue'),
         meta: { public: true, guestOnly: true }
     },
     {
         path: '/login',
         name: 'Login',
-        component: () => import('../components/Login.vue'),
+        component: () => import('../components/auth/Login.vue'),
         meta: { public: true, guestOnly: true }
     },
     {
         path: '/dashboard',
         name: 'Dashboard',
-        component: () => import('../components/Dashboard.vue'),
+        component: () => import('../components/dashboard/Dashboard.vue'),
         meta: { requiresAuth: true }
     },
     {
         path: '/manuals',
         name: 'Manuals',
-        component: () => import('../components/Manuals.vue'),
+        component: () => import('../components/manuals/Manuals.vue'),
         meta: { requiresAuth: true }
     },
     {
@@ -54,13 +54,13 @@ const routes = [
     {
         path: '/courses',
         name: 'Courses',
-        component: () => import('../components/Courses.vue'),
+        component: () => import('../components/courses/Courses.vue'),
         meta: { requiresAuth: true }
     },
     {
         path: '/market',
         name: 'Market',
-        component: () => import('../components/Market.vue'),
+        component: () => import('../components/market/Market.vue'),
         meta: { requiresAuth: true }
     },
     {
@@ -73,25 +73,25 @@ const routes = [
     {
         path: '/community',
         name: 'Community',
-        component: () => import('../components/Community.vue'),
+        component: () => import('../components/community/Community.vue'),
         meta: { requiresAuth: true }
     },
     {
         path: '/community/post/:id',
         name: 'PostView',
-        component: () => import('../components/PostView.vue'),
+        component: () => import('../components/community/PostView.vue'),
         meta: { requiresAuth: true }
     },
     {
         path: '/profile',
         name: 'Profile',
-        component: () => import('../components/Profile.vue'),
+        component: () => import('../components/profile/Profile.vue'),
         meta: { requiresAuth: true }
     },
     {
         path: '/garage/:id',
         name: 'Garage',
-        component: () => import('../components/Garage.vue'),
+        component: () => import('../components/garage/Garage.vue'),
         meta: { requiresAuth: true }
     },
 
@@ -104,14 +104,14 @@ const routes = [
     {
         path: '/notifications',
         name: 'Notifications',
-        component: () => import('../components/NotificationsPage.vue'),
+        component: () => import('../components/notifications/NotificationsPage.vue'),
         meta: { requiresAuth: true }
     },
 
     {
         path: '/about',
         name: 'AboutPage',
-        component: () => import('../components/AboutPage.vue'),
+        component: () => import('../components/busines/AboutPage.vue'),
         meta: { 
             public: true,
             title: 'О проекте'
@@ -121,7 +121,7 @@ const routes = [
     {
         path: '/privacy-policy',
         name: 'PrivacyPolicy',
-        component: () => import('../components/PrivacyPolicy.vue'),
+        component: () => import('../components/rules/PrivacyPolicy.vue'),
         meta: {
             public: true,
             title: 'Политика конфиденциальности'
@@ -130,7 +130,7 @@ const routes = [
     {
         path: '/community-rules',
         name: 'CommunityRules',
-        component: () => import('../components/CommunityRules.vue'),
+        component: () => import('../components/rules/CommunityRules.vue'),
         meta: {
             public: true,
             title: 'Правила сообщества'
@@ -139,7 +139,7 @@ const routes = [
     {
         path: '/contacts',
         name: 'Contacts',
-        component: () => import('../components/Contacts.vue'),
+        component: () => import('../components/busines/Contacts.vue'),
         meta: {
             public: true,
             title: 'Контакты'
@@ -149,7 +149,7 @@ const routes = [
     {
         path: '/:pathMatch(.*)*',
         name: 'NotFound',
-        component: () => import('../components/Home.vue'),
+        component: () => import('../components/busines/Home.vue'),
         meta: { public: true }
     }
 ]

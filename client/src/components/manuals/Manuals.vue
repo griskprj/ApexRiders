@@ -1,8 +1,8 @@
 <script setup>
-    import BasicManualCard from './manuals/BasicManualCard.vue';
-    import ManualsCategory from './manuals/ManualsCategory.vue';
-    import ManualsHeader from './manuals/ManualsHeader.vue';
-    import RecentManuals from './manuals/RecentManuals.vue';
+    import BasicManualCard from './BasicManualCard.vue';
+    import ManualsCategory from './ManualsCategory.vue';
+    import ManualsHeader from './ManualsHeader.vue';
+    import RecentManuals from './RecentManuals.vue';
 </script>
 
 <template>
