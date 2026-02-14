@@ -221,15 +221,6 @@ class UserLessonHistory(db.Model):
     lesson = db.relationship('Lesson')
 
 
-class DjimhanScheme(db.Model):
-    __tablename__ = 'djimhana_schemes'
-
-    id = db.Column(db.Integer, primary_key=True)
-    title = db.Column(db.String(256), nullable=False)
-    description = db.Column(db.Text, nullable=False)
-    image = db.Column(db.Text, nullable=False)
-
-
 class Product(db.Model):
     __tablename__ = 'products'
 
