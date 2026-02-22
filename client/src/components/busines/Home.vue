@@ -47,70 +47,6 @@
                         <span>Поиск по марке, модели, названию</span>
                     </div>
                 </div>
-                
-                <a href="#manuals" class="feature-link">Изучить мануалы <i class="fas fa-arrow-right"></i></a>
-            </div>
-            
-            <!-- Курсы -->
-            <div class="feature-card">
-                <div class="feature-icon">
-                    <i class="fas fa-graduation-cap"></i>
-                </div>
-                <span class="badge">В разработке</span>
-                <h3>Курсы вождения</h3>
-                <p>Видеоуроки и текстовые материалы для водителей любого уровня. От базовых навыков до продвинутых техник управления мотоциклом.</p>
-                
-                <div class="feature-details">
-                    <div class="feature-detail-item">
-                        <i class="fas fa-video"></i>
-                        <span>Видеоуроки в HD качестве</span>
-                    </div>
-                    <div class="feature-detail-item">
-                        <i class="fas fa-chart-line"></i>
-                        <span>Прогресс обучения с отслеживанием</span>
-                    </div>
-                    <div class="feature-detail-item">
-                        <i class="fas fa-certificate"></i>
-                        <span>Сертификаты об окончании</span>
-                    </div>
-                    <div class="feature-detail-item">
-                        <i class="fas fa-road"></i>
-                        <span>Для райдеров любого уровня</span>
-                    </div>
-                </div>
-                
-                <a href="#courses" class="feature-link">Начать обучение <i class="fas fa-arrow-right"></i></a>
-            </div>
-            
-            <!-- Схемы тренировок -->
-            <div class="feature-card">
-                <div class="feature-icon">
-                    <i class="fas fa-route"></i>
-                </div>
-                <span class="badge">В разработке</span>
-                <h3>Схемы для мотоджимхан</h3>
-                <p>Готовые схемы и траектории для тренировок и соревнований. Настраиваемые маршруты для отработки конкретных навыков.</p>
-                
-                <div class="feature-details">
-                    <div class="feature-detail-item">
-                        <i class="fas fa-download"></i>
-                        <span>Скачиваемые схемы в PDF</span>
-                    </div>
-                    <div class="feature-detail-item">
-                        <i class="fas fa-sliders-h"></i>
-                        <span>Настройка сложности маршрута</span>
-                    </div>
-                    <div class="feature-detail-item">
-                        <i class="fas fa-stopwatch"></i>
-                        <span>Таймер для отслеживания времени</span>
-                    </div>
-                    <div class="feature-detail-item">
-                        <i class="fas fa-share-alt"></i>
-                        <span>Делитесь своими схемами</span>
-                    </div>
-                </div>
-                
-                <a href="#training" class="feature-link">Посмотреть схемы <i class="fas fa-arrow-right"></i></a>
             </div>
             
             <!-- Маркет -->
@@ -134,13 +70,31 @@
                         <i class="fas fa-comments"></i>
                         <span>Широкий выбор категории товара</span>
                     </div>
+                </div>
+            </div>
+
+            <!-- Сообщество -->
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <i class="fas fa-users"></i>
+                </div>
+                <h3>Сообщество</h3>
+                <p>Социальная сеть для мотоциклистов. Делитесь опытом и впечатлениями на мото-тематику</p>
+                
+                <div class="feature-details">
                     <div class="feature-detail-item">
-                        <i class="fas fa-star"></i>
-                        <span>Система рейтингов и отзывов</span>
+                        <i class="fas fa-filter"></i>
+                        <span>Поиск: ищите интересные посты</span>
+                    </div>
+                    <div class="feature-detail-item">
+                        <i class="fas fa-shield-alt"></i>
+                        <span>комментарии: обсуждайте тему в комментариях</span>
+                    </div>
+                    <div class="feature-detail-item">
+                        <i class="fas fa-comments"></i>
+                        <span>Markdown: стилизуйте посты</span>
                     </div>
                 </div>
-                
-                <a href="#market" class="feature-link">Перейти к объявлениям <i class="fas fa-arrow-right"></i></a>
             </div>
         </div>
     </section>
@@ -162,25 +116,7 @@
                     <ul class="feature-benefits">
                         <li><i class="fas fa-check"></i> <strong>Только проверенные авторы</strong> — Все руководства создаются верифицированными экспертами, отобранными администрацией</li>
                         <li><i class="fas fa-check"></i> <strong>Интерактивное прохождение</strong> — Отмечайте пройденные шаги, сохраняйте прогресс</li>
-                        <li><i class="fas fa-check"></i> <strong>Мультимедийный контент</strong> — Фото, видео и схемы для наглядности</li>
-                        <li><i class="fas fa-check"></i> <strong>Система рейтингов</strong> — Сначала отображаются мануалы с выском рейтингом</li>
-                    </ul>
-                </div>
-            </div>
-            
-            <!-- Курсы подробно -->
-            <div class="detailed-feature">
-                <div class="detailed-feature-icon">
-                    <i class="fas fa-graduation-cap"></i>
-                </div>
-                <div class="detailed-feature-content">
-                    <h3>Структурированные курсы вождения</h3>
-                    <p>От новичка до профи — учитесь в удобном темпе с профессиональными инструкторами.</p>
-                    <ul class="feature-benefits">
-                        <li><i class="fas fa-check"></i> <strong>Поэтапное обучение</strong> — Курсы разбиты на модули от простого к сложному</li>
-                        <li><i class="fas fa-check"></i> <strong>Теория и практика</strong> — Видеоуроки, текстовые материалы и практические задания</li>
-                        <li><i class="fas fa-check"></i> <strong>Личный кабинет ученика</strong> — Отслеживайте прогресс, сохраняйте любимые уроки</li>
-                        <li><i class="fas fa-check"></i> <strong>Скоро в обновлении</strong> — В разработке: тесты, live-вебинары, органиязация живых встреч</li>
+                        <li><i class="fas fa-check"></i> <strong>Мультимедийный контент</strong> — Фото и видео наглядности</li>
                     </ul>
                 </div>
             </div>
@@ -196,7 +132,6 @@
                     <ul class="feature-benefits">
                         <li><i class="fas fa-check"></i> <strong>Расширенные фильтры</strong> — Ищите по цене, городу, состоянию, бренду и характеристикам</li>
                         <li><i class="fas fa-check"></i> <strong>Безопасные сделки</strong> — Вы не покупаете товар, а только связываетесь с продавцом</li>
-                        <li><i class="fas fa-check"></i> <strong>Уведомления</strong> — Получайте оповещения о новых предложениях по вашим запросам</li>
                         <li><i class="fas fa-check"></i> <strong>Избранное</strong> — Сохраняйте понравившиеся товары для сравнения</li>
                     </ul>
                 </div>
@@ -214,7 +149,6 @@
                         <li><i class="fas fa-check"></i> <strong>Публикация постов</strong> — Делитесь фото, видео и историями на мото-тематику</li>
                         <li><i class="fas fa-check"></i> <strong>Markdown-редактор</strong> — Форматируйте тексты, добавляйте код, списки и цитаты</li>
                         <li><i class="fas fa-check"></i> <strong>Лайки и комментарии</strong> — Взаимодействуйте с контентом других пользователей</li>
-                        <li><i class="fas fa-check"></i> <strong>Группы по интересам</strong> — Присоединяйтесь к сообществам по маркам и темам</li>
                     </ul>
                 </div>
             </div>

@@ -21,9 +21,15 @@ const routes = [
         meta: { public: true, guestOnly: true }
     },
     {
-        path: '/dashboard',
-        name: 'Dashboard',
-        component: () => import('../components/dashboard/Dashboard.vue'),
+        path: '/garage/main',
+        name: 'GarageMain',
+        component: () => import('../components/garage/Garage.vue'),
+        meta: { requiresAuth: true }
+    },
+    {
+        path: '/garage/:id',
+        name: 'MotoDetail',
+        component: () => import('../components/garage/Moto.vue'),
         meta: { requiresAuth: true }
     },
     {
@@ -49,12 +55,6 @@ const routes = [
         path: '/constructor/edit/:id',
         name: 'EditManual',
         component: () => import('../components/manuals/EditManual.vue'),
-        meta: { requiresAuth: true }
-    },
-    {
-        path: '/courses',
-        name: 'Courses',
-        component: () => import('../components/courses/Courses.vue'),
         meta: { requiresAuth: true }
     },
     {
@@ -91,7 +91,7 @@ const routes = [
     {
         path: '/garage/:id',
         name: 'Garage',
-        component: () => import('../components/garage/Garage.vue'),
+        component: () => import('../components/garage/Moto.vue'),
         meta: { requiresAuth: true }
     },
 

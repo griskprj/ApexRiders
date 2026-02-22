@@ -8,6 +8,15 @@
                 </button>
             </div>
             <div class="modal-body">
+                <!-- Индикатор сжатия -->
+                <div v-if="isCompressing" class="compression-overlay">
+                    <div class="compression-content">
+                        <div class="compression-spinner"></div>
+                        <p>Сжатие изображений... {{ compressionProgress }}%</p>
+                        <p class="compression-info">Обработано: {{ compressedCount }}/{{ totalFiles }}</p>
+                    </div>
+                </div>
+
                 <form @submit.prevent="handleSubmit" id="editForm">
                     <div class="form-group">
                         <label>Заголовок объявления *</label>
@@ -72,44 +81,56 @@
                     
                     <div class="form-group">
                         <label>Изображения (до 5 шт.)</label>
-                        <div class="image-upload">
-                            <!-- Существующие изображения -->
-                            <div class="existing-images" v-if="existingImages.length > 0">
-                                <h4>Текущие изображения:</h4>
-                                <div class="existing-images-grid">
-                                    <div class="existing-image-item" v-for="(img, index) in existingImages" :key="'existing-' + index">
-                                        <img :src="getImageUrl(img)" :alt="`Изображение ${index + 1}`">
-                                        <div class="existing-image-actions">
-                                            <button type="button" class="btn-small btn-danger" @click="removeExistingImage(index)">
-                                                <i class="fas fa-trash"></i> Удалить
-                                            </button>
-                                        </div>
+                        
+                        <!-- Существующие изображения -->
+                        <div v-if="existingImages.length > 0" class="existing-images">
+                            <h4>Текущие изображения</h4>
+                            <div class="existing-images-grid">
+                                <div v-for="(img, index) in existingImages" :key="index" class="existing-image-item">
+                                    <img :src="getImageUrl(img)" :alt="`Image ${index + 1}`">
+                                    <div class="existing-image-actions">
+                                        <button type="button" class="btn-small btn-danger" @click="removeExistingImage(index)">
+                                            <i class="fas fa-trash"></i> Удалить
+                                        </button>
                                     </div>
                                 </div>
                             </div>
-                            
-                            <!-- Загрузка новых изображений -->
-                            <div class="upload-area" @click="triggerFileInput" @dragover.prevent @drop.prevent="handleDrop">
+                        </div>
+                        
+                        <!-- Загрузка новых изображений -->
+                        <div class="image-upload">
+                            <div class="upload-area" @click="triggerFileInput" @dragover.prevent @drop.prevent="handleDrop" :class="{ 'drag-over': isDragOver }" @dragenter="isDragOver = true" @dragleave="isDragOver = false">
                                 <i class="fas fa-cloud-upload-alt"></i>
-                                <p>Добавить новые изображения</p>
-                                <p class="upload-hint">Поддерживаются: JPG, PNG, GIF, WebP</p>
+                                <p>Нажмите для загрузки или перетащите изображения сюда</p>
+                                <p class="upload-hint">Поддерживаются: JPG, PNG, GIF, WebP (макс. 5 файлов)</p>
                             </div>
                             <input 
                                 type="file" 
                                 ref="fileInput" 
                                 @change="handleImageUpload" 
                                 multiple 
-                                accept="image/*" 
+                                accept="image/jpeg,image/png,image/gif,image/webp" 
                                 style="display: none;"
                             >
                             
-                            <!-- Preview новых файлов -->
+                            <!-- Preview новых файлов с информацией о сжатии -->
                             <div class="image-preview" v-if="newFiles.length > 0">
-                                <div class="preview-item" v-for="(file, index) in newFiles" :key="'new-' + index">
+                                <div class="preview-item" v-for="(file, index) in newFiles" :key="'new-'+index">
                                     <img :src="getPreviewUrl(file)" :alt="`Preview ${index + 1}`">
                                     <div class="preview-info">
-                                        <span>{{ file.name }}</span>
-                                        <span>{{ formatFileSize(file.size) }}</span>
+                                        <span class="file-name">{{ file.name }}</span>
+                                        <div class="file-sizes">
+                                            <span v-if="file.originalSize" class="original-size">
+                                                {{ formatFileSize(file.originalSize) }}
+                                            </span>
+                                            <span class="arrow">→</span>
+                                            <span class="compressed-size" :class="{ 'good': file.size < file.originalSize }">
+                                                {{ formatFileSize(file.size) }}
+                                            </span>
+                                            <span v-if="file.originalSize" class="savings">
+                                                ({{ calculateSavings(file.originalSize, file.size) }})
+                                            </span>
+                                        </div>
                                     </div>
                                     <button type="button" class="remove-image" @click="removeNewImage(index)">
                                         <i class="fas fa-times"></i>
@@ -118,9 +139,13 @@
                             </div>
                             
                             <!-- Информация о загрузке -->
-                            <div class="upload-info" v-if="newFiles.length > 0">
-                                <p>Новых файлов: {{ newFiles.length }}</p>
-                                <p class="file-size-info">Общий размер: {{ formatFileSize(totalFileSize) }}</p>
+                            <div class="upload-info" v-if="existingImages.length > 0 || newFiles.length > 0">
+                                <p>Изображений: {{ existingImages.length }} существующих + {{ newFiles.length }} новых / 5</p>
+                                <p class="file-size-info">Общий размер новых: {{ formatFileSize(totalNewFileSize) }}</p>
+                                <p v-if="totalOriginalSize > 0" class="file-size-info savings">
+                                    Экономия: {{ formatFileSize(totalOriginalSize - totalNewFileSize) }} 
+                                    ({{ Math.round((1 - totalNewFileSize/totalOriginalSize) * 100) }}%)
+                                </p>
                             </div>
                         </div>
                     </div>
@@ -129,7 +154,7 @@
                         <button type="button" class="btn btn-outline" @click="closeModal">
                             Отмена
                         </button>
-                        <button type="submit" class="btn btn-primary" :disabled="isSubmitting">
+                        <button type="submit" class="btn btn-primary" :disabled="isSubmitting || isCompressing">
                             <i class="fas fa-save"></i> 
                             {{ isSubmitting ? 'Сохранение...' : 'Сохранить изменения' }}
                         </button>
@@ -143,6 +168,7 @@
 
 <script>
 import axios from 'axios';
+import imageCompression from 'browser-image-compression';
 
 export default {
     props: {
@@ -166,12 +192,20 @@ export default {
             imagesToDelete: [],
             newFiles: [],
             isSubmitting: false,
+            isCompressing: false,
+            compressionProgress: 0,
+            compressedCount: 0,
+            totalFiles: 0,
+            isDragOver: false,
             errors: []
         }
     },
     computed: {
-        totalFileSize() {
+        totalNewFileSize() {
             return this.newFiles.reduce((total, file) => total + file.size, 0)
+        },
+        totalOriginalSize() {
+            return this.newFiles.reduce((total, file) => total + (file.originalSize || file.size), 0)
         }
     },
     watch: {
@@ -225,11 +259,12 @@ export default {
         },
         
         handleDrop(event) {
+            this.isDragOver = false;
             const files = Array.from(event.dataTransfer.files);
             this.addFiles(files);
         },
         
-        addFiles(files) {
+        async addFiles(files) {
             const maxTotalImages = 5;
             const currentTotal = this.existingImages.length - this.imagesToDelete.length + this.newFiles.length;
             const remainingSlots = maxTotalImages - currentTotal;
@@ -240,37 +275,91 @@ export default {
                 alert(`Можно загрузить максимум ${maxTotalImages} файлов всего. Доступно ${remainingSlots} слотов`);
             }
             
-            filesToAdd.forEach(file => {
+            if (filesToAdd.length === 0) return;
+            
+            this.isCompressing = true;
+            this.totalFiles = filesToAdd.length;
+            this.compressedCount = 0;
+            this.compressionProgress = 0;
+            
+            for (const file of filesToAdd) {
                 if (!file.type.startsWith('image/')) {
                     alert(`Файл "${file.name}" не является изображением`);
-                    return;
+                    this.compressedCount++;
+                    continue;
                 }
                 
-                const maxSize = 5 * 1024 * 1024; // 5MB
-                if (file.size > maxSize) {
-                    alert(`Файл "${file.name}" слишком большой. Максимальный размер: 5MB`);
-                    return;
+                try {
+                    const options = {
+                        maxSizeMB: 5,
+                        maxWidthOrHeight: 1200,
+                        useWebWorker: true,
+                        onProgress: (progress) => {
+                            this.compressionProgress = Math.round(progress);
+                        },
+                        fileType: file.type,
+                        initialQuality: 0.85
+                    };
+                    
+                    // Запоминаем оригинальный размер
+                    const originalSize = file.size;
+                    
+                    // Сжимаем изображение
+                    const compressedFile = await imageCompression(file, options);
+                    
+                    // Сохраняем оригинальное имя файла с правильным расширением
+                    const originalName = file.name || 'image';
+                    const extension = originalName.split('.').pop() || file.type.split('/')[1] || 'jpg';
+                    const newFileName = originalName.includes('.') ? originalName : `image.${extension}`;
+                    
+                    // Создаем новый файл с правильным именем
+                    const properFile = new File([compressedFile], newFileName, { type: compressedFile.type });
+                    
+                    // Добавляем информацию об оригинальном размере
+                    properFile.originalSize = originalSize;
+                    
+                    // Создаем превью
+                    const preview = await imageCompression.getDataUrlFromFile(compressedFile);
+                    properFile.preview = preview;
+                    
+                    this.newFiles.push(properFile);
+                    
+                } catch (error) {
+                    console.error('Ошибка при сжатии:', error);
+                    // Если сжатие не удалось, добавляем оригинал с правильным именем
+                    const originalName = file.name || 'image';
+                    const extension = originalName.split('.').pop() || file.type.split('/')[1] || 'jpg';
+                    const newFileName = originalName.includes('.') ? originalName : `image.${extension}`;
+                    
+                    const properFile = new File([file], newFileName, { type: file.type });
+                    properFile.preview = await imageCompression.getDataUrlFromFile(file);
+                    properFile.originalSize = file.size;
+                    this.newFiles.push(properFile);
                 }
                 
-                if (this.totalFileSize + file.size > 25 * 1024 * 1024) { // 25MB
-                    alert(`Общий размер файлов не должен превышать 25MB`);
-                    return;
-                }
-                
-                this.newFiles.push(file);
-            });
+                this.compressedCount++;
+                this.compressionProgress = Math.round((this.compressedCount / this.totalFiles) * 100);
+            }
+            
+            this.isCompressing = false;
+            this.compressionProgress = 0;
         },
         
         getPreviewUrl(file) {
-            return URL.createObjectURL(file);
+            return file.preview || URL.createObjectURL(file);
         },
         
         formatFileSize(bytes) {
             if (bytes === 0) return '0 Bytes';
             const k = 1024;
-            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const sizes = ['Bytes', 'KB', 'MB'];
             const i = Math.floor(Math.log(bytes) / Math.log(k));
             return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        },
+        
+        calculateSavings(original, compressed) {
+            const savings = ((original - compressed) / original * 100).toFixed(1);
+            return `-${savings}%`;
         },
         
         removeExistingImage(index) {
@@ -282,7 +371,9 @@ export default {
         
         removeNewImage(index) {
             if (this.newFiles[index]) {
-                URL.revokeObjectURL(this.getPreviewUrl(this.newFiles[index]));
+                if (this.newFiles[index].preview) {
+                    URL.revokeObjectURL(this.newFiles[index].preview);
+                }
                 this.newFiles.splice(index, 1);
             }
         },
@@ -335,12 +426,14 @@ export default {
                     }
                 });
                 
+                // Добавляем новые файлы (уже сжатые)
                 if (this.newFiles.length > 0) {
-                    this.newFiles.forEach((file, index) => {
+                    this.newFiles.forEach((file) => {
                         formData.append('images', file);
                     });
                 }
                 
+                // Добавляем информацию об удаленных изображениях
                 if (this.imagesToDelete.length > 0) {
                     formData.append('images_to_delete', JSON.stringify(this.imagesToDelete));
                 }
@@ -354,6 +447,7 @@ export default {
                 });
                 
                 if (response.data) {
+                    alert('Объявление успешно обновлено!');
                     this.$emit('update-success', response.data);
                     this.closeModal();
                 }
@@ -368,7 +462,9 @@ export default {
         
         closeModal() {
             this.newFiles.forEach(file => {
-                URL.revokeObjectURL(this.getPreviewUrl(file));
+                if (file.preview) {
+                    URL.revokeObjectURL(file.preview);
+                }
             });
             
             this.$emit('close');
@@ -377,7 +473,9 @@ export default {
     
     beforeUnmount() {
         this.newFiles.forEach(file => {
-            URL.revokeObjectURL(this.getPreviewUrl(file));
+            if (file.preview) {
+                URL.revokeObjectURL(file.preview);
+            }
         });
     },
     
@@ -386,9 +484,6 @@ export default {
 </script>
 
 <style scoped>
-/* Стили модального окна (используйте стили из MarketModal.vue) */
-/* Добавьте дополнительные стили для существующих изображений */
-
 .existing-images {
     margin-bottom: 20px;
 }
@@ -630,55 +725,10 @@ export default {
     color: var(--text-secondary);
 }
 
-.image-preview {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
-    gap: 15px;
-}
-
-.preview-item {
-    position: relative;
-    aspect-ratio: 1;
-    border-radius: 10px;
-    overflow: hidden;
-}
-
-.preview-item img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-}
-
-.remove-image {
-    position: absolute;
-    top: 5px;
-    right: 5px;
-    width: 25px;
-    height: 25px;
-    background: rgba(255, 0, 0, 0.8);
-    border-radius: 50%;
-    border: none;
-    color: white;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    font-size: 12px;
-    transition: all 0.3s ease;
-}
-
-.remove-image:hover {
-    transform: scale(1.1);
-}
-
-.upload-area {
-    cursor: pointer;
-    position: relative;
-}
-
-.upload-area:hover {
+.upload-area.drag-over {
     border-color: var(--primary);
-    background: rgba(255, 69, 0, 0.05);
+    background: rgba(255, 69, 0, 0.1);
+    border-style: solid;
 }
 
 .upload-hint {
@@ -728,28 +778,49 @@ export default {
     text-overflow: ellipsis;
 }
 
+.remove-image {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    width: 25px;
+    height: 25px;
+    background: rgba(255, 0, 0, 0.8);
+    border-radius: 50%;
+    border: none;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 12px;
+    transition: all 0.3s ease;
+}
+
+.remove-image:hover {
+    transform: scale(1.1);
+}
+
 .upload-info {
     margin-top: 10px;
     font-size: 0.9rem;
     color: var(--text-secondary);
     display: flex;
     justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
 }
 
 .file-size-info {
     color: var(--primary);
 }
 
+.file-size-info.savings {
+    color: #4caf50;
+}
+
 .btn:disabled {
     opacity: 0.5;
     cursor: not-allowed;
-}
-
-/* Drag and drop стили */
-.upload-area.drag-over {
-    border-color: var(--primary);
-    background: rgba(255, 69, 0, 0.1);
-    border-style: solid;
 }
 
 .form-actions {
@@ -759,9 +830,88 @@ export default {
     margin-top: 30px;
 }
 
+/* Стили для индикатора сжатия */
+.compression-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.9);
+    backdrop-filter: blur(5px);
+    z-index: 2100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.compression-content {
+    background: var(--dark-light);
+    padding: 40px;
+    border-radius: 20px;
+    text-align: center;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.compression-spinner {
+    width: 60px;
+    height: 60px;
+    border: 4px solid rgba(255, 255, 255, 0.1);
+    border-top: 4px solid var(--primary);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 20px;
+}
+
+.compression-info {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    margin-top: 10px;
+}
+
+.file-sizes {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.7rem;
+    flex-wrap: wrap;
+}
+
+.original-size {
+    color: #ff6b6b;
+    text-decoration: line-through;
+}
+
+.arrow {
+    color: var(--text-secondary);
+}
+
+.compressed-size {
+    color: #4caf50;
+    font-weight: bold;
+}
+
+.savings {
+    color: #4caf50;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
 @media (max-width: 768px) {
     .modal-content {
         max-height: 95vh;
+    }
+    
+    .form-row {
+        grid-template-columns: 1fr;
+        gap: 15px;
+    }
+    
+    .upload-info {
+        flex-direction: column;
     }
 }
 </style>

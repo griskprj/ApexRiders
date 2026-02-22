@@ -57,11 +57,22 @@ def create_app(config_name=None):
 
     @app.route('/uploads/<path:filename>')
     def uploaded_file(filename):
+        """Отдача файлов из папки uploads"""
         upload_folder = app.config['UPLOAD_FOLDER']
-        # Добавляем проверку безопасности
+        
         if '..' in filename or filename.startswith('/'):
             return jsonify({'error': 'Invalid file path'}), 400
-        return send_from_directory(upload_folder, filename)
+        
+        file_path = os.path.join(upload_folder, filename)
+        if not os.path.exists(file_path):
+            file_path = os.path.join(upload_folder, 'listings', filename)
+        if not os.path.exists(file_path):
+            file_path = os.path.join(upload_folder, 'posts', filename)
+        
+        if not os.path.exists(file_path):
+            return jsonify({'error': 'File not found'}), 404
+        
+        return send_from_directory(os.path.dirname(file_path), os.path.basename(filename))
 
     from app.routes import auth, motorcycles, statist, manuals, courses, product, community, garage, admin, notifications, reports, user_reports
     app.register_blueprint(auth.auth)

@@ -1,5 +1,6 @@
 <script setup>
-    import BasicManualCard from './BasicManualCard.vue';
+    import Paginatie from '../ui/Paginatie.vue';
+import BasicManualCard from './BasicManualCard.vue';
     import ManualsCategory from './ManualsCategory.vue';
     import ManualsHeader from './ManualsHeader.vue';
     import RecentManuals from './RecentManuals.vue';
@@ -97,33 +98,12 @@
                 </div>
 
                 <!-- Пагинация -->
-                <div v-if="pagination.pages > 1" class="pagination">
-                    <button 
-                        class="pagination-btn prev"
-                        @click="prevPage"
-                        :disabled="!pagination.has_prev"
-                    >
-                        <i class="fas fa-chevron-left"></i> Назад
-                    </button>
-                    <div class="pagination-pages">
-                        <button
-                            v-for="page in pagination.pages"
-                            :key="page"
-                            class="page-btn"
-                            :class="{ active: pagination.page === page }"
-                            @click="goToPage(page)"
-                        >
-                            {{ page }}
-                        </button>
-                    </div>
-                    <button 
-                        class="pagination-btn next"
-                        @click="nextPage"
-                        :disabled="!pagination.has_next"
-                    >
-                        Вперед <i class="fas fa-chevron-right"></i>
-                    </button>
-                </div>
+                <Paginatie
+                    :content="filteredManuals"
+                    :current-page="currentPage"
+                    :total-pages="totalPages"
+                    @page-change="handlePageChange"
+                />
             </div>
         </div>
     </section>
@@ -139,9 +119,15 @@ export default {
             allManuals: [],
             manuals: [],
             userManuals: [],
+            
             isLoading: true,
+            
             activeFilter: 'all',
             searchQuery: '',
+            
+            currentPage: 1,
+            manualsPerPage: 6,
+            totalManuals: 0,
             
             categories: {
                 'engine': 'Двигатель',
@@ -158,37 +144,31 @@ export default {
                 difficulty: '',
                 sort_by: 'relevance'
             },
-            
-            pagination: {
-                page: 1,
-                per_page: 6,
-                total: 0,
-                pages: 1,
-                has_next: false,
-                has_prev: false
-            }
         }
     },
-
-    computed: {
-        // Убираем лишние computed свойства, так как теперь все через API
-        currentPageManuals() {
-            return this.manuals
-        }
-    },
-
+    
     mounted() {
         this.fetchManuals()
     },
 
+    computed: {
+        filteredManuals() {
+            return this.manuals
+        },
+
+        totalPages() {
+            return Math.ceil(this.totalManuals / this.manualsPerPage)
+        }
+    },
+
     watch: {
         activeFilter() {
-            this.pagination.page = 1
+            this.currentPage = 1
             this.fetchManuals()
         },
 
         searchQuery() {
-            this.pagination.page = 1
+            this.currentPage = 1
             this.fetchManuals()
         }
     },
@@ -197,14 +177,13 @@ export default {
         async fetchManuals() {
             try {
                 this.isLoading = true
+
                 const token = localStorage.getItem('authToken')
-                
                 const params = new URLSearchParams({
-                    page: this.pagination.page,
-                    per_page: this.pagination.per_page
+                    page: this.currentPage,
+                    per_page: this.manualsPerPage,
                 })
 
-                // Определяем URL в зависимости от наличия поискового запроса
                 let url = '/api/manuals/get'
                 
                 if (this.searchQuery) {
@@ -212,13 +191,11 @@ export default {
                     params.append('q', this.searchQuery)
                 }
 
-                // Добавляем фильтры категории
                 if (this.activeFilter !== 'all') {
                     const categoryName = this.categories[this.activeFilter]
                     params.append('category', categoryName)
                 }
 
-                // Добавляем дополнительные фильтры поиска
                 if (this.searchFilters.difficulty) {
                     params.append('difficulty', this.searchFilters.difficulty)
                 }
@@ -233,48 +210,12 @@ export default {
                     }
                 })
 
-                if (response.data) {
-                    // Обрабатываем ответ с пагинацией
-                    if (response.data.data && response.data.pagination) {
-                        this.manuals = response.data.data
-                        this.pagination = {
-                            page: response.data.pagination.page,
-                            per_page: response.data.pagination.per_page,
-                            total: response.data.pagination.total,
-                            pages: response.data.pagination.pages,
-                            has_next: response.data.pagination.has_next,
-                            has_prev: response.data.pagination.has_prev
-                        }
-                        
-                        // Получаем недавно просмотренные мануалы
-                        if (response.data.user_manuals) {
-                            this.userManuals = response.data.user_manuals
-                        }
-                        
-                        // Загружаем все мануалы для категорий только при первой загрузке
-                        if (!this.searchQuery && this.activeFilter === 'all' && this.allManuals.length === 0) {
-                            this.loadAllManualsForCategories()
-                        }
-                    } else {
-                        // Fallback для старого формата ответа
-                        this.manuals = response.data.manuals_data || []
-                        this.userManuals = response.data.user_manuals || []
-                        this.serverSearchMode = false
-                    }
-                }
+                const data = response.data
+                this.manuals = data.data || []
+                this.totalManuals = data.meta.total_items || 0
                 
             } catch (error) {
                 console.error('Ошибка при получении мануалов: ', error)
-                this.manuals = []
-                this.userManuals = []
-                this.pagination = {
-                    page: 1,
-                    per_page: 6,
-                    total: 0,
-                    pages: 1,
-                    has_next: false,
-                    has_prev: false
-                }
             } finally {
                 this.isLoading = false
             }
@@ -298,7 +239,6 @@ export default {
         },
 
         getCategoryCount(categoryName) {
-            // Используем allManuals для подсчета категорий
             return this.allManuals.filter(manual =>
                 manual.category === categoryName || manual.moto_type === categoryName
             ).length
@@ -306,13 +246,13 @@ export default {
 
         handleFilterChange(filterId) {
             this.activeFilter = filterId
-            this.pagination.page = 1
+            this.currentPage = 1
             this.fetchManuals()
         },
 
         handleSearch(query) {
             this.searchQuery = query
-            this.pagination.page = 1
+            this.currentPage = 1
             this.fetchManuals()
         },
 
@@ -324,7 +264,7 @@ export default {
                 difficulty: '',
                 sort_by: 'relevance'
             }
-            this.pagination.page = 1
+            this.currentPage = 1
             this.fetchManuals()
         },
 
@@ -336,44 +276,30 @@ export default {
                 difficulty: '',
                 sort_by: 'relevance'
             }
-            this.pagination.page = 1
+            this.currentPage = 1
             this.fetchManuals()
         },
 
-        prevPage() {
-            if (this.pagination.has_prev) {
-                this.pagination.page--
+
+        handlePageChange(newPage) {
+            if (newPage >= 1 && newPage <= this.totalPages && newPage !== this.currentPage) {
+                this.currentPage = newPage
                 this.fetchManuals()
-                this.scrollToTop()
+
+                window.scrollTo({
+                    top: 0,
+                    behavior: 'smooth'
+                })
             }
         },
 
-        nextPage() {
-            if (this.pagination.has_next) {
-                this.pagination.page++
-                this.fetchManuals()
-                this.scrollToTop()
-            }
-        },
-
-        goToPage(page) {
-            this.pagination.page = page
-            this.fetchManuals()
-            this.scrollToTop()
-        },
 
         updateSearchFilter(filterType, value) {
             this.searchFilters[filterType] = value
-            this.pagination.page = 1
+            this.currentPage = 1
             this.fetchManuals()
         },
         
-        scrollToTop() {
-            window.scrollTo({
-                top: 0,
-                behavior: 'smooth'
-            })
-        },
         
         formatTime(timeString) {
             if (!timeString) return ''
@@ -392,8 +318,6 @@ export default {
         },
 
         isManualAuthor(manual) {
-            // Эта функция вероятно должна использовать данные из хранилища
-            // Пока оставим заглушку
             return false
         }
     }

@@ -12,7 +12,7 @@ export default defineConfig({
 
       manifest: {
         name: 'ApexRiders',
-        short_name: 'AR',
+        short_name: 'ApexRiders',
         description: 'Сообщество мотоциклистов ApexRiders',
         theme_color: '#ff4500',
         background_color: '#0a0a0f',
@@ -22,21 +22,27 @@ export default defineConfig({
         start_url: '/dashboard',
         icons: [
           {
-            src: "/Logo192.jpg",
+            src: "/Logo192.png",
             sizes: "192x192",
-            type: "image/jpg",
+            type: "image/png",
           },
           {
-            src: "/Logo512.jpg",
+            src: "/Logo512.png",
             sizes: "512x512",
-            type: "image/jpg",
+            type: "image/png",
           },
           {
-            src: "/Logo512.jpg",
+            src: "/Logo512.png",
             sizes: "512x512",
-            type: "image/jpg",
+            type: "image/png",
             purpose: "any maskable"
           },
+          {
+            src: "/favicon.svg",
+            sizes: "any",
+            type: "image/svg+xml",
+            purpose: "any"
+          }
         ]
       },
       workbox: {

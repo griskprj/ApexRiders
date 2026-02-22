@@ -1,7 +1,7 @@
 <script setup>
 import CreatePostModal from './CreatePostModal.vue';
 import HeaderFilter from './HeaderFilter.vue';
-import Paginatie from './Paginatie.vue';
+import Paginatie from '../ui/Paginatie.vue';
 import PostsArray from './PostsArray.vue';
 import Sidebar from './Sidebar.vue';
 </script>
@@ -28,7 +28,7 @@ import Sidebar from './Sidebar.vue';
                 
                 <!-- Пагинация -->
                 <Paginatie
-                    :filtered-posts="filteredPosts"
+                    :content="filteredPosts"
                     :current-page="currentPage"
                     :total-pages="totalPages"
                     @page-change="handlePageChange"

@@ -8,7 +8,6 @@ import NotificationBell from './components/notifications/NotificationBell.vue';
     <div class="decoration decoration-1"></div>
     <div class="decoration decoration-2"></div>
 
-    <!-- Условный рендеринг навигации -->
     <nav v-if="!isAdminRoute" class="navbar" :class="{ 'scrolled': isScrolled }">
         <router-link to="/" class="logo">
             <i class="fas fa-motorcycle"></i>
@@ -16,9 +15,8 @@ import NotificationBell from './components/notifications/NotificationBell.vue';
         </router-link>
         
         <div class="nav-links" v-if="!isMobile && user">
-            <router-link to="/dashboard" class="nav-link" v-if="user">Главная</router-link>
+            <router-link to="/garage/main" class="nav-link" v-if="user">Гараж</router-link>
             <router-link to="/manuals" class="nav-link" v-if="user">Мануалы</router-link>
-            <router-link to="/courses" class="nav-link" v-if="user">Курсы</router-link>
             <router-link to="/market" class="nav-link" v-if="user">Маркет</router-link>
             <router-link to="/community" class="nav-link" v-if="user">Сообщество</router-link>
             <router-link to="/profile" class="nav-link" v-if="user">Профиль</router-link>
@@ -42,9 +40,8 @@ import NotificationBell from './components/notifications/NotificationBell.vue';
 
     <!-- Мобильное меню -->
     <div v-if="isMobile && user && !isAdminRoute" class="mobile-menu" :class="{ 'active': isMobileMenuOpen }">
-        <router-link to="/dashboard" class="nav-link" v-if="user" @click="closeMobileMenu">Главная</router-link>
+        <router-link to="/garage/main" class="nav-link" v-if="user">Гараж</router-link>
         <router-link to="/manuals" class="nav-link" v-if="user" @click="closeMobileMenu">Мануалы</router-link>
-        <router-link to="/courses" class="nav-link" v-if="user" @click="closeMobileMenu">Курсы</router-link>
         <router-link to="/market" class="nav-link" v-if="user" @click="closeMobileMenu">Маркет</router-link>
         <router-link to="/community" class="nav-link" v-if="user" @click="closeMobileMenu">Сообщество</router-link>
         <router-link to="/profile" class="nav-link" v-if="user" @click="closeMobileMenu">Профиль</router-link>
@@ -88,7 +85,6 @@ import NotificationBell from './components/notifications/NotificationBell.vue';
             <div class="footer-column" v-if="user">
                 <h4>Разделы</h4>
                 <router-link to="/manuals" @click="closeMobileMenu">Мануалы</router-link>
-                <router-link to="/courses" @click="closeMobileMenu">Курсы</router-link>
                 <router-link to="/market" @click="closeMobileMenu">Маркет</router-link>
                 <router-link to="/community" @click="closeMobileMenu">Сообщество</router-link>
             </div>
@@ -111,7 +107,7 @@ import NotificationBell from './components/notifications/NotificationBell.vue';
             <div class="footer-column">
                 <h4>Контакты</h4>
                 <p>Email: apexriders@yandex.ru</p>
-                <p>Телефон: +7 (988) 405-91-11</p>
+                <p>Telegram: @griskyy</p>
             </div>
         </div>
         
@@ -140,7 +136,6 @@ export default {
     
     computed: {
         isAdminRoute() {
-            // Проверяем, находится ли пользователь на админском дашборде
             if (!this.currentRoute) return false
             return this.currentRoute.path.startsWith('/admin/dashboard')
         }

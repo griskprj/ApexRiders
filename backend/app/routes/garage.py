@@ -536,9 +536,10 @@ def garage_overview():
         overdue_tasks += len([t for t in tasks if t.check_overdue()])
 
         for task in tasks:
-            if task.status == 'pending' and task.next_maintenance_date:
+            if (task.status == 'pending' or task.status == 'overdue') and task.next_maintenance_date:
                 days_until = (task.next_maintenance_date - date.today()).days
-                if 0 <= days_until <= 7:
+                if days_until <= 7:
+                    task.status = 'overdue' if task.status != 'overdue' else task.status
                     task_dict = task.to_dict()
                     task_dict['motorcycle'] = {
                         'id': moto.id,
@@ -548,13 +549,27 @@ def garage_overview():
                     }
                     task_dict['days_until'] = days_until
                     upcoming_tasks.append(task_dict)
+            elif (task.status == 'pending' or task.status == 'overdue') and task.next_maintenance_mileage:
+                mileage_until = task.next_maintenance_mileage - moto.current_mileage
+                mileage_until = 0 if mileage_until < 0 else mileage_until
+                print(f'Task {task.title}: ', mileage_until)
+                if mileage_until <= 200:
+                    task_dict = task.to_dict()
+                    task_dict['motorcycle'] = {
+                        'id': moto.id,
+                        'brand': moto.brand,
+                        'model': moto.model,
+                        'license_plate': moto.license_plate
+                    }
+                    task_dict['mileage_until'] = mileage_until
+                    upcoming_tasks.append(task_dict)
 
-    upcoming_tasks.sort(key=lambda x: x.get('next_maintenance_date', ''))
-
+    db.session.commit()
+    
     return jsonify({
         'total_motorcycles': len(motorcycles),
         'total_maintenance_tasks': total_maintenance_tasks,
         'overdue_tasks': overdue_tasks,
-        'upcoming_tasks': upcoming_tasks[:5],
+        'upcoming_tasks': upcoming_tasks,
         'motorcycles': [moto.to_dict() for moto in motorcycles]
     })

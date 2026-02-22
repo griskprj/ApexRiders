@@ -1,6 +1,6 @@
 <template>
     <!-- Пагинация -->
-    <div v-if="filteredPosts.length > 0" class="pagination">
+    <div v-if="content.length > 0" class="pagination">
         <button 
             class="pagination-btn"
             :disabled="currentPage === 1"
@@ -36,19 +36,18 @@
 export default {
     name: 'PostsPaginate',
     props: {
-        filteredPosts: Array,
+        content: Array,
         currentPage: Number,
         totalPages: Number
     },
     computed: {
         visiblePages() {
             const pages = [];
-            const maxVisible = 5; // Максимальное количество видимых страниц
+            const maxVisible = 5;
             
             let start = Math.max(1, this.currentPage - 2);
             let end = Math.min(this.totalPages, start + maxVisible - 1);
             
-            // Корректировка начала, если мы в конце списка
             if (end - start + 1 < maxVisible) {
                 start = Math.max(1, end - maxVisible + 1);
             }

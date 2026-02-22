@@ -8,43 +8,7 @@ from flask_jwt_extended import get_jwt_identity, jwt_required
 from app import db
 from app.models import Member, Product, Like
 from datetime import datetime, timezone
-
-ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
-MAX_CONTENT_LENGTH = 16 * 1024 * 1024
-
-
-def allowed_file(filename):
-    if '.' not in filename:
-        return False
-
-    ext = filename.rsplit('.', 1)[1].lower()
-    return ext in ALLOWED_EXTENSIONS
-
-
-def save_images(files):
-    saved_filenames = []
-
-    upload_folder = current_app.config['UPLOAD_FOLDER']
-    os.makedirs(upload_folder, exist_ok=True)
-
-    for file in files:
-        if file and allowed_file(file.filename):
-            original_filename = secure_filename(file.filename)
-
-            file_ext = original_filename.rsplit(
-                '.', 1)[1].lower() if '.' in original_filename else ''
-
-            if file_ext:
-                filename = f"{uuid.uuid4().hex}.{file_ext}"
-            else:
-                filename = f"{uuid.uuid4().hex}"
-
-            file_path = os.path.join(upload_folder, filename)
-            file.save(file_path)
-
-            saved_filenames.append(filename)
-
-    return saved_filenames
+from app.utils.compress_image import save_images, allowed_file
 
 
 product = Blueprint('product', __name__)
@@ -131,14 +95,10 @@ def get_products():
         'is_bargain': p.is_bargain
     } for p in user_products])
 
-    all_products_count = Product.query.all()
-
-    print(len(all_products_count))
-
     return jsonify({
         'all_products': all_products_data,
         'user_products': user_product_data,
-        'product_count': len(all_products_count),
+        'product_count': len(all_products),
         'user_product_count': len(user_products)
     })
 
@@ -153,6 +113,18 @@ def new_product():
     if not user:
         return jsonify({'error': 'User not found'}), 404
 
+    # Получаем данные из формы
+    title = request.form.get('title')
+    category = request.form.get('category')
+    price = request.form.get('price')
+    description = request.form.get('description')
+    city = request.form.get('city')
+    phone = request.form.get('phone')
+
+    if not all([title, category, price, description, city, phone]):
+        return jsonify({'error': 'Required fields empty'}), 400
+
+    image_filenames = []
     if 'images' in request.files:
         files = request.files.getlist('images')
 
@@ -163,25 +135,6 @@ def new_product():
             image_filenames = save_images(files)
         except Exception as e:
             return jsonify({'error': f'Ошибка загрузки изображений: {str(e)}'}), 500
-
-        title = request.form.get('title')
-        category = request.form.get('category')
-        price = request.form.get('price')
-        description = request.form.get('description')
-        city = request.form.get('city')
-        phone = request.form.get('phone')
-    else:
-        data = request.get_json
-        image_filenames = []
-        title = data.get('title')
-        category = data.get('category')
-        price = data.get('price')
-        description = data.get('description')
-        city = data.get('city')
-        phone = data.get('phone')
-
-    if not all([title, category, price, description, city, phone]):
-        return jsonify({'error': 'Required fileds empty'}), 400
 
     try:
         price_int = int(price)
@@ -210,7 +163,7 @@ def new_product():
     except Exception as e:
         db.session.rollback()
         print(e)
-        return jsonify({'error': f'Inrernal server error: {e}'}), 500
+        return jsonify({'error': f'Internal server error: {e}'}), 500
 
 
 @product.route('/api/product/<int:product_id>/like', methods=['POST'])
@@ -221,7 +174,7 @@ def like_product(product_id):
 
     product = Product.query.get(product_id)
     if not product:
-        return jsonify({'error': 'Product not fount'}), 404
+        return jsonify({'error': 'Объявление не найдено'}), 404
 
     existing_like = Like.query.filter_by(
         user_id=current_user_id,
@@ -236,7 +189,7 @@ def like_product(product_id):
         return jsonify({
             'liked': False,
             'likes_count': product.likes_count,
-            'message': 'Like removed'
+            'message': 'Удалено из избранных'
         }), 200
 
     new_like = Like(
@@ -253,7 +206,7 @@ def like_product(product_id):
     return jsonify({
         'liked': True,
         'likes_count': product.likes_count,
-        'message': 'Product liked'
+        'message': 'Добавлено в избранные'
     }), 201
 
 
@@ -265,7 +218,7 @@ def check_like_status(product_id):
 
     product = Product.query.get(product_id)
     if not product:
-        return jsonify({'error': 'Product not fount'}), 404
+        return jsonify({'error': 'Объявление не найдено'}), 404
 
     is_liked = Like.query.filter_by(
         user_id=current_user_id,
@@ -316,10 +269,9 @@ def uploaded_file(filename):
     """ Uplaod file """
     try:
         upload_folder = current_app.config['UPLOAD_FOLDER']
-        file_path = os.path.join(upload_folder, filename)
+        file_path = os.path.join(upload_folder, 'listings', filename)
 
         if not os.path.exists(file_path):
-            print(f"File not found: {file_path}")
             abort(404)
 
         mime_type, _ = mimetypes.guess_type(file_path)
@@ -345,10 +297,9 @@ def uploaded_file(filename):
         return response
 
     except NotFound:
-        print(f"File not found in send_from_directory: {filename}")
         abort(404)
     except Exception as e:
-        print(f"Error serving file {filename}: {e}")
+        current_app.logger.error(f'Ошибка сохранения файла: {e}')
         abort(500)
 
 
@@ -397,7 +348,7 @@ def increment_views(product_id):
     """ Increment views """
     product = Product.query.get(product_id)
     if not product:
-        return jsonify({'error': 'Product not found'}), 404
+        return jsonify({'error': 'Объявление не найдено'}), 404
 
     product.watchs = (product.watchs or 0) + 1
     db.session.commit()
@@ -411,7 +362,7 @@ def get_simmilar_products(product_id):
     """ Get simmilar products """
     current_product = Product.query.get(product_id)
     if not current_product:
-        return jsonify({'error': 'Product not found'}), 404
+        return jsonify({'error': 'Объявление не найдено'}), 404
 
     similar_products = Product.query.filter(
         Product.category == current_product.category,
@@ -443,7 +394,7 @@ def delete_product(product_id):
     product = Product.query.get(product_id)
 
     if not product:
-        return jsonify({'error': 'Product not found'}), 404
+        return jsonify({'error': 'Объявление не найдено'}), 404
 
     product_likes = Like.query.filter_by(
         target_id=product_id,
@@ -457,7 +408,7 @@ def delete_product(product_id):
     db.session.delete(product)
     db.session.commit()
 
-    return jsonify({'message': 'Product was delete successfully'}), 200
+    return jsonify({'message': 'Объявление успешно удалено'}), 200
 
 
 @product.route('/api/product/<int:product_id>/edit', methods=['PUT', 'PATCH'])
@@ -479,8 +430,7 @@ def edit_product(product_id):
         if request.content_type and 'multipart/form-data' in request.content_type:
             if 'images_to_delete' in request.form:
                 try:
-                    images_to_delete = json.loads(
-                        request.form['images_to_delete'])
+                    images_to_delete = json.loads(request.form['images_to_delete'])
                     for img in images_to_delete:
                         if img in current_images:
                             current_images.remove(img)
@@ -521,14 +471,12 @@ def edit_product(product_id):
                 try:
                     product.cost = int(request.form.get('price'))
                 except ValueError:
-                    return jsonify({'error': 'Invalid price format'}), 400
+                    return jsonify({'error': 'Неверный формат цены'}), 400
 
             if 'is_active' in request.form:
-                product.is_active = request.form.get(
-                    'is_active', 'false').lower() == 'true'
+                product.is_active = request.form.get('is_active', 'false').lower() == 'true'
             if 'is_bargain' in request.form:
-                product.is_bargain = request.form.get(
-                    'is_bargain', 'false').lower() == 'true'
+                product.is_bargain = request.form.get('is_bargain', 'false').lower() == 'true'
 
         else:
             data = request.get_json()
@@ -557,11 +505,10 @@ def edit_product(product_id):
             return jsonify({'error': 'Нельзя иметь более 5 изображений'}), 400
 
         product.images = current_images
-
         db.session.commit()
 
         return jsonify({
-            'message': 'Product updated successfully',
+            'message': 'Объявление обновлено успешно!',
             'product': {
                 'id': product.id,
                 'title': product.title,
@@ -578,8 +525,8 @@ def edit_product(product_id):
 
     except Exception as e:
         db.session.rollback()
-        print(f"Error updating product: {e}")
-        return jsonify({'error': f'Internal server error: {e}'}), 500
+        current_app.logger.error(f'Ошибка обновления объявления: {e}')
+        return jsonify({'error': f'Ошибка сервера: {e}'}), 500
 
 
 @product.route('/api/product/<int:product_id>/reserved', methods=['PUT'])
@@ -591,17 +538,17 @@ def reserve_product(product_id):
     product = Product.query.get(product_id)
 
     if not product:
-        return jsonify({'error': 'Product not found'}), 404
+        return jsonify({'error': 'Объявление не найдено'}), 404
 
     if int(product.owner_id) != int(current_user_id):
-        return jsonify({'error': 'Not authorized to reserve this product'}), 403
+        return jsonify({'error': 'Вы не являетесь владельцем этого объявления'}), 403
 
     if product.status == 'reserved':
         product.status = 'active'
-        message = 'Product unreserzed'
+        message = 'Объявление снято с резервации'
     else:
         product.status = 'reserved'
-        message = 'Product reserved'
+        message = 'Объявление зарезервированно'
 
     db.session.commit()
 
@@ -620,14 +567,14 @@ def sold_product(product_id):
     product = Product.query.get(product_id)
 
     if not product:
-        return jsonify({'error': 'Product not found'}), 404
+        return jsonify({'error': 'Объявление не найдено'}), 404
 
     if int(product.owner_id) != int(current_user_id):
-        return jsonify({'error': 'Not authorized to reserve this product'}), 403
+        return jsonify({'error': 'Вы не являетесь владельцем этого объявления'}), 403
 
     product.is_active = False
     product.status = 'sold'
 
     db.session.commit()
 
-    return jsonify({'message': 'Product sold'}), 200
+    return jsonify({'message': 'Объявление продано'}), 200

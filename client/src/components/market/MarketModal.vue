@@ -8,11 +8,19 @@
                 </button>
             </div>
             <div class="modal-body">
-                <!-- Используем enctype="multipart/form-data" -->
+                <!-- Индикатор сжатия -->
+                <div v-if="isCompressing" class="compression-overlay">
+                    <div class="compression-content">
+                        <div class="compression-spinner"></div>
+                        <p>Сжатие изображений... {{ compressionProgress }}%</p>
+                        <p class="compression-info">Обработано: {{ compressedCount }}/{{ totalFiles }}</p>
+                    </div>
+                </div>
+
                 <form @submit.prevent="handleSubmit" id="adForm">
                     <div class="form-group">
                         <label>Заголовок объявления *</label>
-                        <input type="text" v-model="formData.title" placeholder="Например: Шлем AGV K6, размер L" required>
+                        <input type="text" v-model="formData.title" placeholder="Например: Шлем AGV K6, размер L" maxlength="255" required>
                     </div>
                     
                     <div class="form-row">
@@ -31,30 +39,30 @@
                         </div>
                         <div class="form-group">
                             <label>Цена (₽) *</label>
-                            <input type="number" v-model="formData.price" placeholder="25000" required min="0">
+                            <input type="number" v-model="formData.price" placeholder="25000" required min="0" max="5000000">
                         </div>
                     </div>
                     
                     <div class="form-group">
                         <label>Описание *</label>
-                        <textarea v-model="formData.description" placeholder="Подробное описание товара..." rows="4" required></textarea>
+                        <textarea v-model="formData.description" placeholder="Подробное описание товара..." rows="4" maxlength="3000" required></textarea>
                     </div>
                     
                     <div class="form-row">
                         <div class="form-group">
                             <label>Город *</label>
-                            <input type="text" v-model="formData.city" placeholder="Москва" required>
+                            <input type="text" v-model="formData.city" placeholder="Москва" maxlength="32" required>
                         </div>
                         <div class="form-group">
                             <label>Телефон для связи *</label>
-                            <input type="tel" v-model="formData.phone" placeholder="+7 (XXX) XXX-XX-XX" required pattern="^\+7\s?[0-9]{3}\s?[0-9]{3}\s?[0-9]{2}\s?[0-9]{2}$">
+                            <input type="tel" v-model="formData.phone" placeholder="+7 (XXX) XXX-XX-XX" required>
                         </div>
                     </div>
                     
                     <div class="form-group">
                         <label>Изображения (до 5 шт.)</label>
                         <div class="image-upload">
-                            <div class="upload-area" @click="triggerFileInput" @dragover.prevent @drop.prevent="handleDrop">
+                            <div class="upload-area" @click="triggerFileInput" @dragover.prevent @drop.prevent="handleDrop" :class="{ 'drag-over': isDragOver }" @dragenter="isDragOver = true" @dragleave="isDragOver = false">
                                 <i class="fas fa-cloud-upload-alt"></i>
                                 <p>Нажмите для загрузки или перетащите изображения сюда</p>
                                 <p class="upload-hint">Поддерживаются: JPG, PNG, GIF, WebP (макс. 5 файлов)</p>
@@ -64,17 +72,20 @@
                                 ref="fileInput" 
                                 @change="handleImageUpload" 
                                 multiple 
-                                accept="image/*" 
+                                accept="image/jpeg,image/png,image/gif,image/webp" 
                                 style="display: none;"
                             >
                             
-                            <!-- Preview загруженных файлов -->
                             <div class="image-preview" v-if="uploadedFiles.length > 0">
                                 <div class="preview-item" v-for="(file, index) in uploadedFiles" :key="index">
                                     <img :src="getPreviewUrl(file)" :alt="`Preview ${index + 1}`">
                                     <div class="preview-info">
-                                        <span>{{ file.name }}</span>
-                                        <span>{{ formatFileSize(file.size) }}</span>
+                                        <span class="file-name">{{ file.name }}</span>
+                                        <div class="file-sizes">
+                                            <span v-if="file.originalSize" class="savings">
+                                                ({{ calculateSavings(file.originalSize, file.size) }})
+                                            </span>
+                                        </div>
                                     </div>
                                     <button type="button" class="remove-image" @click="removeImage(index)">
                                         <i class="fas fa-times"></i>
@@ -82,7 +93,6 @@
                                 </div>
                             </div>
                             
-                            <!-- Информация о загрузке -->
                             <div class="upload-info" v-if="uploadedFiles.length > 0">
                                 <p>Загружено файлов: {{ uploadedFiles.length }}/5</p>
                                 <p class="file-size-info">Общий размер: {{ formatFileSize(totalFileSize) }}</p>
@@ -94,7 +104,7 @@
                         <button type="button" class="btn btn-outline" @click="closeModal">
                             Отмена
                         </button>
-                        <button type="submit" class="btn btn-primary" :disabled="isSubmitting">
+                        <button type="submit" class="btn btn-primary" :disabled="isSubmitting || isCompressing">
                             <i class="fas fa-paper-plane"></i> 
                             {{ isSubmitting ? 'Публикация...' : 'Опубликовать' }}
                         </button>
@@ -107,204 +117,250 @@
 </template>
 
 <script>
-    export default {
-        props: {
-            showModal: Boolean,
+import imageCompression from 'browser-image-compression';
+
+export default {
+    props: {
+        showModal: Boolean,
+    },
+    data() {
+        return {
+            formData: {
+                title: '',
+                category: '',
+                price: '',
+                description: '',
+                city: '',
+                phone: ''
+            },
+            uploadedFiles: [],
+            isSubmitting: false,
+            isCompressing: false,
+            compressionProgress: 0,
+            compressedCount: 0,
+            totalFiles: 0,
+            isDragOver: false,
+            errors: []
+        }
+    },
+    computed: {
+        totalFileSize() {
+            return this.uploadedFiles.reduce((total, file) => total + file.size, 0)
         },
-        data() {
-            return {
-                formData: {
-                    title: '',
-                    category: '',
-                    price: '',
-                    description: '',
-                    city: '',
-                    phone: ''
-                },
-                uploadedFiles: [],
-                isSubmitting: false,
-                errors: []
+        totalOriginalSize() {
+            return this.uploadedFiles.reduce((total, file) => total + (file.originalSize || file.size), 0)
+        }
+    },
+    methods: {
+        triggerFileInput() {
+            this.$refs.fileInput.click()
+        },
+        
+        async handleImageUpload(event) {
+            const files = Array.from(event.target.files)
+            await this.addFiles(files)
+            event.target.value = ''
+        },
+        
+        async handleDrop(event) {
+            this.isDragOver = false
+            const files = Array.from(event.dataTransfer.files)
+            await this.addFiles(files)
+        },
+        
+        async addFiles(files) {
+            const remainingSlots = 5 - this.uploadedFiles.length
+            const filesToAdd = files.slice(0, remainingSlots)
+            
+            if (filesToAdd.length < files.length) {
+                alert(`Можно загрузить максимум 5 файлов. Загружено ${filesToAdd.length} из ${files.length}`)
             }
-        },
-        computed: {
-            totalFileSize() {
-                return this.uploadedFiles.reduce((total, file) => total + file.size, 0)
-            }
-        },
-        methods: {
-            triggerFileInput() {
-                this.$refs.fileInput.click()
-            },
             
-            handleImageUpload(event) {
-                const files = Array.from(event.target.files)
-                this.addFiles(files)
-                event.target.value = ''
-            },
+            if (filesToAdd.length === 0) return
             
-            handleDrop(event) {
-                const files = Array.from(event.dataTransfer.files)
-                this.addFiles(files)
-            },
+            this.isCompressing = true
+            this.totalFiles = filesToAdd.length
+            this.compressedCount = 0
+            this.compressionProgress = 0
             
-            addFiles(files) {
-                const remainingSlots = 5 - this.uploadedFiles.length
-                const filesToAdd = files.slice(0, remainingSlots)
-                
-                if (filesToAdd.length < files.length) {
-                    alert(`Можно загрузить максимум 5 файлов. Загружено ${filesToAdd.length} из ${files.length}`)
+            for (const file of filesToAdd) {
+                if (!file.type.startsWith('image/')) {
+                    alert(`Файл "${file.name}" не является изображением`)
+                    this.compressedCount++
+                    continue
                 }
-                
-                filesToAdd.forEach(file => {
-                    if (!file.type.startsWith('image/')) {
-                        alert(`Файл "${file.name}" не является изображением`)
-                        return
-                    }
-                    
-                    const maxSize = 5 * 1024 * 1024 // 5MB
-                    if (file.size > maxSize) {
-                        alert(`Файл "${file.name}" слишком большой. Максимальный размер: 5MB`)
-                        return
-                    }
-                    
-                    if (this.totalFileSize + file.size > 25 * 1024 * 1024) { // 25MB
-                        alert(`Общий размер файлов не должен превышать 25MB`)
-                        return
-                    }
-                    
-                    this.uploadedFiles.push(file)
-                })
-            },
-            
-            getPreviewUrl(file) {
-                return URL.createObjectURL(file)
-            },
-            
-            formatFileSize(bytes) {
-                if (bytes === 0) return '0 Bytes'
-                const k = 1024
-                const sizes = ['Bytes', 'KB', 'MB', 'GB']
-                const i = Math.floor(Math.log(bytes) / Math.log(k))
-                return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
-            },
-            
-            removeImage(index) {
-                if (this.uploadedFiles[index]) {
-                    URL.revokeObjectURL(this.getPreviewUrl(this.uploadedFiles[index]))
-                }
-                this.uploadedFiles.splice(index, 1)
-            },
-            
-            validateForm() {
-                this.errors = []
-                
-                const requiredFields = ['title', 'category', 'price', 'description', 'city', 'phone']
-                requiredFields.forEach(field => {
-                    if (!this.formData[field] || this.formData[field].toString().trim() === '') {
-                        this.errors.push(`Поле "${this.getFieldLabel(field)}" обязательно для заполнения`)
-                    }
-                })
-                
-                if (this.formData.price && (isNaN(this.formData.price) || this.formData.price < 0)) {
-                    this.errors.push('Цена должна быть положительным числом')
-                }
-                
-                const phoneRegex = /^\+7\s?[0-9]{3}\s?[0-9]{3}\s?[0-9]{2}\s?[0-9]{2}$/
-                if (this.formData.phone && !phoneRegex.test(this.formData.phone)) {
-                    this.errors.push('Введите корректный номер телефона в формате +7 XXX XXX XX XX')
-                }
-                
-                return this.errors.length === 0
-            },
-            
-            getFieldLabel(field) {
-                const labels = {
-                    title: 'Заголовок',
-                    category: 'Категория',
-                    price: 'Цена',
-                    description: 'Описание',
-                    city: 'Город',
-                    phone: 'Телефон'
-                }
-                return labels[field] || field
-            },
-            
-            async handleSubmit() {
-                if (!this.validateForm()) {
-                    alert('Пожалуйста, исправьте ошибки:\n' + this.errors.join('\n'))
-                    return
-                }
-                
-                this.isSubmitting = true
                 
                 try {
-                    const formData = new FormData()
-                    
-                    Object.keys(this.formData).forEach(key => {
-                        formData.append(key, this.formData[key])
-                    })
-                    
-                    this.uploadedFiles.forEach((file, index) => {
-                        formData.append('images', file)
-                    })
-                    
-                    const token = localStorage.getItem('authToken')
-                    const response = await fetch('/api/product/new', {
-                        method: 'POST',
-                        headers: {
-                            'Authorization': `Bearer ${token}`
+                    const options = {
+                        maxSizeMB: 5,
+                        maxWidthOrHeight: 1200,
+                        useWebWorker: true,
+                        onProgress: (progress) => {
+                            this.compressionProgress = Math.round(progress)
                         },
-                        body: formData
-                    })
-                    
-                    const result = await response.json()
-                    
-                    if (response.ok) {
-                        alert('Объявление успешно размещено!')
-                        this.$emit('submit-success', result)
-                        this.resetForm()
-                        this.$emit('close')
-                    } else {
-                        throw new Error(result.error || 'Ошибка при размещении объявления')
+                        fileType: file.type,
+                        initialQuality: 0.85
                     }
+                    
+                    const originalSize = file.size
+                    
+                    const compressedFile = await imageCompression(file, options)
+                    
+                    compressedFile.originalSize = originalSize
+                    
+                    const preview = await imageCompression.getDataUrlFromFile(compressedFile)
+                    compressedFile.preview = preview
+                    
+                    this.uploadedFiles.push(compressedFile)
+                    
                 } catch (error) {
-                    console.error('Ошибка:', error)
-                    alert(`Ошибка: ${error.message}`)
-                } finally {
-                    this.isSubmitting = false
+                    console.error('Ошибка при сжатии:', error)
+                    file.preview = await imageCompression.getDataUrlFromFile(file)
+                    file.originalSize = file.size
+                    this.uploadedFiles.push(file)
                 }
-            },
+                
+                this.compressedCount++
+                this.compressionProgress = Math.round((this.compressedCount / this.totalFiles) * 100)
+            }
             
-            resetForm() {
-                this.formData = {
-                    title: '',
-                    category: '',
-                    price: '',
-                    description: '',
-                    city: '',
-                    phone: ''
-                }
-                this.uploadedFiles.forEach(file => {
-                    URL.revokeObjectURL(this.getPreviewUrl(file))
-                })
-                this.uploadedFiles = []
-                this.errors = []
-            },
-            
-            closeModal() {
-                this.resetForm()
-                this.$emit('close')
+            this.isCompressing = false
+            this.compressionProgress = 0
+        },
+        
+        getPreviewUrl(file) {
+            return file.preview || URL.createObjectURL(file)
+        },
+        
+        formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes'
+            const k = 1024
+            const sizes = ['Bytes', 'KB', 'MB']
+            const i = Math.floor(Math.log(bytes) / Math.log(k))
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
+        },
+        
+        calculateSavings(original, compressed) {
+            const savings = ((original - compressed) / original * 100).toFixed(1)
+            return `-${savings}%`
+        },
+        
+        removeImage(index) {
+            if (this.uploadedFiles[index]) {
+                URL.revokeObjectURL(this.uploadedFiles[index].preview)
+                this.uploadedFiles.splice(index, 1)
             }
         },
         
-        beforeUnmount() {
-            this.uploadedFiles.forEach(file => {
-                URL.revokeObjectURL(this.getPreviewUrl(file))
+        validateForm() {
+            this.errors = []
+            
+            const requiredFields = ['title', 'category', 'price', 'description', 'city', 'phone']
+            requiredFields.forEach(field => {
+                if (!this.formData[field] || this.formData[field].toString().trim() === '') {
+                    this.errors.push(`Поле "${this.getFieldLabel(field)}" обязательно для заполнения`)
+                }
             })
+            
+            if (this.formData.price && (isNaN(this.formData.price) || this.formData.price < 0)) {
+                this.errors.push('Цена должна быть положительным числом')
+            }
+            
+            return this.errors.length === 0
         },
+        
+        getFieldLabel(field) {
+            const labels = {
+                title: 'Заголовок',
+                category: 'Категория',
+                price: 'Цена',
+                description: 'Описание',
+                city: 'Город',
+                phone: 'Телефон'
+            }
+            return labels[field] || field
+        },
+        
+        async handleSubmit() {
+            if (!this.validateForm()) {
+                alert('Пожалуйста, исправьте ошибки:\n' + this.errors.join('\n'))
+                return
+            }
+            
+            this.isSubmitting = true
+            
+            try {
+                const formData = new FormData()
+                
+                Object.keys(this.formData).forEach(key => {
+                    formData.append(key, this.formData[key])
+                })
+                
+                this.uploadedFiles.forEach(file => {
+                    formData.append('images', file)
+                })
+                
+                const token = localStorage.getItem('authToken')
+                const response = await fetch('/api/product/new', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: formData
+                })
+                
+                const result = await response.json()
+                
+                if (response.ok) {
+                    alert('Объявление успешно размещено!')
+                    this.$emit('submit-success', result)
+                    this.resetForm()
+                    this.$emit('close')
+                } else {
+                    throw new Error(result.error || 'Ошибка при размещении объявления')
+                }
+            } catch (error) {
+                console.error('Ошибка:', error)
+                alert(`Ошибка: ${error.message}`)
+            } finally {
+                this.isSubmitting = false
+            }
+        },
+        
+        resetForm() {
+            this.formData = {
+                title: '',
+                category: '',
+                price: '',
+                description: '',
+                city: '',
+                phone: ''
+            }
+            this.uploadedFiles.forEach(file => {
+                if (file.preview) {
+                    URL.revokeObjectURL(file.preview)
+                }
+            })
+            this.uploadedFiles = []
+            this.errors = []
+        },
+        
+        closeModal() {
+            this.resetForm()
+            this.$emit('close')
+        }
+    },
+    
+    beforeUnmount() {
+        this.uploadedFiles.forEach(file => {
+            if (file.preview) {
+                URL.revokeObjectURL(file.preview)
+            }
+        })
+    },
 
-        emits: ['close', 'submit-success'],
-    }
+    emits: ['close', 'submit-success'],
+}
 </script>
 
 <style scoped>
@@ -578,6 +634,94 @@
     .btn:disabled {
         opacity: 0.5;
         cursor: not-allowed;
+    }
+
+    .compression-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.9);
+        backdrop-filter: blur(5px);
+        z-index: 2100;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .compression-content {
+        background: var(--dark-light);
+        padding: 40px;
+        border-radius: 20px;
+        text-align: center;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .compression-spinner {
+        width: 60px;
+        height: 60px;
+        border: 4px solid rgba(255, 255, 255, 0.1);
+        border-top: 4px solid var(--primary);
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin: 0 auto 20px;
+    }
+
+    .compression-info {
+        color: var(--text-secondary);
+        font-size: 0.9rem;
+        margin-top: 10px;
+    }
+
+    .file-sizes {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        font-size: 0.75rem;
+        flex-wrap: wrap;
+    }
+
+    .original-size {
+        color: #ff6b6b;
+        text-decoration: line-through;
+    }
+
+    .arrow {
+        color: var(--text-secondary);
+    }
+
+    .compressed-size {
+        color: #4caf50;
+        font-weight: bold;
+    }
+
+    .savings {
+        color: #4caf50;
+        font-size: 0.7rem;
+    }
+
+    .file-name {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 100px;
+    }
+
+    .upload-area.drag-over {
+        border-color: var(--primary);
+        background: rgba(255, 69, 0, 0.1);
+        border-style: solid;
+    }
+
+    .upload-info .savings {
+        color: #4caf50;
+        font-weight: bold;
+    }
+
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
     }
 
     /* Drag and drop стили */

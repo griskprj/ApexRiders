@@ -86,50 +86,6 @@
                 
                 <!-- Правая колонка - Настройки и действия -->
                 <div class="profile-main">
-                    <!-- Мои мотоциклы -->
-                    <div class="section-card">
-                        <div class="section-header">
-                            <h3><i class="fas fa-motorcycle"></i> Мои мотоциклы</h3>
-                            <button class="btn btn-outline btn-sm" @click="showAddMotorcycleModal = true">
-                                <i class="fas fa-plus"></i> Добавить
-                            </button>
-                        </div>
-                        
-                        <div v-if="motorcycles.length === 0" class="empty-state">
-                            <i class="fas fa-motorcycle"></i>
-                            <p>У вас пока нет добавленных мотоциклов</p>
-                            <button class="btn btn-primary" @click="showAddMotorcycleModal = true">
-                                Добавить первый мотоцикл
-                            </button>
-                        </div>
-                        
-                        <div v-else class="motorcycles-list">
-                            <div v-for="moto in motorcycles" :key="moto.id" class="motorcycle-item">
-                                <div class="moto-info">
-                                    <div class="moto-brand">{{ moto.brand }}</div>
-                                    <div class="moto-model">{{ moto.model }}</div>
-                                    <div class="moto-details">
-                                        <span class="moto-year">{{ moto.year }} год</span>
-                                        <span class="moto-engine">{{ moto.engine_volume }}cc</span>
-                                        <span class="moto-color">{{ moto.color }}</span>
-                                    </div>
-                                    <div class="moto-plate">{{ moto.license_plate }}</div>
-                                </div>
-                                <div class="moto-actions">
-                                    <button class="btn-icon" @click="editMotorcycle(moto)">
-                                        <i class="fas fa-edit"></i>
-                                    </button>
-                                    <button class="btn-icon btn-danger" @click="deleteMotorcycle(moto.id)">
-                                        <i class="fas fa-trash"></i>
-                                    </button>
-                                    <button class="btn btn-primary" @click="goToGarage(moto.id)">
-                                        <i class="fas fa-search"></i> Гараж
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    
                     <!-- Настройки аккаунта -->
                     <div class="section-card">
                         <div class="section-header">
@@ -242,115 +198,6 @@
             </div>
         </div>
         
-        <!-- Модальное окно добавления/редактирования мотоцикла -->
-        <div v-if="showAddMotorcycleModal" class="modal-overlay" @click.self="showAddMotorcycleModal = false">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h3>{{ editingMotorcycle ? 'Редактировать мотоцикл' : 'Добавить мотоцикл' }}</h3>
-                    <button class="modal-close" @click="closeMotorcycleModal">
-                        <i class="fas fa-times"></i>
-                    </button>
-                </div>
-                
-                <form @submit.prevent="saveMotorcycle" class="modal-form">
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="brand">Марка *</label>
-                            <input
-                                type="text"
-                                id="brand"
-                                v-model="motorcycleForm.brand"
-                                required
-                            >
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="model">Модель *</label>
-                            <input
-                                type="text"
-                                id="model"
-                                v-model="motorcycleForm.model"
-                                required
-                            >
-                        </div>
-                    </div>
-                    
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="year">Год выпуска</label>
-                            <input
-                                type="number"
-                                id="year"
-                                v-model="motorcycleForm.year"
-                                min="1900"
-                                :max="new Date().getFullYear()"
-                            >
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="engineVolume">Объем двигателя (cc)</label>
-                            <input
-                                type="number"
-                                id="engineVolume"
-                                v-model="motorcycleForm.engine_volume"
-                                min="50"
-                                max="3000"
-                            >
-                        </div>
-                    </div>
-                    
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="color">Цвет</label>
-                            <input
-                                type="text"
-                                id="color"
-                                v-model="motorcycleForm.color"
-                            >
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="licensePlate">Госномер</label>
-                            <input
-                                type="text"
-                                id="licensePlate"
-                                v-model="motorcycleForm.license_plate"
-                            >
-                        </div>
-
-                        <div class="form-group">
-                            <label for="licensePlate">VIN-номер</label>
-                            <input
-                                type="text"
-                                id="vin"
-                                v-model="motorcycleForm.vin"
-                            >
-                        </div>
-
-                        <div class="form-group">
-                            <label for="licensePlate">Страховака до</label>
-                            <input
-                                type="date"
-                                id="insurance_expiry"
-                                v-model="motorcycleForm.insurance_expiry"
-                            >
-                        </div>
-                    </div>
-                    
-                    <div class="modal-actions">
-                        <button type="button" class="btn btn-outline" @click="closeMotorcycleModal">
-                            Отмена
-                        </button>
-                        <button type="submit" class="btn btn-primary" :disabled="isSavingMotorcycle">
-                            <span v-if="isSavingMotorcycle">
-                                <i class="fas fa-spinner fa-spin"></i> Сохранение...
-                            </span>
-                            <span v-else>{{ editingMotorcycle ? 'Сохранить' : 'Добавить' }}</span>
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
         <div v-if="showDeleteAccountModal" class="modal-overlay" @click.self="showDeleteAccountModal = false">
             <div class="modal-content delete-account-modal">
                 <div class="modal-header">
@@ -425,29 +272,15 @@ import { useRouter } from 'vue-router'
 const router = useRouter()
 
 const user = ref({})
-const motorcycles = ref([])
 const stats = ref({})
 const isLoading = ref(true)
 
-const showAddMotorcycleModal = ref(false)
-const editingMotorcycle = ref(null)
-const isSavingMotorcycle = ref(false)
 const isUpdating = ref(false)
 const isChangingPassword = ref(false)
 
 const showDeleteAccountModal = ref(false)
 const isDeletingAccount = ref(false)
 const deleteConfirmationText = ref('')
-
-const motorcycleForm = reactive({
-    brand: '',
-    model: '',
-    engine_volume: null,
-    color: '',
-    license_plate: '',
-    vin: '',
-    insurance_expiry: ''
-})
 
 const editForm = reactive({
     username: '',
@@ -483,12 +316,6 @@ const fetchProfileData = async () => {
         })
 
         user.value = profileResponse.data
-
-        const motorcycleResponse = await axios.get('/api/motorcycle', {
-            headers: { 'Authorization': `Bearer ${token}` }
-        })
-
-        motorcycles.value = motorcycleResponse.data?.motorcycles || motorcycleResponse.data || []
 
         const statsResponse = await axios.get('/api/statistic/dashboard', {
             headers: { 'Authorization': `Bearer ${token}` }
@@ -591,89 +418,6 @@ const deleteAccount = async () => {
         alert(error.response?.data?.error || 'Ошибка при удалении аккаунта')
         isDeletingAccount.value = false
     }
-}
-
-const closeDeleteModal = () => {
-    showDeleteAccountModal.value = false
-    deleteConfirmationText.value = ''
-}
-
-const editMotorcycle = (moto) => {
-    editingMotorcycle.value = moto
-    Object.assign(motorcycleForm, moto)
-    showAddMotorcycleModal.value = true
-}
-
-const saveMotorcycle = async () => {
-    try {
-        isSavingMotorcycle.value = true
-
-        const token = authService.getToken()
-        let response
-
-        if (editingMotorcycle.value) {
-            response = await axios.put(`/api/motorcycle/${editingMotorcycle.value.id}`, motorcycleForm,{
-                headers: { 'Authorization': `Bearer ${token}` }
-            })
-
-            const index = motorcycles.value.findIndex(m => m.id === editingMotorcycle.value.id)
-            if (index !== -1) {
-                motorcycles.value[index] = response.data
-            }
-        } else {
-            response = await axios.post('/api/motorcycle', motorcycleForm, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            })
-
-            const newMotorcycle = response.data?.motorcycle || response.data
-            if (newMotorcycle) {
-                motorcycles.value.push(newMotorcycle)
-            }
-        }
-
-        closeMotorcycleModal()
-        alert('Мотоцикл успешно сохранен!')
-    } catch (error) {
-        console.error('Ошибка при сохранении мотоцикла: ', error)
-        alert(error.response?.data?.error || 'Ошибка при сохранении мотоцикла')
-    } finally {
-        isSavingMotorcycle.value = false
-    }
-}
-
-const deleteMotorcycle = async (id) => {
-    if (!confirm('Вы уверены, что хотите удалить этот мотоцикл?')) {
-        return
-    }
-
-    try {
-        const token = authService.getToken()
-        await axios.delete(`/api/motorcycle/${id}`, {
-            headers: { 'Authorization': `Bearer ${token}` }
-        })
-
-        motorcycles.value = motorcycles.value.filter(m => m.id !== id)
-        alert('Мотоцикл успешно удален!')
-    } catch (error) {
-        console.error('Ошибка при удалении мотоцикла:', error)
-        alert(error.response?.data?.error || 'Ошибка при удалении мотоцикла')
-    }
-}
-
-const closeMotorcycleModal = () => {
-    showAddMotorcycleModal.value = false
-    editingMotorcycle.value = null
-    Object.keys(motorcycleForm).forEach(key => {
-        if (typeof motorcycleForm[key] === 'number') {
-            motorcycleForm[key] = null
-        } else {
-            motorcycleForm[key] = ''
-        }
-    })
-}
-
-const goToGarage = (id) => {
-    router.push(`/garage/${id}`)
 }
 
 onMounted(() => {
