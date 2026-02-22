@@ -1,132 +1,77 @@
 <template>
     <div v-if="isOpen" class="modal-overlay" @click.self="closeTaskModal">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h3>Новая задача ТО</h3>
-          <BaseButton
-            variant="outline"
-            @click="handleClose"
-          >
-            <i class="fas fa-times"></i>
-          </BaseButton>
-        </div>
-        <form @submit.prevent="handleSubmit" class="modal-form">
-        <div class="form-row">
-            <label>Мотоцикл</label>
-            <select v-model="form.motorcycle_id" class="form-input" required>
-            <option v-for="bike in motorcycles" :key="bike.id" :value="bike.id">
-                {{ bike.brand }} {{ bike.model }}
-            </option>
-            </select>
-        </div>
-        <div class="form-row">
-            <BaseInput
-                id="title"
-                type="text"
-                label="Название задачи *"
-                v-model="form.title"
-                max="128"
-                required
-            />
-        </div>
-        <div class="form-row">
-            <label>Описание</label>
-            <textarea 
-            class="form-input" 
-            v-model="form.description" 
-            rows="3"
-            ></textarea>
-        </div>
-        <div class="form-row">
-            <div class="form-row">
-            <BaseInput
-                id="last_maintenance_date"
-                type="date"
-                label="Дата последнего ТО"
-                v-model="form.last_maintenance_date"
-            />
-        </div>
-        <div class="form-row">
-            <BaseInput
-                id="last_maintenance_mileage"
-                type="number"
-                label="Пробег при последнем ТО"
-                v-model="form.last_maintenance_mileage"
-            />
-        </div>
-        </div>
-        <div class="form-row">
-            <label>Тип расписания</label>
-            <div class="radio-group">
-            <label class="radio-label">
-                <input type="radio" value="mileage" v-model="form.schedule_type"/>
-                <span class="radio-custom"></span> По пробегу
-            </label>
-            <label class="radio-label">
-                <input type="radio" value="time" v-model="form.schedule_type" />
-                <span class="radio-custom"></span> По времени
-            </label>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Новая задача ТО</h3>
+                <BaseButton
+                    variant="outline"
+                    @click="handleClose"
+                >
+                    <i class="fas fa-times"></i>
+                </BaseButton>
             </div>
+            
+            <form @submit.prevent="handleSubmit" class="modal-form">
+                <div class="form-row">
+                    <BasicSelect
+                        label="Мотоцикл"
+                        :items="motorcycles"
+                        @changeOption="handleOptionHandler"
+                    />
+                    
+                    <BaseInput
+                        id="title"
+                        type="text"
+                        label="Название задачи *"
+                        v-model="form.title"
+                        max="128"
+                        required
+                    />
+                </div>
+
+                <div class="form-row">
+                    <BaseTextarea
+                        label="Описание задачи"
+                        resize="none"
+                        @change="handleDescChange"
+                    />
+                    <BaseTextarea
+                        label="Заметки"
+                        resize="none"
+                        @change="handleNoteChange"
+                    />
+                </div>
+
+                <div class="form-row">
+                    <BaseInput
+                        id="last_maintenance_date"
+                        type="date"
+                        label="Дата последнего ТО"
+                        v-model="form.last_maintenance_date"
+                    />
+
+                    <BaseInput
+                        id="last_maintenance_mileage"
+                        type="number"
+                        label="Пробег при последнем ТО"
+                        v-model="form.last_maintenance_mileage"
+                    />
+                </div>
+
+                <div class="form-row">
+                    <BaseRadioButton
+                        label="По пробегу"
+                        option="mileage"
+                        @change="handleRadioChange"
+                    />
+                    <BaseRadioButton
+                        label="По времени"
+                        option="time"
+                        @change="handleRadioChange"
+                    />
+                </div>
+            </form>
         </div>
-        <div v-if="form.schedule_type === 'mileage'" class="form-row">
-            <BaseInput
-                id="interval_value"
-                type="number"
-                label="Интервал (км)"
-                v-model="form.interval_value"
-            />
-        </div>
-        <div v-else class="form-row">
-            <div class="form-row">
-            <BaseInput
-                id="interval_value"
-                type="number"
-                label="Интервал"
-                v-model="form.interval_value"
-            />
-            </div>
-            <div class="form-row">
-            <label>Единица</label>
-            <select v-model="form.interval_unit" class="form-input">
-                <option value="months">Месяцев</option>
-                <option value="days">Дней</option>
-            </select>
-            </div>
-        </div>
-        <div class="form-row">
-            <label>Приоритет</label>
-            <select v-model="form.priority" class="form-input">
-            <option value="low">Низкий</option>
-            <option value="medium">Средний</option>
-            <option value="high">Высокий</option>
-            </select>
-        </div>
-        <div class="form-row">
-            <label class="checkbox-label">
-            <input type="checkbox" v-model="form.is_recurring" />
-            <span class="checkbox-custom"></span> Повторяющаяся задача
-            </label>
-        </div>
-        </form>
-        <div class="modal-actions">
-            <BaseButton
-                type="button"
-                variant="outline"
-                @click="handleClose"
-                :disabled="isCreating"
-            >
-                Отмена
-            </BaseButton>
-            <BaseButton
-                type="submit"
-                variant="primary"
-                :loading="isCreating"
-                @click="handleSubmit"
-            >
-                Создать задачу
-            </BaseButton>
-        </div>
-      </div>
     </div>
 </template>
 
@@ -135,13 +80,19 @@ import axios from 'axios';
 import { authService } from '../../utils/checkAuth';
 import BaseButton from '../ui/BaseButton.vue';
 import BaseInput from '../ui/BaseInput.vue';
+import BasicSelect from '../ui/BasicSelect.vue';
+import BaseTextarea from '../ui/BaseTextarea.vue';
+import BaseRadioButton from '../ui/BaseRadioButton.vue';
 
 export default {
     name: 'AddTaskModal',
 
     components: {
         BaseButton,
-        BaseInput
+        BaseInput,
+        BasicSelect,
+        BaseTextarea,
+        BaseRadioButton
     },
 
     props: {
@@ -170,6 +121,7 @@ export default {
                 interval_value: null,
                 interval_unit: '',
                 priority: '',
+                notes: '',
                 is_recurring: true
             }
         }
@@ -179,6 +131,22 @@ export default {
         handleClose() {
             this.resetForm()
             this.$emit('close')
+        },
+
+        handleOptionHandler(item_id) {
+            this.form.motorcycle_id = item_id
+        },
+
+        handleDescChange(content) {
+            this.form.description = content
+        },
+
+        handleNoteChange(content) {
+            this.form.notes = content
+        },
+
+        handleRadioChange(option) {
+            this.form.schedule_type = option
         },
 
         resetForm() {
@@ -192,6 +160,7 @@ export default {
                 interval_value: null,
                 interval_unit: '',
                 priority: '',
+                notes: '',
                 is_recurring: true
             }
         },

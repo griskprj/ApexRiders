@@ -33,6 +33,7 @@
     <MotorcyclesList
       :isLoading="this.isLoading"
       :motorcycles="this.motorcycles"
+      @add-motorcycle="openAddMotoModal"
       @edit-motorcycle="handleEditMotorcycle"
       @delete-motorcycle="handleDeleteMotorcycle"
     />

@@ -9,9 +9,12 @@
       <div v-else-if="motorcycles.length === 0" class="empty-state">
         <i class="fas fa-motorcycle"></i>
         <p>У вас пока нет мотоциклов</p>
-        <router-link to="/garage/add" class="btn btn-primary">
+        <BaseButton
+          variant="primary"
+          @click="openAddMotoModal"
+        >
           Добавить первый мотоцикл
-        </router-link>
+        </BaseButton>
       </div>
       <div v-else class="motorcycles-grid">
         <div
@@ -84,11 +87,15 @@ export default {
         motorcycles: Array,
     },
 
-    emits: ['edit-motorcycle', 'delete-motorcycle'],
+    emits: ['add-motorcycle', 'edit-motorcycle', 'delete-motorcycle'],
 
     methods: {
         goToGarage(bikeId) {
             this.$router.push(`/garage/${bikeId}`)
+        },
+
+        openAddMotoModal() {
+          this.$emit('add-motorcycle')
         },
 
         openEditMotoModal(bike) {
@@ -128,6 +135,27 @@ export default {
 </script>
 
 <style scoped>
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--text-secondary);
+  background: rgba(10, 10, 15, 0.5);
+  backdrop-filter: blur(10px);
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.empty-state i {
+  font-size: 4rem;
+  margin-bottom: 20px;
+  opacity: 0.5;
+}
+
+.empty-state p {
+  margin-bottom: 20px;
+  font-size: 1.2rem;
+}
+
 .section-title {
   font-size: 1.8rem;
   margin-bottom: 25px;
