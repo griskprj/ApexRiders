@@ -261,117 +261,13 @@
             </div>
 
             <!-- Модальное окно добавления ТО -->
-            <div v-if="showAddMaintenanceModal" class="modal-overlay">
-                <div class="modal">
-                    <div class="modal-header">
-                        <h3><i class="fas fa-tools"></i> Добавить задачу ТО</h3>
-                        <button class="close-btn" @click="showAddMaintenanceModal = false">&times;</button>
-                    </div>
-                    <div class="modal-body">
-                        <div class="form-group">
-                            <label><i class="fas fa-heading"></i> Название задачи *</label>
-                            <div class="input-with-icon">
-                                <i class="fas fa-heading"></i>
-                                <input v-model="newMaintenance.title" class="form-input" placeholder="Например: Замена масла">
-                            </div>
-                        </div>
-
-                        <div class="form-group">
-                            <label><i class="fas fa-align-left"></i> Описание</label>
-                            <textarea v-model="newMaintenance.description" class="form-input" rows="3" placeholder="Детали задачи..."></textarea>
-                        </div>
-
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label><i class="fas fa-calendar-alt"></i> Дата последнего ТО</label>
-                                <div class="input-with-icon">
-                                    <i class="fas fa-calendar-alt"></i>
-                                    <input type="date" v-model="newMaintenance.last_maintenance_date" class="form-input">
-                                </div>
-                            </div>
-                            <div class="form-group">
-                                <label><i class="fas fa-tachometer-alt"></i> Пробег на последнем ТО</label>
-                                <div class="input-with-icon">
-                                    <i class="fas fa-tachometer-alt"></i>
-                                    <input type="number" v-model="newMaintenance.last_maintenance_mileage" class="form-input" placeholder="км">
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="form-group">
-                            <label><i class="fas fa-clock"></i> Тип расписания *</label>
-                            <div class="radio-group">
-                                <label class="radio-label">
-                                    <input type="radio" v-model="newMaintenance.schedule_type" value="mileage">
-                                    <span class="radio-custom"></span>
-                                    По пробегу
-                                </label>
-                                <label class="radio-label">
-                                    <input type="radio" v-model="newMaintenance.schedule_type" value="time">
-                                    <span class="radio-custom"></span>
-                                    По времени
-                                </label>
-                            </div>
-                        </div>
-
-                        <div v-if="newMaintenance.schedule_type === 'mileage'" class="form-group">
-                            <label><i class="fas fa-road"></i> Интервал (км) *</label>
-                            <div class="input-with-icon">
-                                <i class="fas fa-road"></i>
-                                <input type="number" v-model="newMaintenance.interval_value" class="form-input" placeholder="Например: 5000">
-                            </div>
-                        </div>
-
-                        <div v-if="newMaintenance.schedule_type === 'time'" class="form-row">
-                            <div class="form-group">
-                                <label><i class="fas fa-clock"></i> Интервал *</label>
-                                <div class="input-with-icon">
-                                    <i class="fas fa-clock"></i>
-                                    <input type="number" v-model="newMaintenance.interval_value" class="form-input" placeholder="Например: 6">
-                                </div>
-                            </div>
-                            <div class="form-group">
-                                <label><i class="fas fa-calendar"></i> Единица измерения</label>
-                                <select v-model="newMaintenance.interval_unit" class="form-input">
-                                    <option value="months">Месяцев</option>
-                                    <option value="days">Дней</option>
-                                </select>
-                            </div>
-                        </div>
-
-                        <div class="form-group">
-                            <label><i class="fas fa-exclamation-triangle"></i> Приоритет</label>
-                            <select v-model="newMaintenance.priority" class="form-input">
-                                <option value="low">Низкий</option>
-                                <option value="medium" selected>Средний</option>
-                                <option value="high">Высокий</option>
-                            </select>
-                        </div>
-
-                        <div class="form-group">
-                            <label><i class="fas fa-redo"></i> Повторяющаяся задача</label>
-                            <div class="checkbox-group">
-                                <label class="checkbox-label">
-                                    <input type="checkbox" v-model="newMaintenance.is_recurring">
-                                    <span class="checkbox-custom"></span>
-                                    Это повторяющаяся задача
-                                </label>
-                            </div>
-                        </div>
-
-                        <div class="form-group">
-                            <label><i class="fas fa-sticky-note"></i> Дополнительные заметки</label>
-                            <textarea v-model="newMaintenance.notes" class="form-input" rows="2" placeholder="Дополнительная информация..."></textarea>
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button class="btn btn-secondary" @click="showAddMaintenanceModal = false">Отмена</button>
-                        <button class="btn btn-primary" @click="addMaintenance" :disabled="!isMaintenanceFormValid">
-                            <i class="fas fa-save"></i> Сохранить
-                        </button>
-                    </div>
-                </div>
-            </div>
+            <AddTaskModal
+                :isOpen="showAddMaintenanceModal"
+                :motorcycleId="motorcycle.id"
+                :motorcycleName="`${motorcycle.brand} ${motorcycle.model}`"
+                @close="showAddMaintenanceModal = false"
+                @create="onTaskCreated"
+            />
         </div>
 
         <!-- Модальное окно изменения пробега -->
@@ -642,9 +538,15 @@
 
 <script>
 import axios from 'axios'
+import AddTaskModal from './AddTaskModal.vue';
+
 export default {
     name: 'GaragePage',
     
+    components: {
+        AddTaskModal
+    },
+
     data() {
         return {
             isLoading: true,
@@ -690,19 +592,6 @@ export default {
                 engine_volume: '',
                 color: '',
                 license_plate: ''
-            },
-            newMaintenance: {
-                title: '',
-                description: '',
-                schedule_type: 'mileage',
-                interval_value: null,
-                interval_unit: 'months',
-                last_maintenance_date: new Date().toISOString().split('T')[0],
-                last_maintenance_mileage: null,
-                priority: 'medium',
-                is_recurring: true,
-                notes: '',
-                motorcycle_id: null
             },
             historyForm: {
                 title: '',
@@ -774,7 +663,11 @@ export default {
     },
     
     methods: {
-        // Получить данные мотоцикла
+        onTaskCreated() {
+            this.showAddMaintenanceModal = false
+            this.fetchMotorcycleData()
+        },
+
         async fetchMotorcycleData() {
             try {
                 this.isLoading = true

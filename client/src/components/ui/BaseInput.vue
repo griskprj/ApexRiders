@@ -1,15 +1,32 @@
 <template>
-    <div class="form-group">
+    <div class="form-group" :class="withIcon ? 'input-with-icon' : ''">
         <label :for="id">{{ label }}</label>
-        <input
-            :id="id"
-            :type="type"
-            :value="modelValue"
-            @input="$emit('update:modelValue', $event.target.value)"
-            :required="required"
-            :min="min"
-            :max="max"
-        />
+        
+        <div v-if="withIcon" class="input-with-icon">
+            <i class="fas " :class="icon"></i>
+            <input
+                :id="id"
+                :type="type"
+                :value="modelValue"
+                @input="$emit('update:modelValue', $event.target.value)"
+                :required="required"
+                :min="min"
+                :max="max"
+                class="form-input"
+            />
+        </div>
+        <div v-if="!withIcon">
+            <input  
+                :id="id"
+                :type="type"
+                :value="modelValue"
+                @input="$emit('update:modelValue', $event.target.value)"
+                :required="required"
+                :min="min"
+                :max="max"
+                class="form-input"
+            />
+        </div>
     </div>
 </template>
 
@@ -17,7 +34,7 @@
 export default {
     name: 'BaseInput',
     props: {
-        modelValue: [String, Number],
+        modelValue: [String, Number, Boolean],
         type: {
             type: String,
             default: 'text'
@@ -41,39 +58,70 @@ export default {
         max: {
             type: Number,
             default: null
+        },
+        withIcon: {
+            type: Boolean,
+            default: false
+        },
+        icon: {
+            type: String,
+            default: ''
         }
     },
 
-    emits: ['update:modelValue']
+    emits: ['update:modelValue'],
+
+    computed: {
+        value: {
+            get() { return modelValue },
+            set(value) { this.$emit('update:modelValue', value) }
+        }
+    }
 }
 </script>
 
 <style scoped>
 .form-group {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
+    margin-bottom: 20px;
 }
 
 .form-group label {
-    color: var(--text);
+    display: block;
+    margin-bottom: 10px;
     font-weight: 500;
-    font-size: 0.95rem;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }
 
-.form-group input {
+.input-with-icon {
+    position: relative;
+}
+
+.input-with-icon i {
+    position: absolute;
+    left: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-secondary);
+    margin-right: 10px;
+}
+
+.form-input {
+    width: 100%;
+    padding: 14px 15px 14px 45px;
     background: rgba(0, 0, 0, 0.3);
     border: 1px solid rgba(255, 255, 255, 0.2);
     border-radius: 8px;
-    padding: 12px 15px;
     color: var(--text);
-    font-size: 1rem;
+    font-size: 1em;
     transition: all 0.3s ease;
 }
 
-.form-group input:focus {
+.form-input:focus {
     outline: none;
     border-color: var(--primary);
-    box-shadow: 0 0 0 2px rgba(255, 69, 0, 0.2);
+    box-shadow: 0 0 0 3px rgba(255, 69, 0, 0.2);
 }
 </style>

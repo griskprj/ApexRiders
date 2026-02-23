@@ -1,5 +1,5 @@
 <template>
-    <div v-if="isOpen" class="modal-overlay" @click.self="closeTaskModal">
+    <div v-if="isOpen" class="modal-overlay" @click.self="handleClose">
         <div class="modal-content">
             <div class="modal-header">
                 <h3>Новая задача ТО</h3>
@@ -14,10 +14,23 @@
             <form @submit.prevent="handleSubmit" class="modal-form">
                 <div class="form-row">
                     <BasicSelect
-                        label="Мотоцикл"
-                        :items="motorcycles"
-                        @changeOption="handleOptionHandler"
+                        v-if="showMotorcycleSelect"
+                        label="Мотоцикл *"
+                        :items="motoForSelect"
+                        withIcon="true"
+                        icon="fa-motorcycle"
+                        v-model="form.motorcycle_id"
                     />
+
+                    <div v-else class="selected-motorcycle-info">
+                        <div class="form-group">
+                            <label>Мотоцикл</label>
+                            <div class="motorcycle-badge">
+                                <i class="fas fa-motorcycle"></i>
+                                {{ motorcycleName }}
+                            </div>
+                        </div>
+                    </div>
                     
                     <BaseInput
                         id="title"
@@ -25,6 +38,8 @@
                         label="Название задачи *"
                         v-model="form.title"
                         max="128"
+                        :withIcon="true"
+                        icon="fa-align-left "
                         required
                     />
                 </div>
@@ -32,13 +47,13 @@
                 <div class="form-row">
                     <BaseTextarea
                         label="Описание задачи"
-                        resize="none"
-                        @change="handleDescChange"
+                        :resize="false"
+                        v-model="form.description"
                     />
                     <BaseTextarea
                         label="Заметки"
-                        resize="none"
-                        @change="handleNoteChange"
+                        :resize="false"
+                        v-model="form.notes"
                     />
                 </div>
 
@@ -47,28 +62,108 @@
                         id="last_maintenance_date"
                         type="date"
                         label="Дата последнего ТО"
+                        :withIcon="true"
+                        icon="fa-calendar"
                         v-model="form.last_maintenance_date"
                     />
 
                     <BaseInput
                         id="last_maintenance_mileage"
                         type="number"
-                        label="Пробег при последнем ТО"
+                        label="Пробег на последнем ТО"
+                        min="0"
+                        :withIcon="true"
+                        icon="fa-road"
                         v-model="form.last_maintenance_mileage"
                     />
                 </div>
 
+                <div class="form-row radio">
+                    <label>Тип расписания *</label>
+                    <div class="radio-group">
+                        <BaseRadioButton
+                            name="schedule_type"
+                            value="mileage"
+                            label="По пробегу"
+                            v-model="form.schedule_type"
+                        />
+                        <BaseRadioButton
+                            name="schedule_type"
+                            value="time"
+                            label="По времени"
+                            v-model="form.schedule_type"
+                        />
+                    </div>
+                </div>
+
+                <div v-if="form.schedule_type === 'mileage'" class="form-row">
+                    <BaseInput
+                        id="interval_value"
+                        type="number"
+                        label="Интервал (км) *"
+                        min="1"
+                        :withIcon="true"
+                        icon="fa-tachometer"
+                        v-model="form.interval_value"
+                    />
+                </div>
+                <div v-if="form.schedule_type === 'time'" class="form-row">
+                    <BaseInput
+                        id="interval_value"
+                        type="number"
+                        label="Интервал *"
+                        min="1"
+                        :withIcon="true"
+                        icon="fa-clock"
+                        v-model="form.interval_value"
+                    />
+
+                    <BasicSelect
+                        label="Единица измерения"
+                        :items="[
+                            { value: 'months', 'label': 'Месяцы' },
+                            { value: 'days', label: 'Дни' }
+                        ]"
+                        :withIcon="true"
+                        icon="fa-reorder"
+                        v-model="form.interval_unit"
+                    />
+                </div>
                 <div class="form-row">
-                    <BaseRadioButton
-                        label="По пробегу"
-                        option="mileage"
-                        @change="handleRadioChange"
+                    <BasicSelect
+                        label="Приоритет"
+                        :items="[
+                            { value: 'low', label: 'Низкий' },
+                            { value: 'medium', label: 'Средний' },
+                            { value: 'high', label: 'Высокий' }
+                        ]"
+                        :withIcon="true"
+                        icon="fa-exclamation-triangle"
+                        v-model="form.priority"
                     />
-                    <BaseRadioButton
-                        label="По времени"
-                        option="time"
-                        @change="handleRadioChange"
+
+                    <BasicCheckBox
+                        label="Повторяющаяся задача"
+                        text="Это повторяющаяся задача?"
+                        v-model="form.is_recurring"
                     />
+                </div>
+                <div class="modal-footer">
+                    <BaseButton
+                        variant="outline"
+                        :disabled="isCreating"
+                        @click="handleClose"
+                    >
+                        Отмена
+                    </BaseButton>
+
+                    <BaseButton
+                        variant="primary"
+                        :loading="isCreating"
+                        @click="handleSubmit"
+                    >
+                        Сохранить
+                    </BaseButton>
                 </div>
             </form>
         </div>
@@ -83,6 +178,7 @@ import BaseInput from '../ui/BaseInput.vue';
 import BasicSelect from '../ui/BasicSelect.vue';
 import BaseTextarea from '../ui/BaseTextarea.vue';
 import BaseRadioButton from '../ui/BaseRadioButton.vue';
+import BasicCheckBox from '../ui/BasicCheckBox.vue';
 
 export default {
     name: 'AddTaskModal',
@@ -92,7 +188,8 @@ export default {
         BaseInput,
         BasicSelect,
         BaseTextarea,
-        BaseRadioButton
+        BaseRadioButton,
+        BasicCheckBox
     },
 
     props: {
@@ -102,7 +199,15 @@ export default {
         },
         motorcycles: {
             type: Array,
+            default: () => []
+        },
+        motorcycleId: {
+            type: [Number, String],
             default: null
+        },
+        motorcycleName: {
+            type: String,
+            default: ''
         }
     },
 
@@ -119,11 +224,30 @@ export default {
                 last_maintenance_mileage: null,
                 schedule_type: 'mileage',
                 interval_value: null,
-                interval_unit: '',
-                priority: '',
+                interval_unit: 'months',
+                priority: 'medium',
                 notes: '',
                 is_recurring: true
             }
+        }
+    },
+
+    computed: {
+        showMotorcycleSelect() {
+            return this.motorcycles.length > 0 && !this.motorcycleId
+        },
+
+        motoForSelect() {
+            return this.motorcycles.map(moto => ({
+                value: moto.id,
+                label: `${moto.brand} ${moto.model}`
+            }))
+        }
+    },
+
+    mounted() {
+        if (this.motorcycleId) {
+            this.form.motorcycle_id = this.motorcycleId
         }
     },
 
@@ -133,22 +257,6 @@ export default {
             this.$emit('close')
         },
 
-        handleOptionHandler(item_id) {
-            this.form.motorcycle_id = item_id
-        },
-
-        handleDescChange(content) {
-            this.form.description = content
-        },
-
-        handleNoteChange(content) {
-            this.form.notes = content
-        },
-
-        handleRadioChange(option) {
-            this.form.schedule_type = option
-        },
-
         resetForm() {
             this.form = {
                 motorcycle_id: null,
@@ -156,10 +264,10 @@ export default {
                 description: '',
                 last_maintenance_date: null,
                 last_maintenance_mileage: null,
-                schedule_type: '',
+                schedule_type: 'mileage',
                 interval_value: null,
-                interval_unit: '',
-                priority: '',
+                interval_unit: 'months',
+                priority: 'medium',
                 notes: '',
                 is_recurring: true
             }
@@ -204,9 +312,11 @@ export default {
 }
 
 .form-group label {
-    color: var(--text);
+    display: block;
     font-weight: 500;
-    font-size: 0.95rem;
+    color: var(--text);
+    margin-bottom: 10px;
+    gap: 8px;
 }
 
 .form-group input {
@@ -223,6 +333,22 @@ export default {
     outline: none;
     border-color: var(--primary);
     box-shadow: 0 0 0 2px rgba(255, 69, 0, 0.2);
+}
+
+.form-row label {
+    display: block;
+    font-weight: 500;
+    color: var(--text);
+    gap: 8px;
+}
+
+.form-row.radio {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 20px;
+    font-weight: 500;
+    color: var(--text);
+    gap: 8px;
 }
 
 .form-actions {
@@ -285,6 +411,15 @@ export default {
     padding: 25px;
 }
 
+.modal-footer {
+    padding: 20px 25px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 10px;
+}
+
 .form-row {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -317,7 +452,6 @@ export default {
   border: 2px solid var(--text-secondary);
   border-radius: 4px;
   margin-right: 10px;
-  position: relative;
   transition: all 0.3s ease;
 }
 
@@ -336,47 +470,44 @@ export default {
   transform: translate(-50%, -50%);
 }
 
-.radio-group {
-  display: flex;
-  gap: 20px;
-  margin-top: 10px;
+.motorcycle-badge {
+    position: relative;
 }
 
-.radio-label {
-  display: flex;
-  align-items: center;
-  cursor: pointer;
-  color: var(--text);
+.motorcycle-badge label {
+    display: block;
+    margin-bottom: 10px;
+    font-weight: 500;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }
 
-.radio-label input[type="radio"] {
-  display: none;
+.motorcycle-badge i {
+    position: absolute;
+    left: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-secondary);
+    margin-right: 10px;
 }
 
-.radio-custom {
-  width: 20px;
-  height: 20px;
-  border: 2px solid var(--text-secondary);
-  border-radius: 50%;
-  margin-right: 10px;
-  position: relative;
-  transition: all 0.3s ease;
+.motorcycle-badge {
+    width: 100%;
+    padding: 14px 15px 14px 45px;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 8px;
+    color: var(--text);
+    font-size: 1em;
+    transition: all 0.3s ease;
 }
 
-.radio-label input[type="radio"]:checked + .radio-custom {
-  border-color: var(--primary);
-}
-
-.radio-label input[type="radio"]:checked + .radio-custom::after {
-  content: '';
-  position: absolute;
-  width: 10px;
-  height: 10px;
-  background: var(--primary);
-  border-radius: 50%;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
+.motorcycle-badge:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(255, 69, 0, 0.2);
 }
 
 @media (max-width: 480px) {
