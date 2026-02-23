@@ -119,6 +119,12 @@ export default {
     transition: all 0.3s ease;
 }
 
+input[type="date"] {
+    width: 100%;
+    min-width: 140px;
+    max-width: 205px;
+}
+
 .form-input:focus {
     outline: none;
     border-color: var(--primary);

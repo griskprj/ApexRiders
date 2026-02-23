@@ -39,28 +39,33 @@ import NotificationBell from './components/notifications/NotificationBell.vue';
     </nav>
 
     <!-- Мобильное меню -->
-    <div v-if="isMobile && user && !isAdminRoute" class="mobile-menu" :class="{ 'active': isMobileMenuOpen }">
-        <router-link to="/garage/main" class="nav-link" v-if="user">Гараж</router-link>
-        <router-link to="/manuals" class="nav-link" v-if="user" @click="closeMobileMenu">Мануалы</router-link>
-        <router-link to="/market" class="nav-link" v-if="user" @click="closeMobileMenu">Маркет</router-link>
-        <router-link to="/community" class="nav-link" v-if="user" @click="closeMobileMenu">Сообщество</router-link>
-        <router-link to="/profile" class="nav-link" v-if="user" @click="closeMobileMenu">Профиль</router-link>
-        <router-link to="/admin/dashboard" class="nav-link" v-if="user && user.admin_level > 0" @click="closeMobileMenu">Админка</router-link>
-
+    <div v-if="isMobile && !isAdminRoute" class="mobile-menu" :class="{ 'active': isMobileMenuOpen }">
+    <template v-if="!user">
+        <router-link to="/" class="nav-link" @click="closeMobileMenu">Главная</router-link>
+        <router-link to="/login" class="nav-link" @click="closeMobileMenu">Войти</router-link>
+        <router-link to="/register" class="nav-link" @click="closeMobileMenu">Регистрация</router-link>
+    </template>
+    
+    <!-- Меню для авторизованных -->
+    <template v-else>
+        <router-link to="/garage/main" class="nav-link" @click="closeMobileMenu">Гараж</router-link>
+        <router-link to="/manuals" class="nav-link" @click="closeMobileMenu">Мануалы</router-link>
+        <router-link to="/market" class="nav-link" @click="closeMobileMenu">Маркет</router-link>
+        <router-link to="/community" class="nav-link" @click="closeMobileMenu">Сообщество</router-link>
+        <router-link to="/profile" class="nav-link" @click="closeMobileMenu">Профиль</router-link>
+        <router-link to="/admin/dashboard" class="nav-link" v-if="user?.admin_level > 0" @click="closeMobileMenu">Админка</router-link>
         <router-link to="/notifications" class="nav-link" @click="closeMobileMenu">
-            <i class="fas fa-bell"></i>
-            Уведомления
-            <span v-if="notificationCount > 0" class=""></span>
+            <i class="fas fa-bell"></i> Уведомления
         </router-link>
-        
-        <div class="mobile-auth">
-            <router-link to="/login" class="btn btn-outline" v-if="!user" @click="closeMobileMenu">Войти</router-link>
-            <router-link to="/register" class="btn btn-primary" v-if="!user" @click="closeMobileMenu">Регистрация</router-link>
-            <button v-if="user" @click="logout" class="btn btn-outline">Выйти</button>
-        </div>
-
-        <div class="mobile-menu-overlay" @click="closeMobileMenu"></div>
+    </template>
+    
+    <div class="mobile-auth">
+        <button v-if="user" @click="logout" class="btn btn-outline">Выйти</button>
     </div>
+</div>
+
+<!-- Оверлей для закрытия меню -->
+<div v-if="isMobile && isMobileMenuOpen" class="mobile-menu-overlay" @click="closeMobileMenu"></div>
 
     <main class="main-content">
         <router-view @user-updated="handleUserUpdate"></router-view>
@@ -88,20 +93,12 @@ import NotificationBell from './components/notifications/NotificationBell.vue';
                 <router-link to="/market" @click="closeMobileMenu">Маркет</router-link>
                 <router-link to="/community" @click="closeMobileMenu">Сообщество</router-link>
             </div>
-            <div class="footer-column" v-else>
-                <h4>Разделы</h4>
-                <a href="#">Мануалы</a>
-                <a href="#">Курсы</a>
-                <a href="#">Маркет</a>
-                <a href="#">Сообщество</a>
-            </div>
             
             <div class="footer-column">
                 <h4>Помощь</h4>
                 <router-link to="/about" @click="closeMobileMenu">О проекте</router-link>
                 <router-link to="/contacts" @click="closeMobileMenu">Контакты</router-link>
                 <router-link to="/community-rules" @click="closeMobileMenu">Правила</router-link>
-                <a href="#">Поддержка</a>
             </div>
             
             <div class="footer-column">
@@ -191,7 +188,7 @@ export default {
             await authService.logout()
             this.user = null
             this.isMobileMenuOpen = false
-            this.$router.push('/')
+            this.$router.push('/garage/main')
         },
         
         checkMobile() {
@@ -291,6 +288,11 @@ export default {
         radial-gradient(circle at 80% 20%, rgba(0, 191, 255, 0.1) 0%, transparent 50%),
         radial-gradient(circle at 40% 40%, rgba(50, 205, 50, 0.05) 0%, transparent 50%);
     z-index: -1;
+}
+
+html, body {
+    background-color: var(--bg-body, #050507);
+    min-height: 100vh;
 }
 
 select option {
@@ -597,6 +599,7 @@ input:focus, textarea:focus, select:focus {
     
     .mobile-menu-btn {
         display: block;
+        z-index: 1001;
     }
     
     .mobile-menu {

@@ -38,14 +38,6 @@
 
                     <div class="tool-card">
                         <div class="tool-icon">
-                            <i class="fas fa-graduation-cap"></i>
-                        </div>
-                        <h3>«Курсы» <span class="badge">в разработке</span></h3>
-                        <p>Обучающие материалы для совершенствования навыков. От базовых приёмов до сложных элементов мотоджимханы: выбирайте схему, тренируйтесь на время и получайте обратную связь.</p>
-                    </div>
-
-                    <div class="tool-card">
-                        <div class="tool-icon">
                             <i class="fas fa-shopping-cart"></i>
                         </div>
                         <h3>«Маркет»</h3>
@@ -77,7 +69,7 @@
                     <div class="advantage">
                         <div class="advantage-number">02</div>
                         <h3>Доступ к знаниям</h3>
-                        <p>Мануалы и будущие курсы помогут разобраться в ремонте и улучшить навыки езды без лишних затрат.</p>
+                        <p>Мануалы помогут разобраться в ремонте без лишних затрат.</p>
                     </div>
 
                     <div class="advantage">
@@ -139,21 +131,9 @@
 
                 <div class="plans-grid">
                     <div class="plan-card">
-                        <i class="fas fa-play-circle"></i>
-                        <h4>Запуск обучающих курсов</h4>
-                        <p>Система обучения с обратной связью от опытных райдеров.</p>
-                    </div>
-
-                    <div class="plan-card">
                         <i class="fas fa-user-shield"></i>
                         <h4>Система модерации</h4>
                         <p>Инструменты для поддержания качества контента в сообществе.</p>
-                    </div>
-
-                    <div class="plan-card">
-                        <i class="fas fa-cogs"></i>
-                        <h4>Админ‑панель</h4>
-                        <p>Удобное управление сообществом и контентом.</p>
                     </div>
 
                     <div class="plan-card">
@@ -161,16 +141,18 @@
                         <h4>Обратная связь</h4>
                         <p>Расширение функционала на основе ваших предложений.</p>
                     </div>
-                </div>
-
-                <div class="current-status">
-                    <h3>Текущий статус проекта</h3>
-                    <ul>
-                        <li><i class="fas fa-globe"></i> Работает только онлайн</li>
-                        <li><i class="fas fa-mobile-alt"></i> Доступно на любых устройствах — от ПК до смартфонов</li>
-                        <li><i class="fas fa-gift"></i> Бесплатно в течение ближайших 6 месяцев</li>
-                        <li><i class="fas fa-star"></i> В будущем возможны добровольные донаты или премиум‑подписка</li>
-                    </ul>
+                    
+                    <div class="plan-card">
+                        <i class="fas fa-tools"></i>
+                        <h4>Гараж 2.0</h4>
+                        <p>Улучшенная система ведения ТО.</p>
+                    </div>
+                    
+                    <div class="plan-card">
+                        <i class="fas fa-book"></i>
+                        <h4>Улучшенные мануалы</h4>
+                        <p>Встроенные схемы, видео и возможность задать вопрос эксперту.</p>
+                    </div>
                 </div>
             </div>
 
@@ -481,16 +463,6 @@ export default {
     overflow: hidden;
 }
 
-.advantages-section::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 1px;
-    background: linear-gradient(90deg, transparent, var(--primary), transparent);
-}
-
 .advantages {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
@@ -528,17 +500,6 @@ export default {
     text-shadow: 0 10px 30px rgba(255, 69, 0, 0.3);
     position: relative;
     display: inline-block;
-}
-
-.advantage-number::after {
-    content: '';
-    position: absolute;
-    bottom: 10px;
-    left: 10%;
-    width: 80%;
-    height: 3px;
-    background: linear-gradient(90deg, transparent, rgba(255, 69, 0, 0.5), transparent);
-    border-radius: 2px;
 }
 
 .advantage h3 {

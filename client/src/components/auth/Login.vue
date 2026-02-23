@@ -77,7 +77,7 @@ const handleLogin = async () => {
                 access_token: result.token 
             })
             
-            const redirect = route.query.redirect || '/dashboard'
+            const redirect = route.query.redirect || '/garage/main'
             router.push(redirect)
         } else {
             error.value = 'Не удалось получить данные пользователя'

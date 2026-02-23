@@ -20,6 +20,9 @@ import ReportsManagement from './ReportsManagement.vue';
                     <button @click="logout" class="btn btn-outline btn-sm">
                         <i class="fas fa-sign-out-alt"></i> Выйти
                     </button>
+                    <button @click="goToSite" class="btn btn-outline btn-sm">
+                        <i class="fas fa-external-link-alt"></i> На сайт
+                    </button>
                 </div>
             </div>
         </nav>
@@ -32,24 +35,27 @@ import ReportsManagement from './ReportsManagement.vue';
                 </div>
                 
                 <div class="sidebar-menu">
-                    <button 
-                        @click="currentView = 'dashboard'" 
-                        :class="{ 'active': currentView === 'dashboard' }"
-                        class="sidebar-item"
-                    >
-                        <i class="fas fa-tachometer-alt"></i>
-                        <span>Дашборд</span>
-                    </button>
-                    
-                    <button 
-                        @click="currentView = 'users'" 
-                        :class="{ 'active': currentView === 'users' }"
-                        class="sidebar-item"
-                    >
-                        <i class="fas fa-users"></i>
-                        <span>Пользователи</span>
-                        <span class="badge">{{ stats.total_users || 0 }}</span>
-                    </button>
+                    <div class="sidebar-section">
+                        <h4><i class="fas fa-home"></i> Основное</h4>
+                        <button 
+                            @click="currentView = 'dashboard'" 
+                            :class="{ 'active': currentView === 'dashboard' }"
+                            class="sidebar-item"
+                        >
+                            <i class="fas fa-tachometer-alt"></i>
+                            <span>Дашборд</span>
+                        </button>
+                        
+                        <button 
+                            @click="currentView = 'users'" 
+                            :class="{ 'active': currentView === 'users' }"
+                            class="sidebar-item"
+                        >
+                            <i class="fas fa-users"></i>
+                            <span>Пользователи</span>
+                            <span class="badge">{{ stats.total_users || 0 }}</span>
+                        </button>
+                    </div>
                     
                     <div class="sidebar-section" v-if="currentAdmin?.admin_level >= 4">
                         <h4><i class="fas fa-flag"></i> Модерация</h4>
@@ -65,40 +71,6 @@ import ReportsManagement from './ReportsManagement.vue';
                             </span>
                         </button>
                     </div>
-
-                    <div class="sidebar-section" v-if="currentAdmin?.admin_level >= 2">
-                        <h4><i class="fas fa-newspaper"></i> Контент</h4>
-                        <button class="sidebar-item">
-                            <i class="fas fa-file-alt"></i>
-                            <span>Посты</span>
-                        </button>
-                        <button class="sidebar-item">
-                            <i class="fas fa-book"></i>
-                            <span>Мануалы</span>
-                        </button>
-                    </div>
-                    
-                    <div class="sidebar-section" v-if="currentAdmin?.admin_level >= 5">
-                        <h4><i class="fas fa-cogs"></i> Система</h4>
-                        <button class="sidebar-item">
-                            <i class="fas fa-sliders-h"></i>
-                            <span>Настройки</span>
-                        </button>
-                        <button class="sidebar-item">
-                            <i class="fas fa-history"></i>
-                            <span>Логи</span>
-                        </button>
-                    </div>
-                </div>
-                
-                <div class="sidebar-footer">
-                    <div class="system-status">
-                        <div class="status-indicator active"></div>
-                        <span>Система активна</span>
-                    </div>
-                    <button @click="goToSite" class="btn btn-outline btn-sm">
-                        <i class="fas fa-external-link-alt"></i> На сайт
-                    </button>
                 </div>
             </aside>
             
@@ -232,17 +204,9 @@ import ReportsManagement from './ReportsManagement.vue';
                                         <i class="fas fa-users"></i>
                                         <span>Управление пользователями</span>
                                     </button>
-                                    <button class="quick-action" :disabled="currentAdmin?.admin_level < 2">
-                                        <i class="fas fa-plus-circle"></i>
-                                        <span>Добавить пост</span>
-                                    </button>
-                                    <button class="quick-action" :disabled="currentAdmin?.admin_level < 4">
+                                    <button @click="currentView = 'reports'" class="quick-action" :disabled="currentAdmin?.admin_level < 4">
                                         <i class="fas fa-flag"></i>
                                         <span>Проверить жалобы</span>
-                                    </button>
-                                    <button class="quick-action" :disabled="currentAdmin?.admin_level < 5">
-                                        <i class="fas fa-chart-line"></i>
-                                        <span>Аналитика сайта</span>
                                     </button>
                                 </div>
                             </div>
@@ -803,7 +767,7 @@ export default {
         },
         
         goToSite() {
-            window.location.href = '/'
+            window.location.href = '/garage/main'
         },
         
         formatDate(dateString) {
