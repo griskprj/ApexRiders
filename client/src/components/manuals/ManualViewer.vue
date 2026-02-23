@@ -23,36 +23,27 @@
         <!-- Шапка мануала -->
         <div class="manual-header">
             <div class="manual-meta">
-                <div class="manual-badge" :class="(manual.difficulty || 'Начинающий').toLowerCase()">
-                    {{ manual.difficulty || 'Начинающий' }}
-                </div>
-                <div class="manual-title-section">
-                    <h1>{{ manual.title }}</h1>
-                    <div class="manual-subtitle">
-                        <div class="meta-info">
-                            <span class="moto-info">
-                                <i class="fas fa-motorcycle"></i>
-                                {{ manual.moto_type }}
-                            </span>
-                            <span class="category">
-                                <i class="fas fa-tag"></i>
-                                {{ manual.category }}
-                            </span>
-                            <span class="time-estimate" v-if="manual.estimated_time">
-                                <i class="fas fa-clock"></i>
-                                {{ manual.estimated_time }}
-                            </span>
-                        </div>
-                    </div>
-                    <div v-if="manual.description" class="manual-description">
-                        <div class="description-label">
-                            <i class="fas fa-file-alt"></i>
-                            <h3>Описание мануала</h3>
-                        </div>
-                        <div class="description-text">
-                            <p>{{ manual.description }}</p>
-                        </div>
-                    </div>
+                <BaseButton
+                    variant="outline"
+                    @click="$router.go(-1)"
+                >
+                    <i class="fas fa-arrow-left"></i>
+                    Назад к мануалам
+                </BaseButton>
+
+                <div class="manual-actions">
+                    <button
+                        class="btn btn-outline"
+                        @click="deleteManual(manual)"
+                    >
+                        <i class="fas fa-trash"></i> Удалить
+                    </button>
+                    <button
+                        class="btn btn-outline"
+                        @click="editManual(manual)"
+                    >
+                        <i class="fas fa-edit"></i> Редактировать
+                    </button>
                 </div>
             </div>
 
@@ -75,22 +66,62 @@
             </div>
         </div>
 
-        <div class="manual-actions">
-            <button
-                class="btn btn-outline"
-                @click="deleteManual(manual)"
-            >
-                <i class="fas fa-trash"></i> Удалить
-            </button>
-            <button
-                class="btn btn-outline"
-                @click="editManual(manual)"
-            >
-                <i class="fas fa-edit"></i> Редактировать
-            </button>
+        
+
+        <div class="manual-title-section">
+            <h1>{{ manual.title }}</h1>
+            <div v-if="manual.description" class="card">
+                <div class="card-header">
+                    <i class="fas fa-file-alt"></i>
+                    <h3>Описание мануала</h3>
+                </div>
+                <div class="card-content">
+                    <p>{{ manual.description }}</p>
+                </div>
+            </div>
         </div>
 
-        <!-- Предупреждения -->
+        <!-- Инструменты и материалы -->
+        <div class="resources-section">
+            <div class="card">
+                <div class="card-header">
+                    <i class="fas fa-tools"></i>
+                    <h3>Необходимые инструменты</h3>
+                </div>
+                <div v-if="manual.tools?.length" class="card-content">
+                    <ul class="resources-list">
+                        <li v-for="(tool, index) in manual.tools" :key="index">
+                            <i class="fas fa-check-circle"></i>
+                            {{ tool }}
+                        </li>
+                    </ul>
+                </div>
+                <div v-else class="empty-state">
+                    <i class='fas fa-tools'></i>
+                    <p>Инструменты не требуются</p>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <i class="fas fa-box-open"></i>
+                    <h3>Необходимые материалы</h3>
+                </div>
+                <div v-if="manual.materials?.length" class="card-content">
+                    <ul class="resources-list">
+                        <li v-for="(material, index) in manual.materials" :key="index">
+                            <i class="fas fa-check-circle"></i>
+                            {{ material }}
+                        </li>
+                    </ul>
+                </div>
+                <div v-else class="empty-state">
+                    <i class='fas fa-box-open'></i>
+                    <p>Материалы не требуются</p>
+                </div>
+            </div>
+        </div>
+
         <div v-if="manual.warnings" class="warning-card">
             <div class="warning-icon">
                 <i class="fas fa-exclamation-triangle"></i>
@@ -101,38 +132,6 @@
             </div>
         </div>
 
-        <!-- Инструменты и материалы -->
-        <div class="resources-section">
-            <div class="resources-card">
-                <div class="card-header">
-                    <i class="fas fa-tools"></i>
-                    <h3>Необходимые инструменты</h3>
-                </div>
-                <div class="card-content">
-                    <ul class="resources-list">
-                        <li v-for="(tool, index) in manual.tools" :key="index">
-                            <i class="fas fa-check-circle"></i>
-                            {{ tool }}
-                        </li>
-                    </ul>
-                </div>
-            </div>
-
-            <div class="resources-card">
-                <div class="card-header">
-                    <i class="fas fa-box-open"></i>
-                    <h3>Необходимые материалы</h3>
-                </div>
-                <div class="card-content">
-                    <ul class="resources-list">
-                        <li v-for="(material, index) in manual.materials" :key="index">
-                            <i class="fas fa-check-circle"></i>
-                            {{ material }}
-                        </li>
-                    </ul>
-                </div>
-            </div>
-        </div>
 
         <!-- Шаги мануала -->
         <div class="steps-section">
@@ -210,18 +209,21 @@
                 <i class="fas fa-trophy"></i>
             </div>
             <div class="completion-content">
-                <h2>Отличная работа! 🎉</h2>
+                <h2>Отличная работа!</h2>
                 <p>Вы успешно завершили все шаги мануала</p>
                 <div class="completion-actions">
-                    <button @click="rateManual" class="btn btn-primary">
+                    <!-- <BaseButton
+                        variant="primary"
+                        @click="rateManual"
+                    >
                         <i class="fas fa-star"></i> Оценить мануал
-                    </button>
-                    <button @click="shareManual" class="btn btn-outline">
-                        <i class="fas fa-share-alt"></i> Поделиться результатом
-                    </button>
-                    <button @click="findSimilar" class="btn btn-secondary">
-                        <i class="fas fa-search"></i> Похожие мануалы
-                    </button>
+                    </BaseButton> -->
+                    <BaseButton
+                        variant="primary"
+                        @click="$router(-1)"
+                    >
+                        <i class="fas fa-arrow-left"></i> К мануалам
+                    </BaseButton>
                 </div>
             </div>
         </div>
@@ -232,12 +234,17 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import axios from 'axios'
+import BaseButton from '../ui/BaseButton.vue';
 
 export default {
     name: 'ManualViewer',
     props: {
         manualId: String,
     },
+    components: {
+        BaseButton
+    },
+    
     setup(props) {
         const route = useRoute()
         const manual = ref({})
@@ -522,53 +529,23 @@ export default {
 }
 
 .manual-header {
-    display: grid;
-    grid-template-columns: 1fr;
+    display: flex;
+    flex-direction: column;
     gap: 30px;
     margin-bottom: 40px;
 }
 
-@media (min-width: 992px) {
-    .manual-header {
-        grid-template-columns: 2fr 1fr;
-    }
-}
-
 .manual-meta {
+    display: flex;
+    flex-direction: row;
+    gap: 8px;
     margin-bottom: 20px;
 }
 
-.manual-badge {
-    display: inline-block;
-    padding: 8px 16px;
-    border-radius: 8px;
-    font-size: 0.9rem;
-    font-weight: 600;
-    margin-bottom: 15px;
-}
-
-.manual-badge.начинающий {
-    background: rgba(40, 167, 69, 0.2);
-    color: #28a745;
-    border: 1px solid rgba(40, 167, 69, 0.3);
-}
-
-.manual-badge.средний {
-    background: rgba(255, 193, 7, 0.2);
-    color: #ffc107;
-    border: 1px solid rgba(255, 193, 7, 0.3);
-}
-
-.manual-badge.продвинутый {
-    background: rgba(255, 69, 0, 0.2);
-    color: var(--primary);
-    border: 1px solid rgba(255, 69, 0, 0.3);
-}
-
-.manual-badge.эксперт {
-    background: rgba(108, 117, 125, 0.2);
-    color: #6c757d;
-    border: 1px solid rgba(108, 117, 125, 0.3);
+.manual-actions {
+    display: flex;
+    flex-direction: row;
+    gap: 8px;
 }
 
 .manual-title-section h1 {
@@ -741,11 +718,12 @@ export default {
     }
 }
 
-.resources-card {
+.card {
     background: var(--dark-light);
     border-radius: 15px;
     border: 1px solid rgba(255, 255, 255, 0.1);
     overflow: hidden;
+    margin-bottom: 20px;
 }
 
 .card-header {
@@ -770,6 +748,26 @@ export default {
 
 .card-content {
     padding: 20px;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--text-secondary);
+  background: rgba(10, 10, 15, 0.5);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.empty-state i {
+  font-size: 4rem;
+  margin-bottom: 20px;
+  opacity: 0.5;
+}
+
+.empty-state p {
+  margin-bottom: 20px;
+  font-size: 1.2rem;
 }
 
 .resources-list {
@@ -993,7 +991,7 @@ export default {
 }
 
 .completion-card {
-    background: linear-gradient(135deg, var(--primary) 0%, #ff8c00 100%);
+    background: linear-gradient(135deg, rgb(255, 165, 0), rgb(255, 69, 0));
     border-radius: 20px;
     padding: 40px;
     text-align: center;
@@ -1032,90 +1030,6 @@ export default {
 
 .completion-actions .btn {
     min-width: 200px;
-}
-
-.completion-actions .btn-primary {
-    background: white;
-    color: var(--primary);
-}
-
-.completion-actions .btn-primary:hover {
-    background: rgba(255, 255, 255, 0.9);
-}
-
-.completion-actions .btn-outline {
-    background: transparent;
-    border: 2px solid white;
-    color: white;
-}
-
-.completion-actions .btn-outline:hover {
-    background: rgba(255, 255, 255, 0.1);
-}
-
-.completion-actions .btn-secondary {
-    background: rgba(255, 255, 255, 0.2);
-    color: white;
-}
-
-.completion-actions .btn-secondary:hover {
-    background: rgba(255, 255, 255, 0.3);
-}
-
-/* Кнопки */
-.btn {
-    padding: 12px 24px;
-    border-radius: 8px;
-    border: none;
-    font-size: 1rem;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-}
-
-.btn-primary {
-    background: var(--primary);
-    color: white;
-}
-
-.btn-primary:hover:not(:disabled) {
-    background: var(--primary-dark);
-    box-shadow: 0 0 20px rgba(255, 69, 0, 0.3);
-}
-
-.btn-primary:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-}
-
-.btn-secondary {
-    background: rgba(255, 255, 255, 0.1);
-    color: var(--text);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.btn-secondary:hover:not(:disabled) {
-    background: rgba(255, 255, 255, 0.15);
-    border-color: var(--primary);
-}
-
-.btn-outline {
-    background: transparent;
-    color: var(--text);
-    border: 1px solid var(--primary);
-}
-
-.btn-outline:hover:not(:disabled) {
-    background: rgba(255, 69, 0, 0.1);
-}
-
-.btn:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
 }
 
 .loading-state,
