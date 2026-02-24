@@ -79,22 +79,72 @@ def delete_user(user_id):
         if not user:
             return jsonify({'error': 'Пользователь не найден'}), 404
 
-        deleted_data = {
-            'username': user.username,
-            'email': user.email,
-            'deleted_at': datetime.now(timezone.utc).isoformat(),
-            'deleted_by': current_user.id
-        }
-
-        db.session.delete(user)
-        db.session.commit()
-
-        return jsonify({
-            'message': 'Пользователь успешно удален',
-            'deleted_user': deleted_data
-        }), 200
+        try:
+            from app.models import Motorcycle, MotorcycleMaintenance, MotorcycleNote
+            
+            motorcycles = Motorcycle.query.filter_by(user_id=user_id).all()
+            for motorcycle in motorcycles:
+                MotorcycleMaintenance.query.filter_by(motorcycle_id=motorcycle.id).delete()
+                MotorcycleNote.query.filter_by(motorcycle_id=motorcycle.id).delete()
+                db.session.delete(motorcycle)
+            
+            from app.models import (
+                Post, Like, Comment, ManualRating, ManualDraft,
+                UserManualProgress, UserManualHistory, UserLessonHistory,
+                UserCoursesHistory, Product
+            )
+            
+            posts = Post.query.filter_by(author_id=user_id).all()
+            for post in posts:
+                Like.query.filter_by(target_type='post', target_id=post.id).delete()
+                comments = Comment.query.filter_by(post_id=post.id).all()
+                for comment in comments:
+                    Like.query.filter_by(target_type='comment', target_id=comment.id).delete()
+                    db.session.delete(comment)
+                db.session.delete(post)
+            
+            user_comments = Comment.query.filter_by(author_id=user_id).all()
+            for comment in user_comments:
+                Like.query.filter_by(target_type='comment', target_id=comment.id).delete()
+                db.session.delete(comment)
+            
+            Like.query.filter_by(user_id=user_id).delete()
+            
+            ManualRating.query.filter_by(user_id=user_id).delete()
+            ManualDraft.query.filter_by(user_id=user_id).delete()
+            UserManualProgress.query.filter_by(user_id=user_id).delete()
+            UserManualHistory.query.filter_by(user_id=user_id).delete()
+            UserLessonHistory.query.filter_by(user_id=user_id).delete()
+            UserCoursesHistory.query.filter_by(user_id=user_id).delete()
+            
+            products = Product.query.filter_by(owner_id=user_id).all()
+            for product in products:
+                Like.query.filter_by(target_type='product', target_id=product.id).delete()
+                db.session.delete(product)
+            
+            deleted_data = {
+                'username': user.username,
+                'email': user.email,
+                'deleted_at': datetime.now(timezone.utc).isoformat(),
+                'deleted_by': current_user.id
+            }
+            
+            db.session.delete(user)
+            db.session.commit()
+            
+            return jsonify({
+                'message': 'Пользователь успешно удален',
+                'deleted_user': deleted_data
+            }), 200
+            
+        except Exception as e:
+            db.session.rollback()
+            current_app.logger.error(f'Error during user deletion cascade: {str(e)}')
+            return jsonify({'error': f'Ошибка при удалении связанных данных: {str(e)}'}), 500
+            
     except Exception as e:
         db.session.rollback()
+        current_app.logger.error(f'Error deleting user: {str(e)}')
         return jsonify({'error': str(e)}), 500
 
 
