@@ -287,9 +287,6 @@ def uploaded_file(filename):
             else:
                 mime_type = 'application/octet-stream'
 
-        print(
-            f"Serving file: {filename}, MIME: {mime_type}, Size: {os.path.getsize(file_path)}")
-
         response = send_from_directory(upload_folder, filename)
         response.headers.set('Content-Type', mime_type)
         response.headers.set('Cache-Control', 'public, max-age=31536000')

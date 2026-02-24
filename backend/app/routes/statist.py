@@ -79,8 +79,6 @@ def dashboard_stat():
             'all_lessons': all_lessons
         })
 
-    print(user.username)
-
     return jsonify({
         'username': user.username,
         'manuals_count': manuals_count,

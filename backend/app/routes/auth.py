@@ -39,6 +39,11 @@ def login_user():
         password=data.get('password')
     )
 
+    if not result.get('success'):
+        return jsonify({
+            'error': result.get('error', 'Ошибка аутентификации')
+        }), 401
+
     return jsonify({
         'access_token': result['access_token'],
         'member': {
@@ -63,6 +68,11 @@ def register_user():
         username=data.get('username'),
         password=data.get('password')
     )
+
+    if not result.get('success'):
+        return jsonify({
+            'error': result.get('error', 'Ошибка регистрации')
+        }), result.get('status', 400)
 
     return jsonify({
         'user': {

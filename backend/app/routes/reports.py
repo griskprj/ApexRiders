@@ -136,7 +136,6 @@ def resolve_report(report_id):
         
         current_user_id = get_jwt_identity()
         
-        # Проверяем, что жалоба назначена текущему пользователю
         if int(report.assigned_admin_id) != int(current_user_id):
             return jsonify({'error': 'Вы не назначены на эту жалобу'}), 403
         
@@ -146,14 +145,12 @@ def resolve_report(report_id):
         if not resolution or not resolution_type:
             return jsonify({'error': 'Необходимо указать решение и тип'}), 400
         
-        # Обновляем статус жалобы
         report.status = 'resolved'
         report.resolution = resolution
         report.resolution_type = resolution_type
         report.resolved_at = datetime.now(timezone.utc)
         report.updated_at = datetime.now(timezone.utc)
         
-        # Отправляем уведомление пользователю, на которого пожаловались
         if report.reported_user_id:
             try:
                 NotificationService.send_admin_report(
@@ -166,7 +163,6 @@ def resolve_report(report_id):
                 )
             except Exception as e:
                 print(f"Error sending notification: {e}")
-                # Продолжаем выполнение даже если уведомление не отправилось
         
         db.session.commit()
         

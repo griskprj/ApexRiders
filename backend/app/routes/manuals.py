@@ -147,7 +147,6 @@ def get_one_manual(manual_id):
         return jsonify({'error': 'User not found'}), 404
 
     is_verified = True if user.is_verified else False
-    print(is_verified)
 
     manual = MaintenanceManual.query.get(manual_id)
     manual_data = {

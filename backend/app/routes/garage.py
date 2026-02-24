@@ -241,9 +241,6 @@ def update_maintenance(task_id):
 
         db.session.commit()
 
-        print(
-            f'После коммита: parts_used = {task.parts_used}, cost = {task.cost}')
-
         return jsonify({
             'task': task.to_dict(),
             'message': 'Task updated successfully'
@@ -552,7 +549,6 @@ def garage_overview():
             elif (task.status == 'pending' or task.status == 'overdue') and task.next_maintenance_mileage:
                 mileage_until = task.next_maintenance_mileage - moto.current_mileage
                 mileage_until = 0 if mileage_until < 0 else mileage_until
-                print(f'Task {task.title}: ', mileage_until)
                 if mileage_until <= 200:
                     task_dict = task.to_dict()
                     task_dict['motorcycle'] = {
