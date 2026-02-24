@@ -74,13 +74,12 @@ def create_app(config_name=None):
         
         return send_from_directory(os.path.dirname(file_path), os.path.basename(filename))
 
-    from app.routes import auth, motorcycles, statist, manuals, courses, product, community, garage, admin, notifications, reports, user_reports
+    from app.routes import auth, motorcycles, statist, manuals, product, community, garage, admin, notifications, reports, user_reports
     app.register_blueprint(auth.auth)
     app.register_blueprint(motorcycles.motorcycle)
     app.register_blueprint(statist.statistic)
     app.register_blueprint(manuals.manuals)
     app.register_blueprint(product.product)
-    app.register_blueprint(courses.courses)
     app.register_blueprint(community.community)
     app.register_blueprint(garage.garage)
     app.register_blueprint(admin.admin, url_prefix='/api/admin')
