@@ -149,3 +149,5 @@ yarn-error.log
 uploads/
 !uploads/.gitkeep
 dev-dist/
+
+.git
