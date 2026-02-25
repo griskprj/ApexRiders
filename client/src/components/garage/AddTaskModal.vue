@@ -2,7 +2,7 @@
     <div v-if="isOpen" class="modal-overlay" @click.self="handleClose">
         <div class="modal-content">
             <div class="modal-header">
-                <h3>Новая задача ТО</h3>
+                <h3>{{ isEditing ? 'Редактирование задачи' : 'Новая задача ТО' }}</h3>
                 <BaseButton
                     variant="outline"
                     @click="handleClose"
@@ -19,7 +19,7 @@
                         :items="motoForSelect"
                         withIcon="true"
                         icon="fa-motorcycle"
-                        v-model="form.motorcycle_id"
+                        v-model="taskForm.motorcycle_id"
                     />
 
                     <div v-else class="selected-motorcycle-info">
@@ -36,10 +36,10 @@
                         id="title"
                         type="text"
                         label="Название задачи *"
-                        v-model="form.title"
+                        v-model="taskForm.title"
                         max="128"
                         :withIcon="true"
-                        icon="fa-align-left "
+                        icon="fa-align-left"
                         required
                     />
                 </div>
@@ -48,12 +48,12 @@
                     <BaseTextarea
                         label="Описание задачи"
                         :resize="false"
-                        v-model="form.description"
+                        v-model="taskForm.description"
                     />
                     <BaseTextarea
                         label="Заметки"
                         :resize="false"
-                        v-model="form.notes"
+                        v-model="taskForm.notes"
                     />
                 </div>
 
@@ -64,7 +64,7 @@
                         label="Дата последнего ТО"
                         :withIcon="true"
                         icon="fa-calendar"
-                        v-model="form.last_maintenance_date"
+                        v-model="taskForm.last_maintenance_date"
                     />
 
                     <BaseInput
@@ -74,7 +74,7 @@
                         min="0"
                         :withIcon="true"
                         icon="fa-road"
-                        v-model="form.last_maintenance_mileage"
+                        v-model="taskForm.last_maintenance_mileage"
                     />
                 </div>
 
@@ -85,18 +85,18 @@
                             name="schedule_type"
                             value="mileage"
                             label="По пробегу"
-                            v-model="form.schedule_type"
+                            v-model="taskForm.schedule_type"
                         />
                         <BaseRadioButton
                             name="schedule_type"
                             value="time"
                             label="По времени"
-                            v-model="form.schedule_type"
+                            v-model="taskForm.schedule_type"
                         />
                     </div>
                 </div>
 
-                <div v-if="form.schedule_type === 'mileage'" class="form-row">
+                <div v-if="taskForm.schedule_type === 'mileage'" class="form-row">
                     <BaseInput
                         id="interval_value"
                         type="number"
@@ -104,10 +104,12 @@
                         min="1"
                         :withIcon="true"
                         icon="fa-tachometer"
-                        v-model="form.interval_value"
+                        v-model="taskForm.interval_value"
+                        :required="taskForm.schedule_type === 'mileage'"
                     />
                 </div>
-                <div v-if="form.schedule_type === 'time'" class="form-row">
+                
+                <div v-if="taskForm.schedule_type === 'time'" class="form-row">
                     <BaseInput
                         id="interval_value"
                         type="number"
@@ -115,20 +117,22 @@
                         min="1"
                         :withIcon="true"
                         icon="fa-clock"
-                        v-model="form.interval_value"
+                        v-model="taskForm.interval_value"
+                        :required="taskForm.schedule_type === 'time'"
                     />
 
                     <BasicSelect
                         label="Единица измерения"
                         :items="[
-                            { value: 'months', 'label': 'Месяцы' },
+                            { value: 'months', label: 'Месяцы' },
                             { value: 'days', label: 'Дни' }
                         ]"
                         :withIcon="true"
-                        icon="fa-reorder"
-                        v-model="form.interval_unit"
+                        icon="fa-calendar"
+                        v-model="taskForm.interval_unit"
                     />
                 </div>
+                
                 <div class="form-row">
                     <BasicSelect
                         label="Приоритет"
@@ -139,15 +143,16 @@
                         ]"
                         :withIcon="true"
                         icon="fa-exclamation-triangle"
-                        v-model="form.priority"
+                        v-model="taskForm.priority"
                     />
 
                     <BasicCheckBox
                         label="Повторяющаяся задача"
                         text="Это повторяющаяся задача?"
-                        v-model="form.is_recurring"
+                        v-model="taskForm.is_recurring"
                     />
                 </div>
+                
                 <div class="modal-footer">
                     <BaseButton
                         variant="outline"
@@ -162,7 +167,7 @@
                         :loading="isCreating"
                         @click="handleSubmit"
                     >
-                        Сохранить
+                        {{ isEditing ? 'Обновить' : 'Сохранить' }}
                     </BaseButton>
                 </div>
             </form>
@@ -208,15 +213,23 @@ export default {
         motorcycleName: {
             type: String,
             default: ''
+        },
+        isEditing: {
+            type: Boolean,
+            default: false
+        },
+        editData: {
+            type: Object,
+            default: null
         }
     },
 
-    emits: ['close', 'create'],
+    emits: ['close', 'create', 'update'],
 
     data() {
         return {
             isCreating: false,
-            form: {
+            taskForm: {
                 motorcycle_id: null,
                 title: '',
                 description: '',
@@ -245,21 +258,68 @@ export default {
         }
     },
 
-    mounted() {
-        if (this.motorcycleId) {
-            this.form.motorcycle_id = this.motorcycleId
+    watch: {
+        isOpen: {
+            handler(newVal) {
+                if (newVal) {
+                    if (this.isEditing && this.editData) {
+                        this.populateFormForEdit()
+                    } else {
+                        this.resetForm()
+                        if (this.motorcycleId) {
+                            this.taskForm.motorcycle_id = this.motorcycleId
+                        }
+                    }
+                }
+            },
+            immediate: true
+        },
+
+        editData: {
+            handler(newVal) {
+                if (this.isOpen && this.isEditing && newVal) {
+                    this.populateFormForEdit()
+                }
+            },
+            deep: true
         }
     },
 
     methods: {
+        populateFormForEdit() {
+            if (!this.editData) return
+
+            let lastMaintenanceDate = ''
+            if (this.editData.last_maintenance_date) {
+                const date = new Date(this.editData.last_maintenance_date)
+                if (!isNaN(date.getTime())) {
+                    lastMaintenanceDate = date.toISOString().split('T')[0]
+                }
+            }
+
+            this.taskForm = {
+                motorcycle_id: this.editData.motorcycle_id || this.motorcycleId,
+                title: this.editData.title || '',
+                description: this.editData.description || '',
+                last_maintenance_date: lastMaintenanceDate,
+                last_maintenance_mileage: this.editData.last_maintenance_mileage || null,
+                schedule_type: this.editData.schedule_type || 'mileage',
+                interval_value: this.editData.interval_value || null,
+                interval_unit: this.editData.interval_unit || 'months',
+                priority: this.editData.priority || 'medium',
+                notes: this.editData.notes || '',
+                is_recurring: this.editData.is_recurring !== undefined ? this.editData.is_recurring : true
+            }
+        },
+
         handleClose() {
             this.resetForm()
             this.$emit('close')
         },
 
         resetForm() {
-            this.form = {
-                motorcycle_id: null,
+            this.taskForm = {
+                motorcycle_id: this.motorcycleId,
                 title: '',
                 description: '',
                 last_maintenance_date: null,
@@ -279,23 +339,43 @@ export default {
             try {
                 const token = authService.getToken()
 
-                const dataToSend = {
-                    ...this.form,
-                    last_maintenance_mileage: this.form.last_maintenance_mileage ? 
-                        Number(this.form.last_maintenance_mileage) : null,
-                    interval_value: this.form.interval_value ? 
-                        Number(this.form.interval_value) : null
+                const motorcycleId = this.taskForm.motorcycle_id || this.motorcycleId
+                
+                if (!motorcycleId) {
+                    alert('Не выбран мотоцикл')
+                    this.isCreating = false
+                    return
                 }
 
-                const response = await axios.post('/api/garage/maintenance', dataToSend, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                })
+                const dataToSend = {
+                    ...this.taskForm,
+                    motorcycle_id: motorcycleId,
+                    last_maintenance_mileage: this.taskForm.last_maintenance_mileage ? 
+                        Number(this.taskForm.last_maintenance_mileage) : null,
+                    interval_value: this.taskForm.interval_value ? 
+                        Number(this.taskForm.interval_value) : null
+                }
 
-                this.$emit('create', response.data.motorcycle || response.data)
+                let response
+                
+                if (this.isEditing && this.editData?.id) {
+                    response = await axios.put(
+                        `/api/garage/maintenance/${this.editData.id}`,
+                        dataToSend,
+                        { headers: { 'Authorization': `Bearer ${token}` } }
+                    )
+                    this.$emit('update', response.data)
+                } else {
+                    response = await axios.post('/api/garage/maintenance', dataToSend, {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    })
+                    this.$emit('create', response.data)
+                }
+
                 this.handleClose()
             } catch (error) {
-                console.error('Ошибка создания мотоцикла', error)
-                alert(error.response.data.error || 'Ошибка при создании мотоцикла')
+                console.error('Ошибка сохранения задачи:', error)
+                alert(error.response?.data?.error || 'Ошибка при сохранении задачи')
             } finally {
                 this.isCreating = false
             }

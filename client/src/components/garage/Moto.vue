@@ -239,7 +239,7 @@
                                     <button class="btn btn-small btn-success" @click="showCompleteModal(task)">
                                         <i class="fas fa-check"></i> Выполнено
                                     </button>
-                                    <button class="btn btn-small btn-outline" @click="editTask(task)">
+                                    <button class="btn btn-small btn-outline" @click="openEditTaskModal(task)">
                                         <i class="fas fa-edit"></i>
                                     </button>
                                     <button class="btn btn-small btn-outline" @click="deleteTask(task)">
@@ -265,8 +265,11 @@
                 :isOpen="showAddMaintenanceModal"
                 :motorcycleId="motorcycle.id"
                 :motorcycleName="`${motorcycle.brand} ${motorcycle.model}`"
-                @close="showAddMaintenanceModal = false"
+                :isEditing="isEditingTask"
+                :editData="editingTaskData"
+                @close="closeTaskModal"
                 @create="onTaskCreated"
+                @update="onTaskUpdated"
             />
         </div>
 
@@ -571,6 +574,7 @@ export default {
             selectedTask: null,
             selectedHistoryRecord: null,
             recentNotes: [],
+            editingTaskData: null,
 
             showAllTasks: false,
             
@@ -592,6 +596,18 @@ export default {
                 engine_volume: '',
                 color: '',
                 license_plate: ''
+            },
+            editTaskForm: {
+                title: '',
+                description: '',
+                last_maintenance_date: null,
+                last_maintenance_mileage: null,
+                schedule_type: 'mileage',
+                interval_value: null,
+                interval_unit: 'months',
+                priority: 'medium',
+                notes: '',
+                is_recurring: true
             },
             historyForm: {
                 title: '',
@@ -686,6 +702,9 @@ export default {
                 
                 const data = response.data
                 this.motorcycle = data.motorcycle
+
+                console.log('ID motorcycle')
+                console.log(this.motorcycle.id)
 
                  this.upcomingMaintenance = (data.maintenance_tasks || [])
                     .sort((a, b) => {
@@ -879,6 +898,13 @@ export default {
             }
         },
 
+
+        openEditTaskModal(task) {
+            this.isEditingTask = true
+            this.editingTaskData = task
+            this.showAddMaintenanceModal = true
+        },
+
         editTask(task) {
             this.selectedTask = task
 
@@ -907,6 +933,64 @@ export default {
             }
             this.showAddMaintenanceModal = true
             this.isEditingTask = true
+        },
+
+        async updateTask() {
+            try {
+                const token = localStorage.getItem('authToken')
+
+                const dataToSend = {
+                    ...this.editTaskForm,
+                    motorcycle_id: this.motorcycle.id,
+                    last_maintenance_mileage: this.editTaskForm.last_maintenance_mileage ?
+                        Number(this.editTaskForm.last_maintenance_mileage) : null,
+                    interval_value: this.editTaskForm.interval_value ?
+                        Number(this.editTaskForm.interval_value) : null
+                }
+
+                await axios.put(
+                    `/api/garage/maintenance/${this.editingTaskData.id}`,
+                    dataToSend,
+                    { headers: { 'Authorization': `Bearer ${token}` } }
+                )
+
+                this.showAddMaintenanceModal = false
+                this.isEditingTask = false
+                this.editingTaskData = null
+                this.resetEditTaskForm()
+
+                await this.fetchMotorcycleData()
+                alert('Задача успешно обновлена')
+            } catch (error) {
+                console.error('Ошибка обновления задачи:', error)
+                alert('Ошибка при обновлении задачи')
+            }
+        },
+
+        resetEditTaskForm() {
+            this.editTaskForm = {
+                title: '',
+                description: '',
+                last_maintenance_date: null,
+                last_maintenance_mileage: null,
+                schedule_type: 'mileage',
+                interval_value: null,
+                interval_unit: 'months',
+                priority: 'medium',
+                notes: '',
+                is_recurring: true
+            }
+        },
+
+        closeTaskModal() {
+            this.showAddMaintenanceModal = false
+            this.isEditingTask = false
+            this.resetEditTaskForm()
+        },
+
+        onTaskUpdated() {
+            this.closeTaskModal()
+            this.fetchMotorcycleData()
         },
 
         editHistoryRecord(record) {
