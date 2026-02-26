@@ -457,7 +457,6 @@ export default {
   font-size: 1.2rem;
 }
 
-/* Декоративные элементы (из исходного) */
 .decoration {
   position: fixed;
   width: 200px;
@@ -506,7 +505,6 @@ export default {
   100% { transform: rotate(360deg); }
 }
 
-/* Модальное окно (аналогично Garage.vue) */
 .modal-overlay {
   position: fixed;
   top: 0;
@@ -547,27 +545,6 @@ export default {
   display: flex;
   align-items: center;
   gap: 10px;
-}
-
-.close-btn {
-  background: none;
-  border: none;
-  font-size: 1.8em;
-  cursor: pointer;
-  color: var(--text-secondary);
-  padding: 0;
-  width: 36px;
-  height: 36px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  transition: all 0.3s ease;
-}
-
-.close-btn:hover {
-  background: rgba(255, 255, 255, 0.1);
-  color: var(--text);
 }
 
 .modal-body {
@@ -618,154 +595,6 @@ export default {
   outline: none;
   border-color: var(--primary);
   box-shadow: 0 0 0 3px rgba(255, 69, 0, 0.2);
-}
-
-.radio-group {
-  display: flex;
-  gap: 20px;
-  margin-top: 10px;
-}
-
-.radio-label {
-  display: flex;
-  align-items: center;
-  cursor: pointer;
-  color: var(--text);
-}
-
-.radio-label input[type="radio"] {
-  display: none;
-}
-
-.radio-custom {
-  width: 20px;
-  height: 20px;
-  border: 2px solid var(--text-secondary);
-  border-radius: 50%;
-  margin-right: 10px;
-  position: relative;
-  transition: all 0.3s ease;
-}
-
-.radio-label input[type="radio"]:checked + .radio-custom {
-  border-color: var(--primary);
-}
-
-.radio-label input[type="radio"]:checked + .radio-custom::after {
-  content: '';
-  position: absolute;
-  width: 10px;
-  height: 10px;
-  background: var(--primary);
-  border-radius: 50%;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-}
-
-.checkbox-label {
-  display: flex;
-  align-items: center;
-  cursor: pointer;
-  color: var(--text);
-}
-
-.checkbox-label input[type="checkbox"] {
-  display: none;
-}
-
-.checkbox-custom {
-  width: 20px;
-  height: 20px;
-  border: 2px solid var(--text-secondary);
-  border-radius: 4px;
-  margin-right: 10px;
-  position: relative;
-  transition: all 0.3s ease;
-}
-
-.checkbox-label input[type="checkbox"]:checked + .checkbox-custom {
-  border-color: var(--primary);
-  background: var(--primary);
-}
-
-.checkbox-label input[type="checkbox"]:checked + .checkbox-custom::after {
-  content: '✓';
-  position: absolute;
-  color: white;
-  font-size: 14px;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-}
-
-/* Кнопки */
-.btn {
-  padding: 12px 24px;
-  border-radius: 8px;
-  font-weight: 600;
-  text-decoration: none;
-  transition: all 0.3s ease;
-  border: none;
-  cursor: pointer;
-  font-size: 0.95em;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-}
-
-.btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
-}
-
-.btn:active {
-  transform: translateY(0);
-}
-
-.btn-primary {
-  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
-  color: white;
-  border: 1px solid var(--primary);
-}
-
-.btn-primary:hover {
-  background: linear-gradient(135deg, #ff5500 0%, var(--primary) 100%);
-  box-shadow: 0 0 20px rgba(255, 69, 0, 0.5);
-}
-
-.btn-secondary {
-  background: rgba(255, 255, 255, 0.1);
-  color: var(--text);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-}
-
-.btn-secondary:hover {
-  background: rgba(255, 255, 255, 0.2);
-}
-
-.btn-outline {
-  background: transparent;
-  border: 1px solid var(--primary);
-  color: var(--text);
-}
-
-.btn-outline:hover {
-  background: var(--primary-light);
-  box-shadow: 0 0 15px rgba(255, 69, 0, 0.3);
-}
-
-.btn-small {
-  padding: 8px 16px;
-  font-size: 0.85em;
-}
-
-.btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-  transform: none;
-  box-shadow: none;
 }
 
 @media (max-width: 768px) {

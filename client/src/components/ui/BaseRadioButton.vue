@@ -44,6 +44,8 @@ export default {
 <style scoped>
 .radio-group {
   display: flex;
+  flex-direction: row !important;
+  justify-content: space-around;
   gap: 20px;
   margin-top: 10px;
 }

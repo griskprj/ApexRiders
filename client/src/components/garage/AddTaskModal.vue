@@ -30,8 +30,10 @@
                                 {{ motorcycleName }}
                             </div>
                         </div>
-                    </div>
-                    
+                    </div>  
+                </div>
+
+                <div class="form-row">
                     <BaseInput
                         id="title"
                         type="text"
@@ -50,6 +52,9 @@
                         :resize="false"
                         v-model="taskForm.description"
                     />
+                </div>
+
+                <div class="form-row">
                     <BaseTextarea
                         label="Заметки"
                         :resize="false"
@@ -66,7 +71,9 @@
                         icon="fa-calendar"
                         v-model="taskForm.last_maintenance_date"
                     />
-
+                </div>
+                
+                <div class="form-row">
                     <BaseInput
                         id="last_maintenance_mileage"
                         type="number"
@@ -109,28 +116,32 @@
                     />
                 </div>
                 
-                <div v-if="taskForm.schedule_type === 'time'" class="form-row">
-                    <BaseInput
-                        id="interval_value"
-                        type="number"
-                        label="Интервал *"
-                        min="1"
-                        :withIcon="true"
-                        icon="fa-clock"
-                        v-model="taskForm.interval_value"
-                        :required="taskForm.schedule_type === 'time'"
-                    />
+                <div v-if="taskForm.schedule_type === 'time'">
+                    <div class="form-row">
+                        <BaseInput
+                            id="interval_value"
+                            type="number"
+                            label="Интервал *"
+                            min="1"
+                            :withIcon="true"
+                            icon="fa-clock"
+                            v-model="taskForm.interval_value"
+                            :required="taskForm.schedule_type === 'time'"
+                        />
+                    </div>
 
-                    <BasicSelect
-                        label="Единица измерения"
-                        :items="[
-                            { value: 'months', label: 'Месяцы' },
-                            { value: 'days', label: 'Дни' }
-                        ]"
-                        :withIcon="true"
-                        icon="fa-calendar"
-                        v-model="taskForm.interval_unit"
-                    />
+                    <div class="form-row">
+                        <BasicSelect
+                            label="Единица измерения"
+                            :items="[
+                                { value: 'months', label: 'Месяцы' },
+                                { value: 'days', label: 'Дни' }
+                            ]"
+                            :withIcon="true"
+                            icon="fa-calendar"
+                            v-model="taskForm.interval_unit"
+                        />
+                    </div>
                 </div>
                 
                 <div class="form-row">
@@ -145,7 +156,9 @@
                         icon="fa-exclamation-triangle"
                         v-model="taskForm.priority"
                     />
-
+                </div>
+                
+                <div class="form-row">
                     <BasicCheckBox
                         label="Повторяющаяся задача"
                         text="Это повторяющаяся задача?"
@@ -501,8 +514,8 @@ export default {
 }
 
 .form-row {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
+    display: flex;
+    flex-direction: column;
     gap: 20px;
     margin-bottom: 20px;
 }
@@ -515,39 +528,12 @@ export default {
     border-top: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-.checkbox-label {
+.radio-group {
   display: flex;
-  align-items: center;
-  cursor: pointer;
-  color: var(--text);
-}
-
-.checkbox-label input[type="checkbox"] {
-  display: none;
-}
-
-.checkbox-custom {
-  width: 20px;
-  height: 20px;
-  border: 2px solid var(--text-secondary);
-  border-radius: 4px;
-  margin-right: 10px;
-  transition: all 0.3s ease;
-}
-
-.checkbox-label input[type="checkbox"]:checked + .checkbox-custom {
-  border-color: var(--primary);
-  background: var(--primary);
-}
-
-.checkbox-label input[type="checkbox"]:checked + .checkbox-custom::after {
-  content: '✓';
-  position: absolute;
-  color: white;
-  font-size: 14px;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
+  flex-direction: row !important;
+  justify-content: space-around;
+  gap: 20px;
+  margin-top: 10px;
 }
 
 .motorcycle-badge {

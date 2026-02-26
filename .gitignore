@@ -151,3 +151,4 @@ uploads/
 dev-dist/
 
 .git
+/client/dev-dist
