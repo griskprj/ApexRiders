@@ -1,5 +1,6 @@
 <script setup>
 import NotificationBell from './components/notifications/NotificationBell.vue';
+import CookieBanner from './components/ui/CookieBanner.vue';
 </script>
 
 <template>
@@ -67,6 +68,8 @@ import NotificationBell from './components/notifications/NotificationBell.vue';
 <!-- Оверлей для закрытия меню -->
 <div v-if="isMobile && isMobileMenuOpen" class="mobile-menu-overlay" @click="closeMobileMenu"></div>
 
+    <CookieBanner @consent-given="handleCookieConsent" />
+
     <main class="main-content">
         <router-view @user-updated="handleUserUpdate"></router-view>
     </main>
@@ -116,6 +119,7 @@ import NotificationBell from './components/notifications/NotificationBell.vue';
 
 <script>
 import { authService } from './utils/checkAuth'
+import CookieBanner from './components/ui/CookieBanner.vue';
 
 export default {
     name: 'App',
@@ -129,6 +133,10 @@ export default {
             isLoading: false,
             currentRoute: null
         }
+    },
+
+    components: {
+        CookieBanner
     },
     
     computed: {
@@ -149,6 +157,10 @@ export default {
     },
     
     methods: {
+        handleCookieConsent() {
+            console.log('Cookie consent given')
+        },
+
         async loadUser() {
             this.isLoading = true
             

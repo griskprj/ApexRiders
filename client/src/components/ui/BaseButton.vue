@@ -41,3 +41,12 @@ export default {
     emits: ['click']
 }
 </script>
+
+<style scoped>
+/* Small button */
+:deep(.btn-small) {
+    padding: 8px 20px;
+    font-size: 0.9rem;
+    white-space: nowrap;
+}
+</style>
