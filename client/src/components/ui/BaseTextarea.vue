@@ -19,7 +19,6 @@
  * @component
  * @version 1.0.0
  * @example
- * 
  * <BaseTextarea
  *     label="Заметки"
  *     :resize="false"
