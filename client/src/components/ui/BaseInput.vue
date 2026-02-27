@@ -31,38 +31,70 @@
 </template>
 
 <script>
+/** 
+ * Компонент BaseInput
+ * @description Стандартный input.
+ * 
+ * @component
+ * @version 1.0.0
+ * @example
+ * 
+ * <BaseInput
+ *     id="interval_value"
+ *     type="number"
+ *     label="Интервал (км) *"
+ *     min="1"
+ *     :withIcon="true"
+ *     icon="fa-tachometer"
+ *     v-model="taskForm.interval_value"
+ *     :required="taskForm.schedule_type === 'mileage'"
+ * />
+ * 
+ * @emits update:ModelValue - Срабатывает после изменения текста.
+ * 
+*/
+
 export default {
     name: 'BaseInput',
     props: {
+        /** Передаваемое значение */
         modelValue: [String, Number, Boolean],
+        /** Тип инпута */
         type: {
             type: String,
             default: 'text'
         },
+        /** Label инпута */
         label: {
             type: String,
             required: true
         },
+        /** ID выбора */
         id: {
             type: String,
             required: true
         },
+        /** Обязательный выбор */
         required: {
             type: Boolean,
             default: false
         },
+        /** Миинимальное значение/кол-во символов  */
         min: {
             type: Number,
             default: null
         },
+        /** Максимальное значение/кол-во символов */
         max: {
             type: Number,
             default: null
         },
+        /** Есть иконка */
         withIcon: {
             type: Boolean,
             default: false
         },
+        /** Иконка */
         icon: {
             type: String,
             default: ''

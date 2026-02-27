@@ -13,14 +13,14 @@
             
             <form @submit.prevent="handleSubmit" class="modal-form">
                 <div class="form-row">
-                    <BasicSelect
-                        v-if="showMotorcycleSelect"
-                        label="Мотоцикл *"
-                        :items="motoForSelect"
-                        withIcon="true"
-                        icon="fa-motorcycle"
-                        v-model="taskForm.motorcycle_id"
-                    />
+                <BasicSelect
+                    v-if="showMotorcycleSelect"
+                    label="Мотоцикл *"
+                    :items="motoForSelect"
+                    withIcon="true"
+                    icon="fa-motorcycle"
+                    v-model="taskForm.motorcycle_id"
+                />
 
                     <div v-else class="selected-motorcycle-info">
                         <div class="form-group">

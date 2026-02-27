@@ -22,19 +22,56 @@
 </template>
 
 <script>
+/** 
+ * Компонент BasicSelect
+ * @description Стандартный тип select.
+ * 
+ * @component
+ * @version 1.0.0
+ * @example
+ * <BasicSelect
+ *     v-if="showMotorcycleSelect"
+ *     label="Мотоцикл *"
+ *     :items="motoForSelect"
+ *     withIcon="true"
+ *     icon="fa-motorcycle"
+ *     v-model="taskForm.motorcycle_id"
+ * />
+ * 
+ * @emits update:ModelValue - Срабатывает после изменения выбора.
+ * 
+*/
+
 export default {
     name: 'BasicSelect',
     inheritAttrs: false,
 
     props: {
-        modelValue: [String, Number],
-        label: String,
+        /** Передаваемое значение */
+        modelValue: [
+            String,
+            Number
+        ],
+        /** Label выбора */
+        label: {
+            type: String,
+            default: ''
+        },
+        /** Options выбора */
         items: {
             type: Array,
             required: true,
         },
-        withIcon: Boolean,
-        icon: String,
+        /** Есть иконка */
+        withIcon: {
+            type: Boolean,
+            default: false
+        },
+        /** Иконка */
+        icon: {
+            type: String,
+            default: ''
+        },
     },
 
     emits: ['update:modelValue'],

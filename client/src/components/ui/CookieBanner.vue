@@ -33,7 +33,8 @@
  * <CookieBanner @consent-given="handleConsent" />
  * 
  * @emits consent-given - Срабатывает после того, как пользователь нажал "Хорошо"
- * **/
+ * 
+*/
 
 import BaseButton from './BaseButton.vue';
 import { cookieManager } from '../../utils/cookieManager';

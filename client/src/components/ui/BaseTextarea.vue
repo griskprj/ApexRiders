@@ -12,13 +12,41 @@
 </template>
 
 <script>
+/** 
+ * Компонент BaseTextarea
+ * @description Стандартный тип textaera.
+ * 
+ * @component
+ * @version 1.0.0
+ * @example
+ * 
+ * <BaseTextarea
+ *     label="Заметки"
+ *     :resize="false"
+ *     v-model="taskForm.notes"
+ * />
+ * 
+ * @emits update:ModelValue - Срабатывает после изменения текста.
+ * 
+*/
+
+
 export default {
     name: 'BaseTextarea',
     inheritAttrs: false,
 
     props: {
-        modelValue: String,
-        label: String,
+        /** Передаваемое значение */
+        modelValue: {
+            type: String,
+            default: ''
+        },
+        /** Label textaera */
+        label: {
+            type: String,
+            default: ''
+        },
+        /** Изменение размера */
         resize: {
             type: Boolean,
             default: true

@@ -11,47 +11,71 @@
 </template>
 
 <script>
+/**
+ * Компонент ReportFlag
+ * @description Отображает флажок для жалобы на контент
+ * 
+ * @component
+ * @version 1.0.0
+ * @example
+ * <ReportFlag
+ *    :target-id="post.id"
+ *    target-type="post"
+ *    :target-owner-id="post.author.id"
+ *    :show-text="false"
+ *    size="small"
+ *    @open-report="openPostReportModal"
+ * />
+ * 
+ * @
+ */
 export default {
     name: 'ReportFlag',
     
     props: {
-        // Обязательные параметры
+        /** ID контента, на который жалуются */
         targetId: {
             type: [Number, String],
             required: true
         },
+        /** Тип контента, на который жалуются */
         targetType: {
             type: String,
             required: true,
             validator: (value) => ['post', 'comment', 'product', 'manual'].includes(value)
         },
+        /** ID автора контента, на который жалуются */
         targetOwnerId: {
             type: [Number, String],
             required: true
         },
-        
-        // Опциональные параметры
+        /** Заголовок жалобы */
         title: {
             type: String,
             default: 'Пожаловаться'
         },
+        /** Текст жалобы */
         text: {
             type: String,
             default: 'Пожаловаться'
         },
+        /** Показ текста */
         showText: {
             type: Boolean,
             default: false
         },
+        /** Размер */
         size: {
             type: String,
             default: 'medium',
             validator: (value) => ['small', 'medium', 'large'].includes(value)
         },
+        /** Цвет */
         color: {
             type: String,
             default: 'default'
         },
+        /** Показ кол-ва жалоб */
         showReportCount: {
             type: Boolean,
             default: false

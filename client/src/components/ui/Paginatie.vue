@@ -33,12 +33,41 @@
 </template>
 
 <script>
+/**
+ * Компонент Paginate
+ * @description Пагинация для контента
+ * 
+ * @component
+ * @version 1.0.0
+ * @example
+ * <Paginatie
+ *  :content="filteredPosts"
+ *  :current-page="currentPage"
+ *  :total-pages="totalPages"
+ *  @page-change="handlePageChange"
+ * />
+ * 
+ * @emits page-change - Срабатывает после смены страницы пагинации
+*/
+
 export default {
     name: 'PostsPaginate',
     props: {
-        content: Array,
-        currentPage: Number,
-        totalPages: Number
+        /** Что пагинируется */
+        content: {
+            type: Array,
+            default: []
+        },
+        /** Текущая страница */
+        currentPage: {
+            type: Number,
+            default: 1
+        },
+        /** Всего страниц */
+        totalPages: {
+            type: Number,
+            default: 1
+        }
     },
     computed: {
         visiblePages() {

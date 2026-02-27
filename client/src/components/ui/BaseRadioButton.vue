@@ -15,22 +15,45 @@
 </template>
 
 <script>
+/** 
+ * Компонент BaseRadioButton
+ * @description Стандартный тип radio.
+ * 
+ * @component
+ * @version 1.0.0
+ * @example
+ * 
+ * <BaseRadioButton
+ *     name="schedule_type"
+ *     value="mileage"
+ *     label="По пробегу"
+ *     v-model="taskForm.schedule_type"
+ * />
+ * 
+ * @emits update:ModelValue - Срабатывает после изменения выбора.
+ * 
+*/
+
 export default {
     name: 'BaseRadioButton',
 
     props:{
+        /** Значение выбора */
         value: {
             type: [String, Number, Boolean],
             required: true
         },
+        /** Label кнопки */
         label: {
             type: String,
             default: ''
         },
+        /** Значение */
         name: {
             type: String,
             required: true
         },
+        /** Передаваемое значение */
         modelValue: {
             type: [String, Number, Boolean],
             default: null

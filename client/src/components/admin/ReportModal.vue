@@ -129,23 +129,44 @@
 </template>
 
 <script>
+/**
+ * Компонент ReportModal
+ * @description Модальное окно для отправки жалобы на контент
+ * 
+ * @component
+ * @version 1.0.0
+ * @example
+ * <ReportModal
+ *    v-if="showReportModal"
+ *    :visible="showReportModal"
+ *    :target-id="post.id"
+ *    :target-type="'post'"
+ *    :target-owner-id="post.author.id"
+ *    @update:visible="showReportModal = $event"
+ *    @report-submitted="onReportSubmitted"
+ * />
+ */
 export default {
     name: 'ReportModal',
     
     props: {
+        /** Отображение модального окна */
         visible: {
             type: Boolean,
             required: true
         },
+        /** ID цели */
         targetId: {
             type: [Number, String],
             required: true
         },
+        /** Тип цели */
         targetType: {
             type: String,
             required: true,
             validator: (value) => ['post', 'comment', 'product', 'manual'].includes(value)
         },
+        /** ID автора цели */
         targetOwnerId: {
             type: [Number, String],
             required: true

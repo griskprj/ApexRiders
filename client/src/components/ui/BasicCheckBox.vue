@@ -18,15 +18,53 @@
 </template>
 
 <script>
+/** 
+ * Компонент BasicCheckBox
+ * @description Стандартный тип checkbox.
+ * 
+ * @component
+ * @version 1.0.0
+ * @example
+ * 
+ * <BasicCheckBox
+ *     label="Повторяющаяся задача"
+ *     text="Это повторяющаяся задача?"
+ *     v-model="taskForm.is_recurring"
+ * /> 
+ * 
+ * @emits update:ModelValue - Срабатывает после изменения выбора.
+ * 
+*/
+
 export default {
     name: 'BasicCheckBox',
 
     props: {
-        modelValue: Boolean,
-        label: String,
-        text: String,
-        withIcon: Boolean,
-        icon: String,
+        /** Передаваемое значение */
+        modelValue: {
+            type: Boolean,
+            default: false
+        },
+        /** Label чек-бокса */
+        label: {
+            type: String,
+            default: ''
+        },
+        /** Текст чек-бокса */
+        text: {
+            type: String,
+            default: ''
+        },
+        /** Есть иконка */
+        withIcon: {
+            type: Boolean,
+            default: false
+        },
+        /** Иконка */
+        icon: {
+            type: String,
+            default: ''
+        },
     },
 
     emits: ['update:modelValue'],
