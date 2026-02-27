@@ -14,6 +14,18 @@ community = Blueprint('community', __name__)
 UPLOAD_FOLDER = 'static/uploads/posts'
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp'}
 
+def is_production():
+    """Проверяем, работаем ли на продакшене"""
+    if request and request.host:
+        return 'yourmot.ru' in request.host or 'localhost' not in request.host
+    return False
+
+def get_upload_url(filename):
+    """Возвращает правильный URL в зависимости от окружения"""
+    if is_production():
+        return f"/backend/uploads/posts/{filename}"
+    else:
+        return f"/uploads/posts/{filename}"
 
 def save_uploaded_image(file):
     """ Download uploaded image """
@@ -38,9 +50,11 @@ def save_uploaded_image(file):
         filepath = os.path.join(upload_dir, unique_filename)
         file.save(filepath)
 
+        image_url = get_upload_url(unique_filename)
+
         return {
             'filename': unique_filename,
-            'url': f"/uploads/posts/{unique_filename}"
+            'url': image_url
         }
 
     except Exception as e:
@@ -204,8 +218,6 @@ def get_post(post_id):
 def upload_image():
     """ Upload image """
     try:
-        current_user_id = get_jwt_identity()
-
         if 'image' not in request.files:
             return jsonify({'error': 'Файл не найден'}), 404
 
@@ -232,7 +244,7 @@ def upload_image():
         filepath = os.path.join(upload_dir, unique_filename)
         file.save(filepath)
 
-        image_url = f"/uploads/posts/{unique_filename}"
+        image_url = get_upload_url(unique_filename)
 
         return jsonify({
             'success': True,
