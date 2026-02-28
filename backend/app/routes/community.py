@@ -118,8 +118,8 @@ def get_posts():
                     'username': author.username,
                     'name': author.username
                 },
-                'createdAt': post.created_at.isoformat(),
-                'updatedAt': post.updated_at.isoformat(),
+                'createdAt': post.created_at,
+                'updatedAt': post.updated_at,
                 'commentsCount': post.comment_count,
                 'likesCount': post.like_count,
                 'views': post.view_count,
@@ -200,8 +200,8 @@ def get_post(post_id):
                 'username': author.username,
                 'isVerified': True if int(author.id) == int(current_user_id) else False
             },
-            'createdAt': post.created_at.isoformat(),
-            'updatedAt': post.updated_at.isoformat(),
+            'createdAt': post.created_at,
+            'updatedAt': post.updated_at,
             'commentsCount': post.comment_count,
             'likesCount': post.like_count,
             'views': post.view_count,

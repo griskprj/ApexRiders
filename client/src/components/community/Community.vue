@@ -238,6 +238,9 @@ export default {
                 const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
                 if (diffHours === 0) {
                     const diffMinutes = Math.floor(diffMs / (1000 * 60));
+                    if (diffMinutes === 0) {
+                        return 'Только что'
+                    }
                     return `${diffMinutes} минут назад`;
                 }
                 return `${diffHours} часов назад`;
