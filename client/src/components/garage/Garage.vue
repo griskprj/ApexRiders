@@ -58,7 +58,7 @@
       @delete="onMotoDeleted"
     />
 
-    <!-- Модальное окно добавления задачи (упрощённое) -->
+    <!-- Модальное окно добавления задачи -->
     <AddTaskModal
       :isOpen="showTaskModal"
       :motorcycles="motorcycles"

@@ -69,10 +69,6 @@
                                 <div class="stat-label">Завершено мануалов</div>
                             </div>
                             <div class="stat-item">
-                                <div class="stat-value">{{ stats.lessons_count || 0 }}</div>
-                                <div class="stat-label">Пройдено уроков</div>
-                            </div>
-                            <div class="stat-item">
                                 <div class="stat-value">{{ stats.posts_count || 0 }}</div>
                                 <div class="stat-label">Создано постов</div>
                             </div>

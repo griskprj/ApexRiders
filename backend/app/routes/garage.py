@@ -30,8 +30,8 @@ def get_motorcycle_detail(moto_id):
     stats = moto.get_maintenance_stats()
 
     upcoming_tasks = [task for task in maintenance_tasks
-                      if task.status == 'pending'][:3]
-
+                      if task.status == 'pending']
+    
     return jsonify({
         'motorcycle': moto.to_dict(),
         'maintenance_tasks': [task.to_dict() for task in maintenance_tasks if task.status == 'pending'],

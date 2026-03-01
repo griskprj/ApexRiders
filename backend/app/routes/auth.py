@@ -13,8 +13,6 @@ from app.models import (
     ManualDraft,
     UserManualProgress,
     UserManualHistory,
-    UserLessonHistory,
-    UserCoursesHistory,
     Product
 )
 from flask_jwt_extended import (
@@ -277,16 +275,6 @@ def delete_account():
         manual_history = UserManualHistory.query.filter_by(
             user_id=current_user_id).all()
         for history in manual_history:
-            db.session.delete(history)
-
-        lesson_history = UserLessonHistory.query.filter_by(
-            user_id=current_user_id).all()
-        for history in lesson_history:
-            db.session.delete(history)
-
-        courses_history = UserCoursesHistory.query.filter_by(
-            user_id=current_user_id).all()
-        for history in courses_history:
             db.session.delete(history)
 
         manual_drafts = ManualDraft.query.filter_by(

@@ -32,16 +32,6 @@ class Member(db.Model):
         back_populates='user'
     )
 
-    lesson_history = db.relationship(
-        'UserLessonHistory',
-        back_populates='user'
-    )
-
-    courses_history = db.relationship(
-        'UserCoursesHistory',
-        back_populates='user'
-    )
-
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
 
@@ -139,87 +129,6 @@ class MotorcycleNote(db.Model):
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None
         }
-
-
-class Course(db.Model):
-    __tablename__ = 'courses'
-
-    id = db.Column(db.Integer, primary_key=True)
-    title = db.Column(db.String(256), nullable=False)
-    description = db.Column(db.Text, nullable=False)
-    level = db.Column(db.String(64), nullable=False)
-    ico = db.Column(db.String(256), nullable=False)
-
-    lessons = db.relationship(
-        'Lesson', backref='course', lazy=True, order_by='Lesson.order')
-
-
-class UserCoursesHistory(db.Model):
-    __tablename__ = 'user_courses_history'
-
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey(
-        'members.id'), nullable=False)
-    course_id = db.Column(db.Integer, db.ForeignKey(
-        'courses.id'), nullable=False)
-
-    __table_args__ = (
-        db.UniqueConstraint('user_id', 'course_id', name='unique_user_course'),
-    )
-
-    user = db.relationship('Member', back_populates='courses_history')
-    course = db.relationship('Course')
-
-
-class Lesson(db.Model):
-    __tablename__ = 'lessons'
-
-    id = db.Column(db.Integer, primary_key=True)
-    course_id = db.Column(db.Integer, db.ForeignKey(
-        'courses.id'), nullable=False)
-    order = db.Column(db.Integer, nullable=False)
-    duration = db.Column(db.Integer, nullable=False)
-
-    content_blocks = db.relationship(
-        'LessonBlock', backref='lesson', lazy=True, order_by='LessonBlock.order')
-
-
-class LessonBlock(db.Model):
-    __tablename__ = 'lesson_blocks'
-
-    TYPE_TEXT = 'text'
-    TYPE_IMAGE = 'image'
-    TYPE_VIDEO = 'video'
-    TYPE_QUOTE = 'quote'
-    TYPE_HEADER = 'header'
-
-    id = db.Column(db.Integer, primary_key=True)
-    lesson_id = db.Column(db.Integer, db.ForeignKey(
-        'lessons.id'), nullable=False)
-    _type = db.Column(db.String(20), nullable=False)
-    content = db.Column(db.Text, nullable=False)
-    order = db.Column(db.Integer, nullable=False)
-    meta = db.Column(db.JSON)
-
-
-class UserLessonHistory(db.Model):
-    __tablename__ = 'user_lesson_history'
-
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey(
-        'members.id'), nullable=False)
-    lesson_id = db.Column(db.Integer, db.ForeignKey(
-        'lessons.id'), nullable=False)
-    viewed_at = db.Column(
-        db.DateTime, default=lambda: datetime.now(timezone.utc))
-
-    __table_args__ = (
-        db.UniqueConstraint('user_id', 'lesson_id', name='unique_user_lesson'),
-    )
-
-    user = db.relationship('Member', back_populates='lesson_history')
-    lesson = db.relationship('Lesson')
-
 
 class Product(db.Model):
     __tablename__ = 'products'
@@ -340,8 +249,7 @@ class MotorcycleMaintenance(db.Model):
 
     created_at = db.Column(
         db.DateTime, default=lambda: datetime.now(timezone.utc))
-    completed_at = db.Column(
-        db.DateTime, default=lambda: datetime.now(timezone.utc))
+    completed_at = db.Column(db.DateTime)
     updated_at = db.Column(db.DateTime, default=lambda: datetime.now(
         timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 

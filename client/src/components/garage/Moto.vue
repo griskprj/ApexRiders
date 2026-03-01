@@ -45,7 +45,7 @@
         </div>
 
         <div class="add-maintenance-section">
-            <button class="btn btn-primary btn-large" @click="showAddMaintenanceModal = true">
+            <button class="btn btn-primary btn-large" @click="openAddTaskModal">
                 <i class="fas fa-plus-circle"></i> Добавить задачу ТО
             </button>
         </div>
@@ -151,56 +151,13 @@
                 </div>
             </div>
             
-            <!-- История обслуживания -->
-            <div class="history-card">
-                <div class="card-header">
-                    <h2><i class="fas fa-history"></i> История обслуживания</h2>
-                    <button class="btn btn-small btn-outline" @click="showAddHistoryModal = true">
-                        <i class="fas fa-plus"></i> Добавить запись
-                    </button>
-                </div>
-                <div class="card-body">
-                    <div v-if="maintenanceHistory.length > 0" class="history-list">
-                        <div v-for="record in maintenanceHistory.slice(0, 3)" :key="record.id" class="history-item">
-                            <div class="history-icon">
-                                <i class="fas fa-wrench"></i>
-                            </div>
-                            <div class="history-content">
-                                <div class="history-header">
-                                    <div class="history-title">{{ record.title }}</div>
-                                    <div class="history-date">
-                                        <i class="far fa-calendar"></i> 
-                                        {{ formatDate(record.last_maintenance_date) }}
-                                    </div>
-                                </div>
-                                <div class="history-details">
-                                    <span v-if="record.description" class="history-description">
-                                        {{ record.description }}
-                                    </span>
-                                    <div v-if="record.cost" class="history-cost">
-                                        <i class="fas fa-ruble-sign"></i> {{ record.cost }} руб.
-                                    </div>
-                                    <div v-if="record.parts_used" class="history-parts">
-                                        <i class="fas fa-cog"></i> {{ record.parts_used }}
-                                    </div>
-                                </div>
-                                <div class="history-actions">
-                                    <button class="btn btn-small btn-outline" @click="editHistoryRecord(record)">
-                                        <i class="fas fa-edit"></i>
-                                    </button>
-                                    <button class="btn btn-small btn-outline" @click="deleteHistoryRecord(record)">
-                                        <i class="fas fa-trash"></i>
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div v-else class="empty-state">
-                        <i class="fas fa-history"></i>
-                        <p>История обслуживания пуста</p>
-                    </div>
-                </div>
-            </div>
+            <!-- История ТО -->
+            <MaintenanceHistory
+                :history="maintenanceHistory"
+                @add-record="openAddHistoryModal"
+                @edit-record="openEditHistoryModal"
+                @delete-record="deleteTask"
+            />
 
             <!-- Ближайшие задачи ТО -->
             <div class="tasks-card">
@@ -259,18 +216,6 @@
                     </div>
                 </div>
             </div>
-
-            <!-- Модальное окно добавления ТО -->
-            <AddTaskModal
-                :isOpen="showAddMaintenanceModal"
-                :motorcycleId="motorcycle.id"
-                :motorcycleName="`${motorcycle.brand} ${motorcycle.model}`"
-                :isEditing="isEditingTask"
-                :editData="editingTaskData"
-                @close="closeTaskModal"
-                @create="onTaskCreated"
-                @update="onTaskUpdated"
-            />
         </div>
 
         <!-- Модальное окно изменения пробега -->
@@ -447,88 +392,6 @@
             </div>
         </div>
 
-        <!-- Модальное окно добавления записи в историю -->
-        <div v-if="showAddHistoryModal" class="modal-overlay">
-            <div class="modal">
-                <input v-model="historyForm.status" value="completed" type="hidden">
-                <div class="modal-header">
-                    <h3><i class="fas fa-history"></i>{{ isEditingHistory ? 'Редактировать запись' : 'Добавить запись в историю' }}</h3>
-                    <button class="close-btn" @click="closeHistoryModal">&times;</button>
-                </div>
-                <div class="modal-body">
-                    <div class="form-group">
-                        <label><i class="fas fa-heading"></i> Название работы *</label>
-                        <div class="input-with-icon">
-                            <i class="fas fa-heading"></i>
-                            <input v-model="historyForm.title" class="form-input" placeholder="Например: Замена цепи и звезд">
-                        </div>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label><i class="fas fa-align-left"></i> Описание</label>
-                        <textarea v-model="historyForm.description" class="form-input" rows="3" 
-                                placeholder="Подробное описание выполненной работы..."></textarea>
-                    </div>
-                    
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label><i class="fas fa-calendar"></i> Дата выполнения *</label>
-                            <div class="input-with-icon">
-                                <i class="fas fa-calendar"></i>
-                                <input type="date" v-model="historyForm.completed_date" class="form-input" required>
-                            </div>
-                        </div>
-                        <div class="form-group">
-                            <label><i class="fas fa-tachometer-alt"></i> Пробег при выполнении</label>
-                            <div class="input-with-icon">
-                                <i class="fas fa-tachometer-alt"></i>
-                                <input type="number" v-model="historyForm.mileage" class="form-input" 
-                                    :placeholder="motorcycle.current_mileage || 'Текущий пробег'">
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label><i class="fas fa-ruble-sign"></i> Стоимость (руб.)</label>
-                            <div class="input-with-icon">
-                                <i class="fas fa-ruble-sign"></i>
-                                <input type="number" v-model="historyForm.cost" class="form-input" placeholder="0.00" step="0.01">
-                            </div>
-                        </div>
-                        <div class="form-group">
-                            <label><i class="fas fa-tools"></i> Тип работы</label>
-                            <select v-model="historyForm.maintenance_type" class="form-input">
-                                <option value="regular">Регламентное ТО</option>
-                                <option value="repair">Ремонт</option>
-                                <option value="upgrade">Тюнинг/Улучшение</option>
-                                <option value="diagnostics">Диагностика</option>
-                                <option value="other">Другое</option>
-                            </select>
-                        </div>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label><i class="fas fa-cog"></i> Использованные запчасти</label>
-                        <textarea v-model="historyForm.parts_used" class="form-input" rows="2" 
-                                placeholder="Перечислите использованные запчасти через запятую"></textarea>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label><i class="fas fa-sticky-note"></i> Дополнительные заметки</label>
-                        <textarea v-model="historyForm.notes" class="form-input" rows="3" 
-                                placeholder="Любая дополнительная информация..."></textarea>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button class="btn btn-secondary" @click="showAddHistoryModal = false">Отмена</button>
-                    <button class="btn btn-primary" @click="addHistoryRecord" :disabled="!historyForm.title">
-                        <i class="fas fa-save"></i> Сохранить в историю
-                    </button>
-                </div>
-            </div>
-        </div>
-
         <!-- Индикатор загрузки -->
         <div v-if="isLoading" class="loading-overlay">
             <div class="loading-content">
@@ -537,17 +400,45 @@
             </div>
         </div>
     </div>
+
+    <!-- Модальное окно для задач ТО -->
+    <AddTaskModal
+        :isOpen="showTaskModal"
+        mode="task"
+        :motorcycleId="motorcycle.id"
+        :motorcycleName="`${motorcycle.brand} ${motorcycle.model}`"
+        :motorcycleMileage="motorcycle.current_mileage"
+        :isEditing="isEditingTask"
+        :editData="editingTaskData"
+        @close="closeTaskModal"
+        @save="onTaskCreated"
+    />
+
+    <!-- Модальное окно для истории ТО -->
+    <AddTaskModal
+        :isOpen="showHistoryModal"
+        mode="history"
+        :motorcycleId="motorcycle.id"
+        :motorcycleName="`${motorcycle.brand} ${motorcycle.model}`"
+        :motorcycleMileage="motorcycle.current_mileage"
+        :isEditing="isEditingHistory"
+        :editData="editingHistoryData"
+        @close="closeHistoryModal"
+        @save="onHistorySaved"
+    />
 </template>
 
 <script>
 import axios from 'axios'
-import AddTaskModal from './AddTaskModal.vue';
+import AddTaskModal from './AddTaskModal.vue';  
+import MaintenanceHistory from './components/MaintenanceHistory.vue';
 
 export default {
     name: 'GaragePage',
     
     components: {
-        AddTaskModal
+        AddTaskModal,
+        MaintenanceHistory  
     },
 
     data() {
@@ -574,18 +465,20 @@ export default {
             selectedTask: null,
             selectedHistoryRecord: null,
             recentNotes: [],
-            editingTaskData: null,
 
             showAllTasks: false,
             
             // Модальные окна
             showMileageModal: false,
             showEditModal: false,
-            showAddMaintenanceModal: false,
             showCompleteModalVar: false,
-            showAddHistoryModal: false,
+
+            showTaskModal: false,
+            showHistoryModal: false,
             isEditingTask: false,
             isEditingHistory: false,
+            editingTaskData: null,
+            editingHistoryData: null,
             
             // Формы
             newMileage: null,
@@ -597,30 +490,6 @@ export default {
                 color: '',
                 license_plate: ''
             },
-            editTaskForm: {
-                title: '',
-                description: '',
-                last_maintenance_date: null,
-                last_maintenance_mileage: null,
-                schedule_type: 'mileage',
-                interval_value: null,
-                interval_unit: 'months',
-                priority: 'medium',
-                notes: '',
-                is_recurring: true
-            },
-            historyForm: {
-                title: '',
-                description: '',
-                completed_date: new Date().toISOString().split('T')[0],
-                mileage: null,
-                cost: '',
-                maintenance_type: 'regular',
-                parts_used: '',
-                notes: '',
-                motorcycle_id: null,
-                stats: null
-            },
             completionData: {
                 cost: '',
                 completed_date: new Date().toISOString().split('T')[0],
@@ -628,35 +497,9 @@ export default {
                 notes: '',
                 create_next: true
             },
-            editHistoryForm: {
-                id: null,
-                title: '',
-                description: '',
-                completed_date: new Date().toISOString().split('T')[0],
-                mileage: null,
-                cost: '',
-                maintenance_type: 'regular',
-                parts_used: '',
-                notes: '',
-                motorcycle_id: null,
-                status: 'completed'
-            }
         }
     },
 
-    watch: {
-        showAddHistoryModal(newVal) {
-            if (newVal) {
-                if (this.isEditingHistory) {
-                    this.historyForm = { ...this.editHistoryForm}
-                } else {
-                    this.resetHistoryForm()
-                    this.historyForm.motorcycle_id = this.motorcycle.id
-                }
-            }
-        }
-    },
-    
     computed: {
         isInsuranceExpiring() {
             if (!this.motorcycle.insurance_expiry) return false
@@ -679,10 +522,59 @@ export default {
     },
     
     methods: {
-        onTaskCreated() {
-            this.showAddMaintenanceModal = false
-            this.fetchMotorcycleData()
+        openAddTaskModal() {
+            this.showTaskModal = true;
+            this.isEditingTask = false;
+            this.editingTaskData = null;
         },
+
+        openEditTaskModal(task) {
+            this.showTaskModal = true;
+            this.isEditingTask = true;
+            this.editingTaskData = task;
+        },
+
+        closeTaskModal() {
+            this.showTaskModal = false;
+            this.isEditingTask = false;
+            this.editingTaskData = null;
+        },
+
+        onTaskCreated({ data, isEditing }) {
+            this.fetchMotorcycleData();
+            this.showNotification(
+                isEditing ? 'Задача обновлена' : 'Задача создана',
+                'success'
+            );
+        },
+
+        // История ТО
+        openAddHistoryModal() {
+            this.showHistoryModal = true;
+            this.isEditingHistory = false;
+            this.editingHistoryData = null;
+        },
+
+        openEditHistoryModal(record) {
+            this.showHistoryModal = true;
+            this.isEditingHistory = true;
+            this.editingHistoryData = record;
+        },
+
+        closeHistoryModal() {
+            this.showHistoryModal = false;
+            this.isEditingHistory = false;
+            this.editingHistoryData = null;
+        },
+
+        onHistorySaved({ data, isEditing }) {
+            this.loadMaintenanceHistory();
+            this.showNotification(
+                isEditing ? 'Запись истории обновлена' : 'Запись истории создана',
+                'success'
+            );
+        },
+
 
         async fetchMotorcycleData() {
             try {
@@ -703,9 +595,6 @@ export default {
                 const data = response.data
                 this.motorcycle = data.motorcycle
 
-                console.log('ID motorcycle')
-                console.log(this.motorcycle.id)
-
                  this.upcomingMaintenance = (data.maintenance_tasks || [])
                     .sort((a, b) => {
                         const aDate = a.next_maintenance_date ? new Date(a.next_maintenance_date) : null
@@ -714,19 +603,16 @@ export default {
                         if (aDate && isNaN(aDate.getTime())) aDate = null
                         if (bDate && isNaN(bDate.getTime())) bDate = null
 
-                        // Сначала сортируем просроченные задачи
                         const aOverdue = this.isTaskOverdue(a)
                         const bOverdue = this.isTaskOverdue(b)
                         
                         if (aOverdue && !bOverdue) return -1
                         if (!aOverdue && bOverdue) return 1
                         
-                        // Затем по дате
                         if (aDate && bDate) return aDate - bDate
                         if (aDate) return -1
                         if (bDate) return 1
                         
-                        // Затем по пробегу
                         if (a.next_maintenance_mileage && b.next_maintenance_mileage) {
                             return a.next_maintenance_mileage - b.next_maintenance_mileage
                         }
@@ -736,6 +622,7 @@ export default {
                     .slice(0, 5)
 
                 this.allTaskMaintenance = data.all_tasks || []
+                console.log(this.allTaskMaintenance)
                 this.maintenanceStats = data.stats || {}
                 this.recentNotes = data.recent_notes || []
                 
@@ -824,208 +711,37 @@ export default {
             }
         },
 
-        // Добавить задачу ТО
-        async addMaintenance() {
-            try {
-                const token = localStorage.getItem('authToken')
-
-                this.newMaintenance.motorcycle_id = this.motorcycle.id
-
-                if (!this.newMaintenance.last_maintenance_mileage) {
-                    this.newMaintenance.last_maintenance_mileage = this.motorcycle.current_mileage || 0
-                }
-
-                if (!this.newMaintenance.last_maintenance_date) {
-                    this.newMaintenance.last_maintenance_date = new Date().toISOString().split('T')[0]
-                }
-                
-                let response
-                if (this.isEditingTask && this.selectedTask) {
-                    response = await axios.put(
-                        `/api/garage/maintenance/${this.selectedTask.id}`,
-                        this.newMaintenance,
-                        { headers: { 'Authorization': `Bearer ${token}` } }
-                    )
-                } else {
-                    response = await axios.post(
-                        '/api/garage/maintenance',
-                        this.newMaintenance,
-                        { headers: { 'Authorization': `Bearer ${token}` } }
-                    )
-                }
-                
-
-                this.resetMaintenanceForm()
-                this.showAddMaintenanceModal = false
-                this.isEditingTask = false
-                this.selectedTask = null
-
-                await this.fetchMotorcycleData()
-
-                this.showNotification('Задача ТО успешно добавлена', 'succes')
-            } catch (error) {
-                console.error('Ошибка добавления задачи ТО: ', error)
-                this.showNotification('Ошибка при добавлении задачи ТО', 'error')
-            }
-        },
-
         // Отметка задачи
         async completeTask() {
             try {
-                const token = localStorage.getItem('authToken')
+                const token = localStorage.getItem('authToken');
 
                 const completionData = {
                     const: this.completionData.cost,
                     parts_used: this.completionData.parts_used,
                     notes: this.completionData.notes,
-                    create_next: this.completionData.create_next
-                }
+                    create_next: this.completionData.create_next,
+                    completed_date: this.completionData.completed_date,
+                    mileage: this.motorcycle.current_mileage
+                };
 
-                const response = await axios.post(
+                await axios.post(
                     `/api/garage/maintenance/${this.selectedTask.id}/complete`,
                     completionData,
                     { headers: { 'Authorization': `Bearer ${token}` } }
-                )
+                );
 
-                this.showCompleteModalVar = false
-                await this.fetchMotorcycleData()
-                await this.loadMaintenanceHistory()
+                this.showCompleteModalVar = false;
+                await this.fetchMotorcycleData();
+                await this.loadMaintenanceHistory();
 
-                this.showNotification('Задача отмечена выполненой', 'success')
+                this.showNotification('Задача отмечена выполненой', 'success');
             } catch (error) {
-                console.error('Ошибка отметки выполнения: ', error)
-                this.showNotification('Ошибка при отметке выполнения: ', error)
+                console.error('Ошибка отметки выполнения: ', error);
+                this.showNotification('Ошибка при отметке выполнения: ', error);
             }
         },
 
-
-        openEditTaskModal(task) {
-            this.isEditingTask = true
-            this.editingTaskData = task
-            this.showAddMaintenanceModal = true
-        },
-
-        editTask(task) {
-            this.selectedTask = task
-
-            let lastMaintenanceDate = ''
-            if (task.last_maintenance_date) {
-                const date = new Date(task.last_maintenance_date)
-                if (!isNaN(date.getMinutes())) {
-                    lastMaintenanceDate = date.toISOString().split('T')[0]
-                }
-            }
-
-            if (!this.isHistoryRecord) {
-            }
-            this.newMaintenance = {
-                title: task.title,
-                description: task.description,
-                last_maintenance_mileage: task.last_maintenance_mileage,
-                last_maintenance_date: lastMaintenanceDate,
-                schedule_type: task.schedule_type,
-                interval_value: task.interval_value,
-                interval_unit: task.interval_unit,
-                priority: task.priority,
-                is_recurring: task.is_recurring,
-                notes: task.notes,
-                motorcycle_id: this.motorcycle.id
-            }
-            this.showAddMaintenanceModal = true
-            this.isEditingTask = true
-        },
-
-        async updateTask() {
-            try {
-                const token = localStorage.getItem('authToken')
-
-                const dataToSend = {
-                    ...this.editTaskForm,
-                    motorcycle_id: this.motorcycle.id,
-                    last_maintenance_mileage: this.editTaskForm.last_maintenance_mileage ?
-                        Number(this.editTaskForm.last_maintenance_mileage) : null,
-                    interval_value: this.editTaskForm.interval_value ?
-                        Number(this.editTaskForm.interval_value) : null
-                }
-
-                await axios.put(
-                    `/api/garage/maintenance/${this.editingTaskData.id}`,
-                    dataToSend,
-                    { headers: { 'Authorization': `Bearer ${token}` } }
-                )
-
-                this.showAddMaintenanceModal = false
-                this.isEditingTask = false
-                this.editingTaskData = null
-                this.resetEditTaskForm()
-
-                await this.fetchMotorcycleData()
-                alert('Задача успешно обновлена')
-            } catch (error) {
-                console.error('Ошибка обновления задачи:', error)
-                alert('Ошибка при обновлении задачи')
-            }
-        },
-
-        resetEditTaskForm() {
-            this.editTaskForm = {
-                title: '',
-                description: '',
-                last_maintenance_date: null,
-                last_maintenance_mileage: null,
-                schedule_type: 'mileage',
-                interval_value: null,
-                interval_unit: 'months',
-                priority: 'medium',
-                notes: '',
-                is_recurring: true
-            }
-        },
-
-        closeTaskModal() {
-            this.showAddMaintenanceModal = false
-            this.isEditingTask = false
-            this.resetEditTaskForm()
-        },
-
-        onTaskUpdated() {
-            this.closeTaskModal()
-            this.fetchMotorcycleData()
-        },
-
-        editHistoryRecord(record) {
-            this.selectedHistoryRecord = record
-            this.isEditingHistory = true
-
-            let completedDate = ''
-            if (record.completed_at) {
-                const date = new Date(record.completed_at)
-                if (!isNaN(date.getTime)) {
-                    completedDate = date.toISOString().split('T')[0]
-                }
-            } else if (record.last_maintenance_date) {
-                const date = new Date(record.last_maintenance_date)
-                if (!isNaN(date.geTime())) {
-                    completedDate = date.toISOString().split('T')[0]
-                }
-            }
-
-            this.editHistoryForm = {
-                id: record.id,
-                title: record.title || '',
-                description: record.description || '',
-                completed_date: record.completedDate || new Date().toISOString().split('T')[0],
-                mileage: record.last_maintenance_mileage || this.motorcycle.current_mileage || 0,
-                cost: record.cost || '',
-                maintenance_type: record.maintenance_type || 'regular',
-                parts_used: record.parts_used || '',
-                notes: record.notes || '',
-                motorcycle_id: this.motorcycle.id,
-                status: 'completed'
-            }
-
-            this.showAddHistoryModal = true
-        },
 
         // Удалить задачу
         async deleteTask(task) {
@@ -1038,7 +754,7 @@ export default {
                         { headers: { 'Authorization': `Bearer ${token}` } }
                     )
 
-                    await this.fetchMotorcycleData()
+                    await this.loadMaintenanceHistory()
                     this.showNotification('Задача удалена', 'success')
                 } catch (error) {
                     console.error('Ошибка удаления задачи: ', error)
@@ -1058,7 +774,7 @@ export default {
                     { headers: { 'Authorization': `Bearer ${token}` } }
                 )
 
-                 this.maintenanceHistory = (response.data.history || []).map(record => {
+                this.maintenanceHistory = (response.data.history || []).map(record => {
                     if (record.last_maintenance_date) {
                         const date = new Date(record.last_maintenance_date)
                         if (!isNaN(date.getTime())) {
@@ -1068,57 +784,6 @@ export default {
                 })
             } catch (error) {
                 console.error('Ошибка загрузки истории: ', error)
-            }
-        },
-
-        // Добавить запись в историю
-        async addHistoryRecord() {
-            try {
-                const token = localStorage.getItem('authToken')
-
-                const historyData = {
-                    title: this.historyForm.title,
-                    description: this.historyForm.description,
-                    motorcycle_id: this.motorcycle.id,
-                    maintenance_type: this.historyForm.maintenance_type,
-                    schedule_type: 'time',
-                    interval_value: 0,
-                    status: 'completed',
-                    cost: this.historyForm.cost,
-                    parts_used: this.historyForm.parts_used,
-                    notes: this.historyForm.notes,
-                    last_maintenance_date: this.historyForm.completed_date,
-                    last_maintenance_mileage: this.historyForm.mileage || this.motorcycle.current_mileage,
-                    completed_at: this.historyForm.completed_date,
-                    is_recurring: false
-                }
-
-                let response
-                if (this.isEditingHistory && this.editHistoryForm.id) {
-                    response = await axios.put(
-                        `/api/garage/maintenance/${this.editHistoryForm.id}`,
-                        historyData,
-                        { headers: { 'Authorization': `Bearer ${token}` } }
-                    )
-                } else {
-                    response = await axios.post(
-                        '/api/garage/maintenance',
-                        historyData,
-                        { headers: { 'Authorization': `Bearer ${token}` } }
-                    )
-                }
-
-                this.showAddHistoryModal = false
-                this.resetHistoryForm()
-                await this.loadMaintenanceHistory()
-
-                this.showNotification(this.isEditingHistory ? 'Запись обновлена' : 'Запись добавлена в историю', 'success')
-            
-                this.isEditingHistory = false
-                this.selectedHistoryRecord = null
-            } catch (error) {
-                console.error('Ошибка добавления записи в историю ', error)
-                this.showNotification('Ошибка при сохранении записи', 'error')
             }
         },
 
@@ -1175,63 +840,12 @@ export default {
             return priorities[priority] || priority
         },
 
-        // Сброс формы добавления ТО
-        resetMaintenanceForm() {
-            this.newMaintenance = {
-                title: '',
-                description: '',
-                schedule_type: 'mileage',
-                interval_value: null,
-                interval_unit: 'months',
-                last_maintenance_date: new Date().toISOString().split('T')[0],
-                last_maintenance_mileage: null,
-                priority: 'medium',
-                is_recurring: true,
-                notes: '',
-                motorcycle_id: null
-            }
-        },
-
-        // Сброс формы истории
-        resetHistoryForm() {
-            if (this.isEditingHistory && this.selectedHistoryRecord) {
-                this.historyForm = { ...this.editHistoryForm }
-            } else {
-                this.historyForm = {
-                    title: '',
-                    description: '',
-                    completed_date: new Date().toISOString().split('T')[0],
-                    mileage: null,
-                    cost: '',
-                    maintenance_type: 'regular',
-                    parts_used: '',
-                    notes: '',
-                    motorcycle_id: null
-                }
-            }
-        },
-
         // Показать модалку добавления задачи
         showCompleteModal(task) {
             this.selectedTask = task
-            this.completionData = {
-                cost: '',
-                completed_date: new Date().toISOString().split('T')[0],
-                parts_used: '',
-                notes: '',
-                create_next: true
-            }
             this.showCompleteModalVar = true
         },
 
-        // Закрыть модалку истории
-        closeHistoryModal() {
-            this.showAddHistoryModal = false
-            this.isEditingHistory = false
-            this.selectedHistoryRecord = null
-            this.resetHistoryForm()
-        },
-        
         // Форматирование даты
         formatDate(dateString) {
             if (!dateString) return 'Не указано'
@@ -1263,7 +877,7 @@ export default {
         // Показ уведомлений
         showNotification(message, type = 'info') {
             alert(message)
-        }
+        },
     },
 }
 </script>
@@ -2065,106 +1679,6 @@ select.form-input {
 
 .task-item.overdue {
     border-left: 4px solid var(--danger);
-}
-
-/* История обслуживания */
-.history-card {
-    background: rgba(10, 10, 15, 0.7);
-    backdrop-filter: blur(20px);
-    border-radius: 12px;
-    overflow: hidden;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.history-list {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-}
-
-.history-item {
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 10px;
-    padding: 15px;
-    display: flex;
-    align-items: flex-start;
-    gap: 15px;
-    transition: all 0.3s ease;
-    border: 1px solid transparent;
-}
-
-.history-item:hover {
-    background: rgba(var(--accent-rgb), 0.1);
-    border-color: var(--accent);
-}
-
-.history-icon {
-    min-width: 36px;
-    min-height: 36px;
-    border-radius: 8px;
-    background: linear-gradient(135deg, #6f42c1 0%, #6610f2 100%);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: white;
-}
-
-.history-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 8px;
-    flex-wrap: wrap;
-    gap: 10px;
-}
-
-.history-title {
-    font-weight: 600;
-    color: var(--text);
-    font-size: 1.05em;
-}
-
-.history-date {
-    font-size: 0.85em;
-    color: var(--text-secondary);
-    display: flex;
-    align-items: center;
-    gap: 5px;
-}
-
-.history-details {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-}
-
-.history-description {
-    color: var(--text-secondary);
-    font-size: 0.95em;
-    line-height: 1.4;
-}
-
-.history-cost {
-    color: #28a745;
-    font-weight: 600;
-    font-size: 0.9em;
-    display: flex;
-    align-items: center;
-    gap: 5px;
-}
-
-.history-parts {
-    color: var(--text-secondary);
-    font-size: 0.9em;
-    display: flex;
-    align-items: center;
-    gap: 5px;
-    margin-bottom: 10px;
-}
-
-.history-actions {
-    display: flex;
-    gap: 8px;
 }
 
 /* Состояние пустого списка */

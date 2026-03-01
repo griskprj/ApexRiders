@@ -90,8 +90,7 @@ def delete_user(user_id):
             
             from app.models import (
                 Post, Like, Comment, ManualRating, ManualDraft,
-                UserManualProgress, UserManualHistory, UserLessonHistory,
-                UserCoursesHistory, Product
+                UserManualProgress, UserManualHistory, Product
             )
             
             posts = Post.query.filter_by(author_id=user_id).all()
@@ -114,8 +113,6 @@ def delete_user(user_id):
             ManualDraft.query.filter_by(user_id=user_id).delete()
             UserManualProgress.query.filter_by(user_id=user_id).delete()
             UserManualHistory.query.filter_by(user_id=user_id).delete()
-            UserLessonHistory.query.filter_by(user_id=user_id).delete()
-            UserCoursesHistory.query.filter_by(user_id=user_id).delete()
             
             products = Product.query.filter_by(owner_id=user_id).all()
             for product in products:
