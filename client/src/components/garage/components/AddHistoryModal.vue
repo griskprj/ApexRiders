@@ -131,7 +131,8 @@ import { authService } from '../../../utils/checkAuth';
 import BaseButton from '../../ui/BaseButton.vue';
 import BaseInput from '../../ui/BaseInput.vue';
 import BaseTextarea from '../../ui/BaseTextarea.vue';
-import BasicSelect from '../../ui/BasicSelect.vue';
+import BasicSelect from '../../ui/BaseSelect.vue';
+
 
 export default {
     name: 'AddHistoryModal',

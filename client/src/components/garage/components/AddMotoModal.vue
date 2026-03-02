@@ -110,9 +110,9 @@
 
 <script>
 import axios from 'axios';
-import { authService } from '../../utils/checkAuth';
-import BaseButton from '../ui/BaseButton.vue';
-import BaseInput from '../ui/BaseInput.vue';
+import { authService } from '../../../utils/checkAuth';
+import BaseButton from '../../ui/BaseButton.vue';
+import BaseInput from '../../ui/BaseInput.vue';
 
 export default {
     name: 'AddMotoModal',

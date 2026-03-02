@@ -243,13 +243,13 @@
 
 <script>
 import axios from 'axios';
-import { authService } from '../../utils/checkAuth';
-import BaseButton from '../ui/BaseButton.vue';
-import BaseInput from '../ui/BaseInput.vue';
-import BasicSelect from '../ui/BasicSelect.vue';
-import BaseTextarea from '../ui/BaseTextarea.vue';
-import BaseRadioButton from '../ui/BaseRadioButton.vue';
-import BasicCheckBox from '../ui/BasicCheckBox.vue';
+import { authService } from '../../../utils/checkAuth';
+import BaseButton from '../../ui/BaseButton.vue';
+import BaseInput from '../../ui/BaseInput.vue';
+import BasicSelect from '../../ui/BasicSelect.vue';
+import BaseTextarea from '../../ui/BaseTextarea.vue';
+import BaseRadioButton from '../../ui/BaseRadioButton.vue';
+import BasicCheckBox from '../../ui/BasicCheckBox.vue';
 
 export default {
     name: 'AddTaskModal',

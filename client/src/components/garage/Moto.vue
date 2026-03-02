@@ -430,8 +430,8 @@
 
 <script>
 import axios from 'axios'
-import AddTaskModal from './AddTaskModal.vue';  
-import MaintenanceHistory from './components/MaintenanceHistory.vue';
+import AddTaskModal from './components/AddTaskModal.vue';  
+import MaintenanceHistory from './components/MaintenanceHistory.vue'
 
 export default {
     name: 'GaragePage',

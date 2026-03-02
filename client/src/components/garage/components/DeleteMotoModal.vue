@@ -37,8 +37,8 @@
 
 <script>
 import axios from 'axios';
-import { authService } from '../../utils/checkAuth';
-import BaseButton from '../ui/BaseButton.vue';
+import { authService } from '../../../utils/checkAuth';
+import BaseButton from '../../ui/BaseButton.vue';
 
 export default {
     name: 'DeleteMotoModal',

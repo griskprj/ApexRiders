@@ -24,11 +24,11 @@
                             <span v-if="record.description" class="history-description">
                                 <i class="fas fa-align-left"></i> {{ record.description }}
                             </span>
-                            <div v-if="record.cost" class="history-cost">
-                                <i class="fas fa-ruble-sign"></i> {{ record.cost }} руб.
-                            </div>
                             <div v-if="record.parts_used.length !== 0" class="history-parts">
                                 <i class="fas fa-cog"></i> {{ record.parts_used }}
+                            </div>
+                            <div v-if="record.cost" class="history-cost">
+                                <i class="fas fa-ruble-sign"></i> {{ record.cost }} руб.
                             </div>
                         </div>
                         <div class="history-actions">
@@ -36,14 +36,14 @@
                                 variant="outline"
                                 @click="$emit('edit-record', record)"
                             >
-                                <i class="fas fa-edit"></i>
+                                <i class="fas fa-edit"></i> Редактировать
                             </BaseButton>
 
                             <BaseButton
                                 variant="outline"
                                 @click="$emit('delete-record', record)"
                             >
-                                <i class="fas fa-trash"></i>
+                                <i class="fas fa-trash"></i> Удалить
                             </BaseButton>
                         </div>
                     </div>
@@ -105,6 +105,9 @@ export default {
     background: rgba(20, 20, 30, 0.8);
     padding: 20px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
 }
 
 .card-header h2 {
@@ -118,6 +121,10 @@ export default {
 
 .card-header i {
     color: var(--primary);
+}
+
+.card-header button {
+    width: 100%;
 }
 
 .card-body {
@@ -150,7 +157,7 @@ export default {
 }
 
 .history-item:hover {
-    background: rgba(var(--accent-rgb), 0.1);
+    background: rgba(var(--accent-rgb), 0.05);
     border-color: var(--accent);
 }
 
@@ -164,15 +171,6 @@ export default {
     align-items: center;
     justify-content: center;
     color: white;
-}
-
-.history-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 8px;
-    flex-wrap: wrap;
-    gap: 10px;
 }
 
 .history-title {
@@ -239,6 +237,10 @@ export default {
     width: 100%;
 }
 
+.history-actions i {
+    margin-right: 8px;
+}
+
 .empty-state {
     text-align: center;
     padding: 40px 20px;
@@ -269,5 +271,11 @@ export default {
     align-items: flex-start;
     margin-bottom: 8px;
     gap: 10px;
+}
+
+@media (max-width: 720px) {
+    .history-actions {
+        flex-direction: column;
+    }
 }
 </style>

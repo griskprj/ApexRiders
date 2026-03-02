@@ -252,7 +252,7 @@ export default {
     --primary: #ff4500;
     --primary-light: rgba(255, 69, 0, 0.15);
     --primary-dark: rgba(255, 69, 0, 0.7);
-    --primary-rgb: 74, 108, 247;
+    --primary-rgb: 255, 69, 0;
     
     --bg-primary: #0a0a0f;
     --bg-secondary: #14141e;
@@ -267,7 +267,7 @@ export default {
     --text-secondary: rgba(255, 255, 255, 0.7);
     
     --accent: #00bfff;
-    --accent-rgb: 255, 107, 107;
+    --accent-rgb: 0, 191, 255;
 
     --success: #9DF29B;
     --success-rgb: 157, 242, 155;

@@ -71,13 +71,13 @@
 <script>
 import axios from 'axios'
 import { authService } from '../../utils/checkAuth'
-import BaseButton from '../ui/BaseButton.vue';
-import StatsOverview from './StatsOverview.vue';
-import MotorcyclesList from './MotorcyclesList.vue';
-import UpcomingTasks from './UpcomingTasks.vue';
-import AddMotoModal from './AddMotoModal.vue';
-import DeleteMotoModal from './DeleteMotoModal.vue';
-import AddTaskModal from './AddTaskModal.vue';
+import BaseButton from '../../ui/BaseButton.vue';
+import StatsOverview from './components/StatsOverview.vue'
+import MotorcyclesList from './components./MotorcyclesList.vue';
+import UpcomingTasks from './components./UpcomingTasks.vue';
+import AddMotoModal from './components./AddMotoModal.vue';
+import DeleteMotoModal from './components./DeleteMotoModal.vue';
+import AddTaskModal from './components./AddTaskModal.vue';
 
 export default {
     name: 'Garage',
