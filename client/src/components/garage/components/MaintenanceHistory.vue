@@ -58,6 +58,24 @@
 </template>
 
 <script>
+/**
+ * Компонент MaintenanceHistory
+ * @description История обслуживания мотоцикла
+ * 
+ * @component
+ * @version 1.0.0
+ * @example
+ * <MaintenanceHistory
+ *   :history="maintenanceHistory"
+ *   @add-record="openAddHistoryModal"
+ *   @edit-record="openEditHistoryModal"
+ *   @delete-record="deleteTask"
+ * />
+ * 
+ * @emits edit-record - Срабатывает при нажатии на кнопку редактирования записи ТО
+ * @emits delete-record - Срабатывает при нажатии на кнопку удаления записи ТО
+ * 
+*/
 import BaseButton from '../../ui/BaseButton.vue'; /** Компонент кнопки */
 
 export default {
@@ -81,11 +99,13 @@ export default {
         }
     },
     computed: {
+        /** Подсчет отображаемых записей ТО */
         displayedRecord() {
             return this.limit ? this.history.slice(0, this.limit) : this.history
         }
     },
     methods: {
+        /** Форматирование даты */
         formatDate(dateString) {
             if (!dateString) return 'Не указано'
             const date = new Date(dateString)

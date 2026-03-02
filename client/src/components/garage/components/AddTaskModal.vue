@@ -242,6 +242,45 @@
 </template>
 
 <script>
+/**
+ * Модальное окно для работы с задачами ТО
+ * 
+ * @description Позволяет управлять задачами ТО, в том числе историей
+ * @version 1.0.0
+ * @component
+ * 
+ * @example
+ * <!-- Модальное окно для задач ТО -->
+ * <AddTaskModal
+ *     :isOpen="showTaskModal"
+ *     mode="task"
+ *     :motorcycleId="motorcycle.id"
+ *     :motorcycleName="`${motorcycle.brand} ${motorcycle.model}`"
+ *     :motorcycleMileage="motorcycle.current_mileage"
+ *     :isEditing="isEditingTask"
+ *     :editData="editingTaskData"
+ *     @close="closeTaskModal"
+ *     @save="onTaskCreated"
+ * />
+ * 
+ * <!-- Модальное окно для истории ТО -->
+ * <AddTaskModal
+ *     :isOpen="showHistoryModal"
+ *     mode="history"
+ *     :motorcycleId="motorcycle.id"
+ *     :motorcycleName="`${motorcycle.brand} ${motorcycle.model}`"
+ *     :motorcycleMileage="motorcycle.current_mileage"
+ *     :isEditing="isEditingHistory"
+ *     :editData="editingHistoryData"
+ *     @close="closeHistoryModal"
+ *     @save="onHistorySaved"
+ * />
+ * 
+ * @emits close - Закрытие модального окна
+ * @emits save - Сохранение изменений (добавление ТО, редактирование ТО)
+ * 
+*/
+
 import axios from 'axios';
 import { authService } from '../../../utils/checkAuth';
 import BaseButton from '../../ui/BaseButton.vue';
