@@ -160,62 +160,12 @@
             />
 
             <!-- Ближайшие задачи ТО -->
-            <div class="tasks-card">
-                <div class="card-header">
-                    <h2><i class="fas fa-calendar-alt"></i> {{ showAllTasks ? 'Все' : 'Ближайшие'}} задачи ТО</h2>
-                    <button class="btn btn-small btn-outline" @click="showAllTasks = !showAllTasks">
-                        {{ showAllTasks ? 'Показать ближайшие': 'Показать все' }}
-                    </button>
-                </div>
-                <div class="card-body">
-                    <div class="tasks-list">
-                        <div 
-                            v-for=" task in (showAllTasks ? allTaskMaintenance : upcomingMaintenance.slice(0, 3))" 
-                            :key="task.id" 
-                            class="task-item"
-                            :class="{ 'overdue': isTaskOverdue(task) }">
-                            <div class="task-icon">
-                                <i class="fas fa-tools"></i>
-                            </div>
-                            <div class="task-content">
-                                <div class="task-header">
-                                    <div class="task-title">{{ task.title }}</div>
-                                    <div class="task-prority" :class="task.priority">
-                                        {{ getPriorityText(task.priority) }}
-                                    </div>
-                                </div>
-                                <div class="task-details">
-                                    <span v-if="task.next_maintenance_date" class="task-date">
-                                        <i class="far fa-calendar"></i> {{ formatDateForDisplay(task.next_maintenance_date) }}
-                                    </span>
-                                    <span v-if="task.next_maintenance_mileage" class="task-mileage">
-                                        <i class="fas fa-tachometer-alt"></i> {{ task.next_maintenance_mileage }} км
-                                    </span>
-                                </div>
-                                <div class="task-actions">
-                                    <button class="btn btn-small btn-success" @click="showCompleteModal(task)">
-                                        <i class="fas fa-check"></i> Выполнено
-                                    </button>
-                                    <button class="btn btn-small btn-outline" @click="openEditTaskModal(task)">
-                                        <i class="fas fa-edit"></i>
-                                    </button>
-                                    <button class="btn btn-small btn-outline" @click="deleteTask(task)">
-                                        <i class="fas fa-trash"></i>
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="empty-state" v-if="showAllTasks && allTaskMaintenance.length === 0">
-                        <i class="fas fa-wrench"></i>
-                        <p>Задач еще нет</p>
-                    </div>
-                    <div class="empty-state" v-else-if="!showAllTasks && upcomingMaintenance.length === 0">
-                        <i class="fas fa-clock"></i>
-                        <p>Предстоящих задач нет</p>
-                    </div>
-                </div>
-            </div>
+            <AllMotoTask
+                :allTaskMaintenance="allTaskMaintenance"
+                :upcomingMaintenance="upcomingMaintenance"
+                :overdueTasks="overdueTasks"
+                :motorcycle="motorcycle"
+            />
         </div>
 
         <!-- Модальное окно изменения пробега -->
@@ -432,13 +382,15 @@
 import axios from 'axios'
 import AddTaskModal from './components/AddTaskModal.vue';  
 import MaintenanceHistory from './components/MaintenanceHistory.vue'
+import AllMotoTask from './components/AllMotoTask.vue';
 
 export default {
     name: 'GaragePage',
     
     components: {
         AddTaskModal,
-        MaintenanceHistory  
+        MaintenanceHistory,
+        AllMotoTask
     },
 
     data() {
@@ -461,6 +413,7 @@ export default {
             maintenanceStats: {},
             upcomingMaintenance: [],
             allTaskMaintenance: [],
+            overdueTasks: [],
             maintenanceHistory: [],
             selectedTask: null,
             selectedHistoryRecord: null,
@@ -622,7 +575,7 @@ export default {
                     .slice(0, 5)
 
                 this.allTaskMaintenance = data.all_tasks || []
-                console.log(this.allTaskMaintenance)
+                this.overdueTasks = data.overdue_tasks
                 this.maintenanceStats = data.stats || {}
                 this.recentNotes = data.recent_notes || []
                 

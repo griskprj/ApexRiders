@@ -31,6 +31,9 @@ def get_motorcycle_detail(moto_id):
 
     upcoming_tasks = [task for task in maintenance_tasks
                       if task.status == 'pending']
+
+    overdue_tasks = [ov_task for ov_task in maintenance_tasks
+                      if ov_task.status == 'overdue']
     
     return jsonify({
         'motorcycle': moto.to_dict(),
@@ -39,6 +42,7 @@ def get_motorcycle_detail(moto_id):
         'stats': stats,
         'all_tasks': [task.to_dict() for task in maintenance_tasks if task.status != 'completed'],
         'upcoming_maintenance': [task.to_dict() for task in upcoming_tasks],
+        'overdue_tasks': [task.to_dict() for task in overdue_tasks],
         'recent_notes': [note.to_dict() for note in notes[:5]]
     })
 
@@ -109,6 +113,7 @@ def add_maintenance():
         next_date = None
         next_mileage = None
         last_maintenance_date = None
+        overdue = False
 
         last_date_str = data.get('last_maintenance_date')
         if last_date_str:
@@ -126,6 +131,8 @@ def add_maintenance():
             last_mileage = data.get(
                 'last_maintenance_mileage', moto.current_mileage)
             next_mileage = last_mileage + interval
+            if moto.current_mileage > next_mileage:
+                overdue = True
         elif data.get('schedule_type') == 'time':
             interval = data.get('interval_value', 0)
             unit = data.get('interval_unit', 'months')
@@ -136,6 +143,13 @@ def add_maintenance():
             elif unit == 'days':
                 next_date = last_maintenance_date + timedelta(days=interval)
 
+        if overdue:
+            status = 'overdue'
+        elif not(overdue) and data.get('status'):
+            status = data.get('status')
+        else:
+            status = 'pending'
+        
         new_task = MotorcycleMaintenance(
             motorcycle_id=moto_id,
             title=data.get('title'),
@@ -153,7 +167,7 @@ def add_maintenance():
             parts_used=data.get('parts_used', ''),
             is_recurring=data.get('is_recurring', True),
             notes=data.get('notes'),
-            status=data.get('status') if data.get('status') else 'pending'
+            status=status
         )
 
         db.session.add(new_task)
