@@ -1,48 +1,12 @@
 <template>
     <div class="garage-page">
         <!-- Хедер с информацией о мотоцикле -->
-        <div class="garage-header">
-            <div class="header-content">
-                <h1>{{ motorcycle.brand }} {{ motorcycle.model }}</h1>
-                <div class="motorcycle-info">
-                    <div class="info-item">
-                        <span class="label">Год:</span>
-                        <span class="value">{{ motorcycle.year || 'Не указан' }}</span>
-                    </div>
-                    <div class="info-item">
-                        <span class="label">Объем:</span>
-                        <span class="value">{{ motorcycle.engine_volume || 'Не указан' }}</span>
-                    </div>
-                    <div class="info-item">
-                        <span class="label">Цвет:</span>
-                        <span class="value">{{ motorcycle.color || 'Не указан' }}</span>
-                    </div>
-                    <div class="info-item">
-                        <span class="label">Номер:</span>
-                        <span class="value">{{ motorcycle.license_plate || 'Не указан' }}</span>
-                    </div>
-                </div>
-            </div>
-            <div class="header-actions">
-                <div class="mileage-display">
-                    <div class="mileage-info">
-                        <span class="mileage-label">Пробег:</span>
-                        <span class="mileage-value">{{ motorcycle.current_mileage || 0 }} км</span>
-                    </div>
-                    <button class="btn btn-small btn-outline" @click="showMileageModal = true">
-                        <i class="fas fa-edit"></i> Изменить
-                    </button>
-                </div>
-                <div class="action-buttons">
-                    <button class="btn btn-primary" @click="showEditModal = true">
-                        <i class="fas fa-edit"></i> Редактировать
-                    </button>
-                    <button class="btn btn-danger" @click="confirmDelete">
-                        <i class="fas fa-trash"></i> Удалить
-                    </button>
-                </div>
-            </div>
-        </div>
+        <MotoInfo
+            :motorcycle="motorcycle"
+            @edit-moto="handleEditMoto"
+            @delete-moto="confirmDelete"
+            @update-mileage="handleOpenUpdateMileage"
+        />
 
         <div class="add-maintenance-section">
             <button class="btn btn-primary btn-large" @click="openAddTaskModal">
@@ -124,33 +88,6 @@
                 </div>
             </div>
 
-            <!-- Последние заметки -->
-            <div class="notes-card" v-if="recentNotes.length > 0">
-                <div class="card-header">
-                    <h2><i class="fas fa-sticky-note"></i> Последние заметки</h2>
-                </div>
-                <div class="card-body">
-                    <div class="notes-list">
-                        <div v-for="note in recentNotes.slice(0, 3)" :key="note.id" class="note-item">
-                            <div class="note-header">
-                                <div class="note-title">
-                                    <i class="fas fa-file-alt"></i> {{ note.title }}
-                                </div>
-                                <div class="note-date">
-                                    <i class="far fa-clock"></i> {{ formatDate(note.updated_at) }}
-                                </div>
-                            </div>
-                            <div class="note-content">{{ note.content.substring(0, 100) }}...</div>
-                            <div class="note-tags" v-if="note.tags && note.tags.length > 0">
-                                <span v-for="tag in note.tags.slice(0, 2)" :key="tag" class="tag">
-                                    #{{ tag }}
-                                </span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
             <!-- История ТО -->
             <MaintenanceHistory
                 :history="maintenanceHistory"
@@ -172,120 +109,19 @@
         </div>
 
         <!-- Модальное окно изменения пробега -->
-        <div v-if="showMileageModal" class="modal-overlay">
-            <div class="modal">
-                <div class="modal-header">
-                    <h3><i class="fas fa-tachometer-alt"></i> Изменение пробега</h3>
-                    <button class="close-btn" @click="showMileageModal = false">&times;</button>
-                </div>
-                <div class="modal-body">
-                    <div class="form-group">
-                        <label>Текущий пробег: {{ motorcycle.current_mileage || 0 }} км</label>
-                        <div class="input-with-icon">
-                            <i class="fas fa-road"></i>
-                            <input 
-                                type="number" 
-                                v-model="newMileage" 
-                                placeholder="Новый пробег в км" 
-                                class="form-input"
-                                min="0"
-                            >
-                        </div>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button class="btn btn-secondary" @click="showMileageModal = false">Отмена</button>
-                    <button class="btn btn-primary" @click="updateMileage" :disabled="!newMileage">
-                        <i class="fas fa-save"></i> Сохранить
-                    </button>
-                </div>
-            </div>
-        </div>
+        <UpdateMileageModal
+            :motorcycle="motorcycle"
+            :isOpen="showMileageModal"
+            @close="handleCloseUpdateMileage"
+            @save="handleUpdateMileage"
+        />
 
         <!-- Модальное окно редактирования мотоцикла -->
-        <div v-if="showEditModal" class="modal-overlay">
-            <div class="modal">
-                <div class="modal-header">
-                    <h3><i class="fas fa-motorcycle"></i> Редактирование мотоцикла</h3>
-                    <button class="close-btn" @click="showEditModal = false">&times;</button>
-                </div>
-                <div class="modal-body">
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label><i class="fas fa-tag"></i> Марка</label>
-                            <div class="input-with-icon">
-                                <i class="fas fa-tag"></i>
-                                <input v-model="editForm.brand" class="form-input" placeholder="Например, Honda">
-                            </div>
-                        </div>
-                        <div class="form-group">
-                            <label><i class="fas fa-tag"></i> Модель</label>
-                            <div class="input-with-icon">
-                                <i class="fas fa-tag"></i>
-                                <input v-model="editForm.model" class="form-input" placeholder="Например, CB500F">
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label><i class="fas fa-calendar"></i> Год выпуска</label>
-                            <div class="input-with-icon">
-                                <i class="fas fa-calendar"></i>
-                                <input v-model="editForm.year" type="number" class="form-input" placeholder="2020">
-                            </div>
-                        </div>
-                        <div class="form-group">
-                            <label><i class="fas fa-motorcycle"></i> Объем двигателя (см³)</label>
-                            <div class="input-with-icon">
-                                <i class="fas fa-motorcycle"></i>
-                                <input v-model="editForm.engine_volume" type="number" class="form-input" placeholder="500">
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label><i class="fas fa-palette"></i> Цвет</label>
-                            <div class="input-with-icon">
-                                <i class="fas fa-palette"></i>
-                                <input v-model="editForm.color" class="form-input" placeholder="Черный">
-                            </div>
-                        </div>
-                        <div class="form-group">
-                            <label><i class="fas fa-hashtag"></i> Номерной знак</label>
-                            <div class="input-with-icon">
-                                <i class="fas fa-hashtag"></i>
-                                <input v-model="editForm.license_plate" class="form-input" placeholder="А123БВ77">
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label><i class="fas fa-hashtag"></i> VIN</label>
-                            <div class="input-with-icon">
-                                <i class="fas fa-palette"></i>
-                                <input v-model="editForm.vin" class="form-input">
-                            </div>
-                        </div>
-                        <div class="form-group">
-                            <label><i class="fas fa-hashtag"></i> Страховка до</label>
-                            <div class="input-with-icon">
-                                <i class="fas fa-hashtag"></i>
-                                <input type="date" v-model="editForm.insurance_expiry" class="form-input">
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button class="btn btn-secondary" @click="showEditModal = false">Отмена</button>
-                    <button class="btn btn-primary" @click="updateMotorcycle">
-                        <i class="fas fa-save"></i> Сохранить
-                    </button>
-                </div>
-            </div>
-        </div>
+        <AddMotoModal
+            :motorcycleToEdit="motorcycle"
+            @save="updateMotorcycle"
+            @close="closeMotoModal"
+        />
 
         <!-- Модальное окно отметки выполнения -->
         <div v-if="showCompleteModalVar" class="modal-overlay">
@@ -379,6 +215,14 @@
         @close="closeHistoryModal"
         @save="onHistorySaved"
     />
+
+    <!-- Модальное окно редактирования мотоцикла -->
+    <AddMotoModal
+      :is-open="showMotoModal"
+      :motorcycle-to-edit="motorcycle"
+      @close="closeMotoModal"
+      @save="updateMotorcycle"
+    />
 </template>
 
 <script>
@@ -386,6 +230,9 @@ import axios from 'axios'
 import AddTaskModal from './components/AddTaskModal.vue';  
 import MaintenanceHistory from './components/MaintenanceHistory.vue'
 import AllMotoTask from './components/AllMotoTask.vue';
+import AddMotoModal from './components/AddMotoModal.vue';
+import MotoInfo from './components/MotoInfo.vue';
+import UpdateMileageModal from './components/UpdateMileageModal.vue';
 
 export default {
     name: 'GaragePage',
@@ -393,7 +240,10 @@ export default {
     components: {
         AddTaskModal,
         MaintenanceHistory,
-        AllMotoTask
+        AllMotoTask,
+        AddMotoModal,
+        MotoInfo,
+        UpdateMileageModal
     },
 
     data() {
@@ -429,6 +279,7 @@ export default {
             showEditModal: false,
             showCompleteModalVar: false,
 
+            showMotoModal: false,
             showTaskModal: false,
             showHistoryModal: false,
             isEditingTask: false,
@@ -604,46 +455,30 @@ export default {
         },
         
         // Обновить пробег
-        async updateMileage() {
-            try {
-                const token = localStorage.getItem('authToken')
-                await axios.put(
-                    `/api/motorcycle/${this.motorcycle.id}/mileage`,
-                    { mileage: this.newMileage },
-                    { headers: { 'Authorization': `Bearer ${token}` } }
-                )
-                
-                this.motorcycle.current_mileage = this.newMileage
-                this.newMileage = null
-                this.showMileageModal = false
+        handleOpenUpdateMileage() {
+            this.showMileageModal = true
+        },
+        handleCloseUpdateMileage() {
+            this.showMileageModal = false;
+        },
+        async handleUpdateMileage(newMileage) {
+                this.motorcycle.current_mileage = newMileage;
+                this.showMileageModal = false;
                 
                 await this.fetchMotorcycleData()
-                
-            } catch (error) {
-                console.error('Ошибка обновления пробега:', error)
-                alert('Ошибка при обновлении пробега')
-            }
         },
         
         // Обновить данные мотоцикла
-        async updateMotorcycle() {
-            try {
-                const token = localStorage.getItem('authToken')
-                await axios.put(
-                    `/api/motorcycle/${this.motorcycle.id}`,
-                    this.editForm,
-                    { headers: { 'Authorization': `Bearer ${token}` } }
-                )
-                
-                Object.assign(this.motorcycle, this.editForm)
-                this.showEditModal = false
-                
-            } catch (error) {
-                console.error('Ошибка обновления мотоцикла:', error)
-                alert('Ошибка при обновлении данных')
-            }
+        closeMotoModal() {
+            this.showMotoModal = false
         },
-        
+        handleEditMoto() {
+            this.showMotoModal = true
+        },
+        updateMotorcycle() {
+            this.fetchMotorcycleData()
+        },
+
         // Подтверждение удаления
         confirmDelete() {
             if (confirm('Вы уверены, что хотите удалить этот мотоцикл? Это действие нельзя отменить.')) {
@@ -1342,86 +1177,6 @@ export default {
     box-shadow: 0 0 0 3px rgba(255, 69, 0, 0.2);
 }
 
-/* Кнопки */
-.btn {
-    padding: 12px 24px;
-    border-radius: 8px;
-    font-weight: 600;
-    text-decoration: none;
-    transition: all 0.3s ease;
-    border: none;
-    cursor: pointer;
-    font-size: 0.95em;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-}
-
-.btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
-}
-
-.btn:active {
-    transform: translateY(0);
-}
-
-.btn-primary {
-    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
-    color: white;
-    border: 1px solid var(--primary);
-}
-
-.btn-primary:hover {
-    background: linear-gradient(135deg, #ff5500 0%, var(--primary) 100%);
-    box-shadow: 0 0 20px rgba(255, 69, 0, 0.5);
-}
-
-.btn-secondary {
-    background: rgba(255, 255, 255, 0.1);
-    color: var(--text);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-}
-
-.btn-secondary:hover {
-    background: rgba(255, 255, 255, 0.2);
-}
-
-.btn-danger {
-    background: linear-gradient(135deg, var(--danger) 0%, var(--very-danger) 100%);
-    color: white;
-    border: 1px solid var(--danger);
-}
-
-.btn-danger:hover {
-    background: linear-gradient(135deg, #ff5e6d 0%, var(--danger) 100%);
-    box-shadow: 0 0 20px rgba(255, 71, 87, 0.5);
-}
-
-.btn-outline {
-    background: transparent;
-    border: 1px solid var(--primary);
-    color: var(--text);
-}
-
-.btn-outline:hover {
-    background: var(--primary-light);
-    box-shadow: 0 0 15px rgba(255, 69, 0, 0.3);
-}
-
-.btn-small {
-    padding: 8px 16px;
-    font-size: 0.85em;
-}
-
-.btn:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-    transform: none !important;
-    box-shadow: none !important;
-}
-
 /* Индикатор загрузки */
 .loading-overlay {
     position: fixed;
@@ -1438,7 +1193,11 @@ export default {
 }
 
 .loading-content {
+    display: flex;
+    flex-direction: column;
     text-align: center;
+    align-items: center;
+    justify-content: center;
 }
 
 .loading-content p {

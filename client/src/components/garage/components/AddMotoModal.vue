@@ -314,10 +314,14 @@ export default {
 
 .modal-actions {
     display: flex;
-    justify-content: flex-end;
+    justify-content: space-evenly;
     gap: 15px;
     padding-top: 20px;
     border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.modal-actions button {
+    width: 100%;
 }
 
 @media (max-width: 480px) {
@@ -343,6 +347,10 @@ export default {
     .form-row {
         grid-template-columns: 1fr;
         gap: 15px;
+    }
+
+    .modal-actions {
+        flex-direction: column;
     }
 }
 </style>
