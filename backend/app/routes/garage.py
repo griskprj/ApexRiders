@@ -140,8 +140,12 @@ def add_maintenance():
             if unit == 'months':
                 next_date = last_maintenance_date + \
                     timedelta(days=interval * 30)
+                if datetime.now().date() > next_date:
+                    overdue = True
             elif unit == 'days':
                 next_date = last_maintenance_date + timedelta(days=interval)
+                if datetime.now().date() > next_date:
+                    overdue = True
 
         if overdue:
             status = 'overdue'

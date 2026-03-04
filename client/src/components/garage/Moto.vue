@@ -165,6 +165,9 @@
                 :upcomingMaintenance="upcomingMaintenance"
                 :overdueTasks="overdueTasks"
                 :motorcycle="motorcycle"
+                @create-task="openAddTaskModal"
+                @delete-task="deleteTask"
+                @complete-task="completeTask"
             />
         </div>
 
@@ -665,21 +668,21 @@ export default {
         },
 
         // Отметка задачи
-        async completeTask() {
+        async completeTask(task) {
             try {
                 const token = localStorage.getItem('authToken');
 
                 const completionData = {
-                    const: this.completionData.cost,
-                    parts_used: this.completionData.parts_used,
-                    notes: this.completionData.notes,
-                    create_next: this.completionData.create_next,
-                    completed_date: this.completionData.completed_date,
+                    const: task.cost,
+                    parts_used: task.parts_used,
+                    notes: task.notes,
+                    create_next: task.create_next,
+                    completed_date: task.completed_date,
                     mileage: this.motorcycle.current_mileage
                 };
 
                 await axios.post(
-                    `/api/garage/maintenance/${this.selectedTask.id}/complete`,
+                    `/api/garage/maintenance/${task.id}/complete`,
                     completionData,
                     { headers: { 'Authorization': `Bearer ${token}` } }
                 );
@@ -698,21 +701,20 @@ export default {
 
         // Удалить задачу
         async deleteTask(task) {
-            if (confirm(`Удалить задачу "${task.title}"?`)) {
-                try {
-                    const token = localStorage.getItem('authToken')
+            try {
+                const token = localStorage.getItem('authToken')
 
-                    await axios.delete(
-                        `/api/garage/maintenance/${task.id}`,
-                        { headers: { 'Authorization': `Bearer ${token}` } }
-                    )
+                await axios.delete(
+                    `/api/garage/maintenance/${task.id}`,
+                    { headers: { 'Authorization': `Bearer ${token}` } }
+                )
 
-                    await this.loadMaintenanceHistory()
-                    this.showNotification('Задача удалена', 'success')
-                } catch (error) {
-                    console.error('Ошибка удаления задачи: ', error)
-                    this.showNotification('Ошибка при удалении задачи', 'error')
-                }
+                await this.loadMaintenanceHistory()
+                await this.fetchMotorcycleData()
+                this.showNotification('Задача удалена', 'success')
+            } catch (error) {
+                console.error('Ошибка удаления задачи: ', error)
+                this.showNotification('Ошибка при удалении задачи', 'error')
             }
         },
 

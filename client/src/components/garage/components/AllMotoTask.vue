@@ -93,9 +93,28 @@
                             <div v-if="task.next_maintenance_mileage" class="detail-item">
                                 <i class="fas fa-tachometer-alt detail-icon"></i>
                                 <div class="detail-content">
-                                    <span class="detail-label">Следующее ТО по пробегу</span>
+                                    <span class="detail-label">Следующее ТО через</span>
                                     <span class="detail-value">
-                                        {{ task.next_maintenance_mileage }} км
+                                        {{ task.next_maintenance_mileage - motorcycle.current_mileage }} км
+                                    </span>
+                                </div>
+                            </div>
+                            
+                            <div v-if="task.status === 'overdue' && task.next_maintenance_mileage" class="detail-item overdue">
+                                <i class="fas fa-tachometer-alt detail-icon overdue"></i>
+                                <div class="detail-content">
+                                    <span class="detail-label">Просрочено по пробегу</span>
+                                    <span class="detail-value">
+                                        {{ Math.max(0, motorcycle.current_mileage - task.next_maintenance_mileage) }} км
+                                    </span>
+                                </div>
+                            </div>
+                            <div v-if="task.status === 'overdue' && task.next_maintenance_date" class="detail-item overdue">
+                                <i class="fas fa-calendar detail-icon overdue"></i>
+                                <div class="detail-content">
+                                    <span class="detail-label">Просрочено по дате</span>
+                                    <span class="detail-value"> 
+                                        {{ getOverdueDays(task.next_maintenance_date) }} дней
                                     </span>
                                 </div>
                             </div>
@@ -234,6 +253,25 @@ export default {
             if (confirm('Вы уверены, что хотите удалить эту задачу?')) {
                 this.$emit('delete-task', task);
             }
+        },
+
+
+        getOverdueDays(dateString) {
+            if (!dateString) return 0;
+            
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            
+            const maintenanceDate = new Date(dateString);
+            maintenanceDate.setHours(0, 0, 0, 0);
+            
+            // Если дата обслуживания еще не наступила
+            if (maintenanceDate >= today) return 0;
+            
+            const diffTime = today - maintenanceDate;
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            
+            return diffDays;
         }
     }
 }
@@ -322,7 +360,7 @@ export default {
 
 .task-item.overdue {
     background: rgba(244, 67, 54, 0.05);
-    border-left: 4px solid #f44336;
+    border-left: 4px solid #f44336 !important;
 }
 
 .task-item.high-priority {
@@ -467,11 +505,20 @@ export default {
     border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
+.detail-item.overdue {
+    background: rgba(244, 67, 54, 0.05);
+    border-left: 4px solid #f44336;
+}
+
 .detail-icon {
     color: #00bcd4;
     font-size: 1.2em;
     width: 24px;
     text-align: center;
+}
+
+.detail-icon.overdue {
+    color: rgb(244, 67, 54);
 }
 
 .detail-content {
